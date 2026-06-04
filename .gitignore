@@ -1,0 +1,11 @@
+.DS_Store
+# Unused original screenshots from v1 (image-based prototype)
+PEX-43/imgs/01-species-selection.png
+PEX-43/imgs/02-review-sighting.png
+PEX-43/imgs/03-photo-selection.png
+PEX-43/imgs/04-photo-confirmation.png
+PEX-43/imgs/05-review-sighting-photo-added.png
+PEX-43/imgs/06-review-sighting-reset.png
+PEX-43/imgs/select-badge.png
+# Original oversized bird thumbnail (replaced by bird-thumb-small.jpg)
+PEX-43/imgs/bird-thumb.jpg

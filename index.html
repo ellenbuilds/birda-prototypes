@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Birda Prototypes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Rubik', -apple-system, sans-serif;
+      background: #F2F2F7;
+      min-height: 100vh;
+      padding: 48px 24px;
+      color: #2D3142;
+    }
+    .container { max-width: 640px; margin: 0 auto; }
+    header { margin-bottom: 40px; }
+    h1 { font-size: 28px; font-weight: 600; margin-bottom: 6px; }
+    .subtitle { font-size: 15px; color: #8E8E93; }
+    .list { display: flex; flex-direction: column; gap: 12px; }
+    .item {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px 20px 20px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      text-decoration: none; color: inherit;
+      border: 1px solid #E5E5EA;
+      transition: box-shadow .15s;
+    }
+    .item:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+    .item-left { display: flex; flex-direction: column; gap: 4px; }
+    .item-id { font-size: 12px; font-weight: 500; color: #8E8E93; letter-spacing: .04em; text-transform: uppercase; }
+    .item-title { font-size: 16px; font-weight: 500; }
+    .item-desc { font-size: 13px; color: #8E8E93; margin-top: 2px; }
+    .chevron { color: #C7C7CC; font-size: 20px; font-weight: 300; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Birda Prototypes</h1>
+      <p class="subtitle">Interactive design explorations</p>
+    </header>
+    <div class="list">
+      <a class="item" href="PEX-43/index.html">
+        <div class="item-left">
+          <span class="item-id">PEX-43</span>
+          <span class="item-title">Photo metadata — Review Sighting</span>
+          <span class="item-desc">Auto-populating date &amp; location from photo EXIF data</span>
+        </div>
+        <span class="chevron">›</span>
+      </a>
+    </div>
+  </div>
+</body>
+</html>
