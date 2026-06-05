@@ -494,9 +494,68 @@
   .cal-time-lbl { font-size:15px; font-weight:600; color:var(--text); }
   .cal-time-input { border:1.5px solid var(--blue); border-radius:8px; padding:5px 12px; font:inherit; font-size:15px; color:var(--text); text-align:center; width:80px; background:none; }
   .cal-reset { text-align:center; padding:20px 16px; color:var(--blue); font-size:15px; font-weight:500; cursor:pointer; }
+  /* ── Prototype wayfinding: back to list + iteration switcher (Figma-pages style) ── */
+  .proto-nav {
+    position: fixed; top: 22px; left: 22px; z-index: 200; width: 190px;
+    display: flex; flex-direction: column; gap: 12px;
+    font-family: 'Rubik', -apple-system, sans-serif;
+  }
+  .proto-back {
+    align-self: flex-start;
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 13px; font-weight: 500; color: #4A4E5A; text-decoration: none;
+    padding: 7px 12px 7px 10px; background: #fff;
+    border: 1px solid #E5E5EA; border-radius: 8px; transition: background .12s;
+  }
+  .proto-back:hover { background: #F7F7FA; }
+  .proto-back svg { width: 7px; height: 12px; flex-shrink: 0; }
+  .proto-pages { background: #fff; border: 1px solid #E5E5EA; border-radius: 10px; padding: 6px; }
+  .proto-pages-head {
+    font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    color: #8E8E93; padding: 7px 10px 8px;
+  }
+  .proto-page {
+    display: block; font-size: 14px; font-weight: 500; color: #2D3142;
+    text-decoration: none; padding: 8px 10px; border-radius: 7px; transition: background .12s;
+  }
+  .proto-page:hover { background: #F2F2F7; }
+  .proto-page.active { background: #E2F0FF; color: #1F87FE; }
+  .proto-about { background: #fff; border: 1px solid #E5E5EA; border-radius: 10px; padding: 13px 13px 13px; display: flex; flex-direction: column; gap: 11px; }
+  .proto-about-head { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #8E8E93; }
+  .proto-about-text { font-size: 12px; line-height: 1.5; color: #6B6F7B; }
+  .proto-about-text strong { font-weight: 600; color: #2D3142; }
+  .proto-reset {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font-family: inherit; font-size: 13px; font-weight: 500; color: #2D3142;
+    background: #F2F2F7; border: 1px solid #E5E5EA; border-radius: 8px;
+    padding: 9px 10px; cursor: pointer; transition: background .12s;
+  }
+  .proto-reset:hover { background: #EBEBF0; }
+  .proto-reset svg { width: 13px; height: 13px; flex-shrink: 0; }
+  @media (max-width: 920px) { .proto-nav { position: static; width: auto; margin: 0 0 20px; align-items: center; } }
   </style>
 </head>
 <body>
+<!-- Wayfinding -->
+<nav class="proto-nav">
+  <a class="proto-back" href="../index.html">
+    <svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    All prototypes
+  </a>
+  <div class="proto-pages">
+    <div class="proto-pages-head">PEX-43</div>
+    <a class="proto-page active" href="../PEX-43/index.html">Iteration 1</a>
+    <a class="proto-page" href="../PEX-43-v2/index.html">Iteration 2</a>
+  </div>
+  <div class="proto-about">
+    <div class="proto-about-head">About this version</div>
+    <p class="proto-about-text">Adding a photo <strong>automatically updates</strong> the sighting’s date, time &amp; location to match it, with an inline banner to undo. Add a photo to a sighting, then try <strong>Reset</strong> in the banner — or tap the date / location rows to edit them manually.</p>
+    <button class="proto-reset" onclick="location.reload()">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Restart prototype
+    </button>
+  </div>
+</nav>
 
 <!-- ╔══════════════════════════════╗ -->
 <!-- ║         PHONE SHELL          ║ -->

@@ -18,21 +18,43 @@
     header { margin-bottom: 40px; }
     h1 { font-size: 28px; font-weight: 600; margin-bottom: 6px; }
     .subtitle { font-size: 15px; color: #8E8E93; }
-    .list { display: flex; flex-direction: column; gap: 12px; }
-    .item {
+
+    /* List of prototype projects */
+    .projects { display: flex; flex-direction: column; gap: 16px; }
+
+    .project {
       background: #fff;
-      border-radius: 12px;
-      padding: 20px 20px 20px 24px;
-      display: flex; align-items: center; justify-content: space-between;
-      text-decoration: none; color: inherit;
+      border-radius: 14px;
       border: 1px solid #E5E5EA;
-      transition: box-shadow .15s;
+      overflow: hidden;
     }
-    .item:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
-    .item-left { display: flex; flex-direction: column; gap: 4px; }
-    .item-id { font-size: 12px; font-weight: 500; color: #8E8E93; letter-spacing: .04em; text-transform: uppercase; }
-    .item-title { font-size: 16px; font-weight: 500; }
-    .item-desc { font-size: 13px; color: #8E8E93; margin-top: 2px; }
+    .project-head { padding: 18px 24px 16px; }
+    .project-id {
+      font-size: 12px; font-weight: 500; color: #8E8E93;
+      letter-spacing: .04em; text-transform: uppercase;
+    }
+    .project-title { font-size: 16px; font-weight: 500; margin-top: 3px; }
+    .project-desc { font-size: 13px; color: #8E8E93; margin-top: 3px; }
+
+    /* Iterations nested within a project */
+    .iterations { display: flex; flex-direction: column; }
+    .iteration {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px;
+      padding: 13px 24px;
+      text-decoration: none; color: inherit;
+      border-top: 1px solid #EFEFF4;
+      transition: background .12s;
+    }
+    .iteration:hover { background: #FAFAFC; }
+    .iteration-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .iteration-label { font-size: 15px; font-weight: 500; }
+    .iteration-note { font-size: 12px; color: #8E8E93; }
+    .iteration-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .badge {
+      font-size: 11px; font-weight: 500; color: #1F87FE;
+      background: #E2F0FF; border-radius: 4px; padding: 2px 7px;
+    }
     .chevron { color: #C7C7CC; font-size: 20px; font-weight: 300; }
   </style>
 </head>
@@ -42,23 +64,34 @@
       <h1>Birda Prototypes</h1>
       <p class="subtitle">Interactive design explorations</p>
     </header>
-    <div class="list">
-      <a class="item" href="PEX-43/index.html">
-        <div class="item-left">
-          <span class="item-id">PEX-43 · Iteration 1</span>
-          <span class="item-title">Photo metadata — Review Sighting</span>
-          <span class="item-desc">Auto-populating date &amp; location from photo EXIF data</span>
+
+    <div class="projects">
+
+      <!-- ───── PEX-43 ───── -->
+      <div class="project">
+        <div class="project-head">
+          <span class="project-id">PEX-43</span>
+          <div class="project-title">Photo metadata — Review Sighting</div>
+          <p class="project-desc">Using a photo’s date &amp; location to update a sighting</p>
         </div>
-        <span class="chevron">›</span>
-      </a>
-      <a class="item" href="PEX-43-v2/index.html">
-        <div class="item-left">
-          <span class="item-id">PEX-43 · Iteration 2</span>
-          <span class="item-title">Photo metadata — Review Sighting</span>
-          <span class="item-desc">Copy of iteration 1 — work in progress</span>
+        <div class="iterations">
+          <a class="iteration" href="PEX-43/index.html">
+            <span class="iteration-meta">
+              <span class="iteration-label">Iteration 1</span>
+              <span class="iteration-note">Auto-applies metadata with an inline alert &amp; reset</span>
+            </span>
+            <span class="iteration-right"><span class="chevron">›</span></span>
+          </a>
+          <a class="iteration" href="PEX-43-v2/index.html">
+            <span class="iteration-meta">
+              <span class="iteration-label">Iteration 2</span>
+              <span class="iteration-note">Dedicated step to confirm details per field</span>
+            </span>
+            <span class="iteration-right"><span class="badge">Latest</span><span class="chevron">›</span></span>
+          </a>
         </div>
-        <span class="chevron">›</span>
-      </a>
+      </div>
+
     </div>
   </div>
 </body>
