@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Birda Prototype — Template</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <!--
+    ╔══════════════════════════════════════════════════════════════════╗
+    ║  BIRDA PROTOTYPE TEMPLATE                                          ║
+    ║  1. Copy this folder and rename it for your prototype.            ║
+    ║     (Sits one level under birda-prototypes/, like PEX-43/.)       ║
+    ║  2. Edit the PROTO config in the <script> below.                  ║
+    ║  3. Replace the placeholder <section class="screen"> blocks with  ║
+    ║     your screens (data-screen="1", "2", …).                       ║
+    ║                                                                    ║
+    ║  • The "All prototypes" button always shows.                      ║
+    ║  • The iteration switcher + description ONLY appear once PROTO     ║
+    ║    .iterations has 2+ entries (i.e. when a 2nd iteration exists).  ║
+    ╚══════════════════════════════════════════════════════════════════╝
+  -->
+  <style>
+  /* ─── Reset & tokens ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  button { font: inherit; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  :root { --blue:#1F87FE; --blue-5:#E3F0FF; --ink:#2D3142; --muted:#8890AE; --cloud:#F4F6FA; --line:#E4E8F0; }
+  html, body { height:100%; }
+  body {
+    height:100vh; overflow:hidden; background:#dde1e9;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Rubik',-apple-system,sans-serif; color:var(--ink);
+  }
+
+  /* ─── Phone shell (house style) ─── */
+  .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:center center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.45); }
+  .shell::before { content:''; position:absolute; left:-3px; top:106px; width:3px; height:34px; background:#222; border-radius:2px 0 0 2px; box-shadow:0 44px 0 #222,0 88px 0 #222; }
+  .shell::after { content:''; position:absolute; right:-3px; top:156px; width:3px; height:72px; background:#222; border-radius:0 2px 2px 0; }
+  .viewport { width:369px; height:798px; border-radius:44px; overflow:hidden; position:relative; background:#fff; }
+
+  /* ─── Screen scaffold ─── */
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; background:#fff; }
+  .screen.active { display:flex; }
+  .body { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .body::-webkit-scrollbar { display:none; }
+  .footer { flex-shrink:0; padding:12px 24px 28px; background:#fff; }
+
+  /* status bar */
+  .statusbar { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:14px 26px 6px; z-index:5; }
+  .statusbar .time { font-size:15px; font-weight:600; }
+  .statusbar svg { display:block; }
+  .statusbar.light .time { color:#fff; } .statusbar.light svg { fill:#fff; }
+
+  /* buttons */
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px; border-radius:4px; font-size:16px; font-weight:600; }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:active { background:#0f6fe0; }
+
+  /* ─── Wayfinding: back to list + (optional) iteration switcher & about ─── */
+  .proto-nav { position:fixed; top:22px; left:22px; z-index:200; width:190px; display:flex; flex-direction:column; gap:12px; font-family:'Rubik',-apple-system,sans-serif; }
+  .proto-back { align-self:flex-start; display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:500; color:#4A4E5A; text-decoration:none; padding:7px 12px 7px 10px; background:#fff; border:1px solid #E5E5EA; border-radius:8px; transition:background .12s; }
+  .proto-back:hover { background:#F7F7FA; }
+  .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+  .proto-pages { background:#fff; border:1px solid #E5E5EA; border-radius:10px; padding:6px; }
+  .proto-pages-head { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#8E8E93; padding:7px 10px 8px; }
+  .proto-page { display:block; font-size:14px; font-weight:500; color:#2D3142; text-decoration:none; padding:8px 10px; border-radius:7px; transition:background .12s; }
+  .proto-page:hover { background:#F2F2F7; }
+  .proto-page.active { background:#E2F0FF; color:#1F87FE; }
+  .proto-about { background:#fff; border:1px solid #E5E5EA; border-radius:10px; padding:13px; display:flex; flex-direction:column; gap:11px; }
+  .proto-about-head { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#8E8E93; }
+  .proto-about-text { font-size:12px; line-height:1.5; color:#6B6F7B; }
+  .proto-about-text strong { font-weight:600; color:#2D3142; }
+  .proto-reset { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; font-size:13px; font-weight:500; color:#2D3142; background:#F2F2F7; border:1px solid #E5E5EA; border-radius:8px; padding:9px 10px; cursor:pointer; transition:background .12s; }
+  .proto-reset:hover { background:#EBEBF0; }
+  .proto-reset svg { width:13px; height:13px; flex-shrink:0; }
+  </style>
+</head>
+<body>
+<!-- Wayfinding (built from the PROTO config by the script below) -->
+<nav class="proto-nav" id="protoNav"></nav>
+
+<div class="shell">
+  <div class="viewport" id="viewport">
+
+    <!-- ▼▼▼  Replace these placeholder screens with your prototype  ▼▼▼ -->
+    <section class="screen" data-screen="1" style="align-items:center; justify-content:center; text-align:center; padding:0 32px;">
+      <h1 style="font-size:26px; font-weight:700; line-height:1.2;">Prototype title</h1>
+      <p style="font-size:15px; color:var(--muted); margin-top:10px; line-height:1.5;">A short intro screen. Tap Continue, or use the ← / → arrow keys to move between screens.</p>
+      <button class="btn btn-primary" style="margin-top:28px; width:auto; padding:14px 28px;" onclick="next()">Continue</button>
+    </section>
+
+    <section class="screen" data-screen="2">
+      <div class="statusbar"></div>
+      <div class="body" style="padding:24px;">
+        <h1 style="font-size:22px; font-weight:700;">Second screen</h1>
+        <p style="font-size:15px; color:var(--muted); margin-top:10px; line-height:1.5;">A screen with the status bar, a scrolling body, and a footer button. Append more <code>&lt;section class="screen" data-screen="N"&gt;</code> blocks as needed.</p>
+      </div>
+      <div class="footer"><button class="btn btn-primary" onclick="goTo(1)">Back to start</button></div>
+    </section>
+    <!-- ▲▲▲ ------------------------------------------------------- ▲▲▲ -->
+
+  </div>
+</div>
+
+<script>
+  /* ══ CONFIG — edit per prototype ════════════════════════════════════ */
+  const PROTO = {
+    indexHref: '../index.html',   // path to the prototypes index ('../../index.html' if nested one level deeper)
+    group: 'PROJECT-ID',          // label shown above the iteration list
+    current: 0,                   // 0-based index of the iteration THIS file represents
+    iterations: [                 // add a 2nd entry to reveal the switcher + description
+      // { label: 'Iteration 1', href: '../my-prototype/index.html' },
+      // { label: 'Iteration 2', href: '../my-prototype-v2/index.html' },
+    ],
+    about: 'Describe what changed in <strong>this version</strong> and what to try.',
+  };
+  /* ═══════════════════════════════════════════════════════════════════ */
+
+  /* ── Wayfinding: back button always; switcher + about only with 2+ iterations ── */
+  (function buildNav() {
+    const back = '<a class="proto-back" href="' + PROTO.indexHref + '">'
+      + '<svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      + 'All prototypes</a>';
+    let extra = '';
+    if (PROTO.iterations.length >= 2) {
+      const pages = PROTO.iterations.map((it, i) =>
+        '<a class="proto-page' + (i === PROTO.current ? ' active' : '') + '" href="' + it.href + '">' + it.label + '</a>'
+      ).join('');
+      extra = '<div class="proto-pages"><div class="proto-pages-head">' + PROTO.group + '</div>' + pages + '</div>'
+        + '<div class="proto-about"><div class="proto-about-head">About this version</div>'
+        + '<p class="proto-about-text">' + PROTO.about + '</p>'
+        + '<button class="proto-reset" onclick="location.reload()">'
+        + '<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        + 'Restart prototype</button></div>';
+    }
+    document.getElementById('protoNav').innerHTML = back + extra;
+  })();
+
+  /* ── Status bar (9:41 + signal/wifi/battery) injected into every .statusbar ── */
+  const sbSVG = '<svg width="78" height="14" viewBox="0 0 82 16" fill="black"><path d="M3.7 9H2.5a1 1 0 0 0-1 1v2.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1m5.2-2.5H7.7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1M14.1 4h-1.2a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1m5.2-2.5h-1.2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1"/><path d="M70.5 1c2.05 0 3.08 0 3.88.34a4.3 4.3 0 0 1 2.28 2.28c.34.8.34 1.83.34 3.88s0 3.08-.34 3.88a4.3 4.3 0 0 1-2.28 2.28c-.8.34-1.83.34-3.88.34h-12c-2.05 0-3.08 0-3.88-.34a4.3 4.3 0 0 1-2.28-2.28C52 10.58 52 9.55 52 7.5s0-3.08.34-3.88a4.3 4.3 0 0 1 2.28-2.28C55.42 1 56.45 1 58.5 1z" opacity=".35"/><path d="M54 7c0-1.4 0-2.1.27-2.63a2.5 2.5 0 0 1 1.1-1.1C55.9 3 56.6 3 58 3h13c1.4 0 2.1 0 2.64.27q.72.37 1.09 1.1C75 4.9 75 5.6 75 7v1c0 1.4 0 2.1-.27 2.64a2.5 2.5 0 0 1-1.1 1.09C73.1 12 72.4 12 71 12H58c-1.4 0-2.1 0-2.63-.27a2.5 2.5 0 0 1-1.1-1.1C54 10.1 54 9.4 54 8z"/></svg>';
+  document.querySelectorAll('.statusbar').forEach(sb => { sb.innerHTML = '<span class="time">9:41</span>' + sbSVG; });
+
+  /* ── Screen navigation ── */
+  const screens = [...document.querySelectorAll('.screen')];
+  let cur = 1;
+  function show(n) {
+    cur = Math.max(1, Math.min(screens.length, n));
+    screens.forEach(s => s.classList.toggle('active', +s.dataset.screen === cur));
+    const active = screens.find(s => +s.dataset.screen === cur);
+    const body = active && active.querySelector('.body'); if (body) body.scrollTop = 0;
+  }
+  function next() { show(cur === screens.length ? 1 : cur + 1); }
+  function goTo(n) { show(n); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') next();
+    else if (e.key === 'ArrowLeft') show(cur === 1 ? screens.length : cur - 1);
+  });
+  show(parseInt((location.hash || '').replace('#', '')) || 1);  // open at #N if present
+
+  /* ── Scale the phone to always fit the viewport ── */
+  const shell = document.querySelector('.shell');
+  function fitShell() {
+    shell.style.transform = 'none';
+    const W = shell.offsetWidth, H = shell.offsetHeight, margin = 40;
+    const s = Math.min(1, (window.innerHeight - margin) / H, (window.innerWidth - margin) / W);
+    shell.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fitShell);
+  fitShell();
+</script>
+</body>
+</html>

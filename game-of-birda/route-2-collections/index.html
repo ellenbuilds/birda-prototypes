@@ -368,9 +368,24 @@
   /* home screen: clickable hit-area over the baked-in "+" nav button */
   .home-plus { position:absolute; left:50%; top:88%; transform:translate(-50%,-50%); width:56px; height:56px; border-radius:50%; background:transparent; cursor:pointer; z-index:5; }
 
+  /* back to the prototypes index (matches PEX-43) */
+  .proto-back {
+    position:fixed; top:22px; left:22px; z-index:200;
+    display:inline-flex; align-items:center; gap:7px;
+    font-size:13px; font-weight:500; color:#4A4E5A; text-decoration:none;
+    padding:7px 12px 7px 10px; background:#fff;
+    border:1px solid #E5E5EA; border-radius:8px; transition:background .12s;
+  }
+  .proto-back:hover { background:#F7F7FA; }
+  .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+
 </style>
 </head>
 <body>
+<a class="proto-back" href="../../index.html">
+  <svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  All prototypes
+</a>
 <div class="shell">
   <div class="viewport" id="viewport">
 
