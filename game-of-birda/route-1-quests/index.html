@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game of Birda — Route 1 · Field guide with quests</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <style>
+  /* ─── Reset & tokens (mirrors production: Rubik + brand palette) ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  button { font: inherit; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --blue:#1F87FE; --blue-5:#E3F0FF; --blue-d:#0254B1; --ink:#2D3142; --muted:#8890AE;
+    --cloud:#F4F6FA; --line:#E4E8F0; --off:#FAFCFE;
+    --green:#2E9E5B; --green-bg:#E6F5EC; --green-d:#1F8A4B;
+    --gold:#B0810F; --gold-bg:#F6EBD3; --gold-strong:#C9920E;
+    --amber:#C77E2A; --amber-bg:#FBEAD3;
+    --purple:#7A5AF8; --purple-bg:#ECE7FE;
+    --map-green:#E6EBDF; --map-water:#BBD6EA;
+    --r:14px;
+  }
+  html, body { height:100%; }
+  body {
+    height:100vh; overflow:hidden; background:#dde1e9; display:flex; align-items:center; justify-content:center;
+    font-family:'Rubik',-apple-system,sans-serif; color:var(--ink);
+  }
+
+  /* ─── Phone shell (PEX-43 house style) ─── */
+  .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:center center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.45); }
+  .shell::before { content:''; position:absolute; left:-3px; top:106px; width:3px; height:34px; background:#222; border-radius:2px 0 0 2px; box-shadow:0 44px 0 #222,0 88px 0 #222; }
+  .shell::after { content:''; position:absolute; right:-3px; top:156px; width:3px; height:72px; background:#222; border-radius:0 2px 2px 0; }
+  .viewport { width:369px; height:798px; border-radius:44px; overflow:hidden; position:relative; background:#fff; }
+
+  /* ─── Screen scaffold ─── */
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; background:#fff; }
+  .screen.active { display:flex; }
+  .body { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .body::-webkit-scrollbar { display:none; }
+  .footer { flex-shrink:0; padding:12px 24px 26px; background:#fff; }
+  .footer .sublink { display:block; text-align:center; color:var(--blue); font-size:15px; font-weight:600; margin-top:14px; cursor:pointer; }
+
+  /* status bar */
+  .statusbar { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:14px 26px 6px; z-index:5; }
+  .statusbar .time { font-size:15px; font-weight:600; }
+  .statusbar svg { display:block; }
+  .statusbar.light .time { color:#fff; } .statusbar.light svg { fill:#fff; }
+
+  /* buttons */
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px; border-radius:12px; font-size:16px; font-weight:600; }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:active { background:#0f6fe0; }
+  .link { color:var(--blue); font-weight:600; cursor:pointer; }
+
+  /* ── P1 Welcome (flat image) — reused from Route 2 ── */
+  .screen.flat img { width:100%; height:100%; object-fit:cover; display:block; cursor:pointer; }
+
+  /* ── P3 Birding journey — reused from Route 2 ── */
+  .progress { height:7px; background:var(--line); border-radius:99px; margin:6px 24px 0; overflow:hidden; }
+  .progress > i { display:block; height:100%; width:40%; background:var(--blue); border-radius:99px; }
+  .p3 h1 { font-size:27px; font-weight:700; text-align:center; line-height:1.2; padding:20px 24px 8px; }
+  .opts { padding:8px 24px; display:flex; flex-direction:column; gap:14px; }
+  .opt { display:flex; align-items:center; gap:18px; padding:18px 18px; border:1.5px solid var(--line); border-radius:var(--r); background:#fff; text-align:left; transition:.12s; }
+  .opt:hover { border-color:#c9d2e6; }
+  .opt.sel { border-color:var(--blue); background:var(--blue-5); }
+  .opt .bars { display:flex; align-items:flex-end; gap:4px; width:42px; height:34px; flex-shrink:0; }
+  .opt .bars i { width:10px; background:var(--blue-5); border-radius:2px; }
+  .opt .bars i:nth-child(1){height:45%;} .opt .bars i:nth-child(2){height:72%;} .opt .bars i:nth-child(3){height:100%;}
+  .opt[data-level="1"] .bars i:nth-child(1),
+  .opt[data-level="2"] .bars i:nth-child(-n+2),
+  .opt[data-level="3"] .bars i { background:var(--blue); }
+  .opt span { font-size:17px; color:var(--ink); }
+
+  /* nav header (back link) */
+  .nav { flex-shrink:0; display:flex; align-items:center; padding:6px 22px 0; min-height:34px; }
+  .nav .back { display:inline-flex; align-items:center; gap:5px; color:var(--blue); font-size:16px; font-weight:600; }
+  .nav .back svg { width:8px; height:14px; }
+
+  /* generic chips */
+  .chip { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; padding:4px 10px; border-radius:99px; white-space:nowrap; }
+  .chip-starter { background:var(--green-bg); color:var(--green-d); }
+  .chip-feather { background:var(--gold-bg); color:var(--gold); }
+  .chip-days    { background:var(--amber-bg); color:var(--amber); }
+  .chip-common  { background:var(--green-bg); color:var(--green-d); font-size:11.5px; padding:3px 9px; }
+  .chip-date    { background:#EEF1F6; color:#5B6072; }
+  .chip-limited { background:var(--purple-bg); color:var(--purple); font-size:11px; letter-spacing:.05em; }
+
+  /* progress ring (SVG) */
+  .ring { position:relative; flex-shrink:0; }
+  .ring svg { display:block; transform:rotate(-90deg); }
+  .ring .track { stroke:#E7EBF1; }
+  .ring .arc { stroke:var(--blue); stroke-linecap:round; transition:stroke-dashoffset .5s ease; }
+  .ring.green .arc { stroke:var(--green); }
+  .ring .lbl { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--ink); }
+
+  /* ── S1 Location ── */
+  /* ── S1 Location (Route 2 P4 format — same illustration, quest-led copy) ── */
+  .loc .body { padding:0 24px; text-align:center; }
+  .loc h1 { font-size:25px; font-weight:700; margin-top:18px; }
+  .loc p { color:var(--ink); font-size:15px; line-height:1.45; margin:11px 6px 0; }
+  .locimg { margin-top:10px; }
+  .locimg img { width:218px; max-width:64%; height:auto; display:block; margin:0 auto; }
+  .loc .taste { display:flex; align-items:center; justify-content:center; gap:7px; font-size:14px; font-weight:600; color:var(--ink); margin:16px 0 10px; }
+  .qpreview { display:flex; align-items:center; gap:14px; border:1.5px dashed #BBD0EE; background:#F5F9FF; border-radius:14px; padding:14px 16px; text-align:left; }
+  .qpreview .qtext { flex:1; }
+  .qpreview .qt { font-size:15px; font-weight:600; }
+  .qpreview .qtags { display:flex; gap:6px; margin-top:7px; }
+
+  /* ── S1.5 intro / quick start ── */
+  .intro .body { padding:0 22px; }
+  .intro h1 { font-size:27px; font-weight:700; line-height:1.15; margin-top:8px; letter-spacing:-.01em; }
+  .intro .lede { color:var(--muted); font-size:15.5px; line-height:1.5; margin-top:8px; }
+  .questcard { border:1.5px solid var(--blue); border-radius:16px; padding:15px 16px; margin-top:18px; }
+  .questcard .qrow { display:flex; align-items:center; gap:14px; }
+  .questcard .qmeta { flex:1; min-width:0; }
+  .questcard .qlabel { font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--muted); }
+  .questcard .qname { font-size:19px; font-weight:700; margin:3px 0 9px; }
+  .questcard .qtags { display:flex; gap:7px; }
+  .questcard .qcredit { display:flex; align-items:center; gap:7px; font-size:14px; font-weight:600; color:var(--green-d); margin-top:13px; }
+  .questcard .qcredit .tick { width:20px; height:20px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .questcard .qcredit .tick svg { width:11px; height:11px; }
+  .intro h2 { font-size:20px; font-weight:700; margin:22px 0 12px; }
+  .picklist { display:flex; flex-direction:column; gap:12px; }
+  .pick { display:flex; align-items:center; gap:14px; padding:12px 14px; border:1.5px solid var(--line); border-radius:14px; background:#fff; text-align:left; transition:.12s; }
+  .pick:hover { border-color:#c9d2e6; }
+  .pick.sel { border-color:var(--blue); background:var(--blue-5); }
+  .pick .pphoto { width:78px; height:70px; flex-shrink:0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .pick .pphoto img { width:100%; height:100%; object-fit:contain; mix-blend-mode:multiply; }
+  .pick .pinfo { flex:1; min-width:0; }
+  .pick .pn { display:block; font-size:18px; font-weight:700; }
+  .pick .pl { display:block; font-size:14px; font-style:italic; color:var(--muted); margin-top:1px; }
+  .pick .psex { display:block; font-size:16px; color:#9AA0AC; margin-top:6px; letter-spacing:2px; }
+  .pick .pcheck { width:26px; height:26px; border-radius:50%; border:2px solid #D7DBE2; flex-shrink:0; }
+  .pick.sel .pcheck { border:none; background:var(--blue); display:flex; align-items:center; justify-content:center; }
+  .pick .helper { font-size:11px; }
+
+  /* ── Map screens (S2, S8) ── */
+  .mapscreen { background:var(--map-green); }
+  .mapbg { position:absolute; inset:0; background:var(--map-green); overflow:hidden; }
+  .mapbg .water { position:absolute; background:var(--map-water); border-radius:50%; }
+  .mapbg .road { position:absolute; left:-6%; right:-6%; height:30px; background:#fff; transform:rotate(-12deg); top:30%; box-shadow:0 1px 0 #e4ead8 inset; }
+  .mapbg .road.two { top:62%; transform:rotate(-9deg); height:16px; opacity:.8; }
+  .locdot { position:absolute; left:48%; top:30%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:var(--blue); border:3px solid #fff; box-shadow:0 0 0 7px rgba(31,135,254,.18), 0 2px 6px rgba(0,0,0,.25); }
+  .hex { position:absolute; width:54px; height:60px; background:var(--blue); clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; font-weight:700; box-shadow:0 6px 14px rgba(31,135,254,.34); }
+  .mapcircle { position:absolute; top:46px; width:46px; height:46px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(45,49,66,.16); z-index:6; }
+  .mapcircle svg { width:20px; height:20px; stroke:#3A3F4C; stroke-width:2; fill:none; }
+  .mapcircle.left { left:22px; } .mapcircle.right { right:22px; }
+  .feather-pill { position:absolute; top:48px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:7px; background:#fff; border-radius:99px; padding:9px 16px; font-size:16px; font-weight:700; color:var(--gold-strong); box-shadow:0 3px 10px rgba(45,49,66,.16); z-index:6; }
+  .feather-pill .fe { font-size:16px; }
+
+  /* bottom sheet anchored on map */
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:#fff; border-radius:22px 22px 0 0; box-shadow:0 -8px 30px rgba(20,22,30,.16); display:flex; flex-direction:column; z-index:8; }
+  .sheet .handle { width:38px; height:4px; border-radius:99px; background:#E0E3EB; margin:10px auto 4px; flex-shrink:0; }
+  .sheet .sbody { flex:1; padding:6px 20px 0; overflow-y:auto; scrollbar-width:none; }
+  .sheet .sbody::-webkit-scrollbar { display:none; }
+  .sheet .greeting { font-size:21px; font-weight:700; padding:8px 0 2px; }
+
+  /* "Let's go birding" → the intro shrinks down into this sheet on the map screen */
+  @keyframes sheetShrink { from { top:6%; } to { top:44%; } }
+  @keyframes sheetFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+  .mapscreen .sheet.intro-enter { animation: sheetShrink .58s cubic-bezier(.22,.85,.28,1) both; }
+  /* the quest card is the handed-off element (stays); the bird list is new, so it fades up as the sheet settles */
+  .mapscreen .sheet.intro-enter .likely-head,
+  .mapscreen .sheet.intro-enter .likely { animation: sheetFadeUp .4s ease .26s both; }
+  /* intro screen: everything except the quest card animates away before the handoff */
+  .intro .body > *, .intro .footer { transition: opacity .24s ease, transform .24s ease; }
+  .intro.leaving .body > *:not(.questcard),
+  .intro.leaving .footer { opacity:0; transform:translateY(8px); }
+
+  /* quest progress card inside sheets / detail */
+  .qprog { display:flex; align-items:center; gap:15px; border:1.5px solid var(--blue); border-radius:16px; padding:14px 16px; margin-top:10px; cursor:pointer; }
+  .qprog.mini { border-color:var(--line); }
+  .qprog .qp-text { flex:1; min-width:0; }
+  .qprog .qp-title { font-size:16px; font-weight:700; line-height:1.25; }
+  .qprog .qp-tags { display:flex; gap:7px; margin-top:8px; flex-wrap:wrap; }
+  .qprog .qp-tip { display:flex; align-items:center; gap:6px; font-size:13.5px; color:#5B6072; margin-top:9px; }
+
+  /* "likely near you" row */
+  .likely-head { display:flex; align-items:center; justify-content:space-between; margin:20px 0 12px; }
+  .likely-head h3 { font-size:18px; font-weight:700; }
+  .likely-head .seeall { color:var(--blue); font-size:14px; font-weight:600; cursor:pointer; }
+  .likely { display:flex; gap:8px; }
+  .lbird { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .lbird .lphoto { width:100%; height:78px; display:flex; align-items:center; justify-content:center; }
+  .lbird .lphoto img { max-width:100%; max-height:100%; object-fit:contain; mix-blend-mode:multiply; }
+  .lbird .lname { font-size:14px; font-weight:600; margin-top:4px; }
+  .lbird .chip-common { margin-top:6px; }
+  .lbird .logbtn { margin-top:9px; display:inline-flex; align-items:center; justify-content:center; gap:5px; font-size:12.5px; font-weight:600; color:#fff; background:var(--blue); border-radius:99px; padding:6px 14px; }
+  .lbird .logbtn:active { background:#0f6fe0; }
+  .lbird .logbtn svg { width:12px; height:12px; stroke:#fff; stroke-width:2.8; fill:none; stroke-linecap:round; }
+
+  /* event teaser banner */
+  .teaser { display:flex; align-items:flex-start; gap:10px; background:var(--gold-bg); border-radius:12px; padding:12px 14px; margin-top:18px; font-size:14px; line-height:1.4; color:#6E5A2E; }
+  .teaser .ic { flex-shrink:0; font-size:16px; }
+  .teaser.click { cursor:pointer; }
+
+  /* app bottom nav */
+  .appnav { flex-shrink:0; display:flex; align-items:flex-end; justify-content:space-between; padding:9px 12px 22px; border-top:1px solid var(--line); background:#fff; z-index:9; }
+  .navt { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; color:#9097A3; cursor:pointer; }
+  .navt.on { color:var(--blue); }
+  .navt > svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .navt.plus { flex:0 0 auto; }
+  .navt.plus .fab { width:52px; height:52px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(31,135,254,.4); transform:translateY(-6px); }
+  .navt.plus .fab svg { width:26px; height:26px; stroke:#fff; stroke-width:2.4; fill:none; stroke-linecap:round; }
+
+  /* ── S3 / S9 quest list ── */
+  .qlist .body { padding:0 22px; }
+  .qlist-head { display:flex; align-items:center; justify-content:space-between; margin-top:8px; }
+  .qlist-head h1 { font-size:27px; font-weight:700; }
+  .qlist-head .meta { display:flex; gap:7px; }
+  .qlist .intro-line { color:var(--muted); font-size:15px; line-height:1.45; margin-top:10px; }
+  .qitem { border:1.5px solid var(--line); border-radius:16px; padding:16px; margin-top:14px; position:relative; }
+  .qitem.active { border-color:var(--blue); cursor:pointer; }
+  .qitem.done { background:var(--green-bg); border-color:transparent; }
+  .qitem.locked { background:#F6F7F9; border-color:transparent; }
+  .qitem .qhead { display:flex; align-items:flex-start; gap:12px; }
+  .qitem .qh-text { flex:1; min-width:0; }
+  .qitem .qh-title { font-size:19px; font-weight:700; }
+  .qitem.locked .qh-text { padding-right:78px; }
+  .qitem.locked .qh-title, .qitem.locked .qh-sub { color:#A2A8B6; }
+  .qitem .qh-sub { font-size:14px; color:var(--muted); margin-top:4px; line-height:1.35; }
+  .qitem .qh-tags { display:flex; gap:7px; margin-top:11px; flex-wrap:wrap; }
+  .qitem .lockword { position:absolute; top:18px; right:18px; font-size:13px; color:#A2A8B6; font-weight:500; }
+  .qitem .donecheck { width:42px; height:42px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .qitem .donecheck svg { width:20px; height:20px; }
+  /* active quest expands like an accordion to reveal the likely birds near you */
+  .quest-expand { display:flex; align-items:center; justify-content:space-between; margin-top:13px; padding-top:13px; border-top:1px solid var(--line); font-size:14px; font-weight:600; color:var(--blue); }
+  .quest-expand .chev { width:12px; height:8px; fill:none; stroke:var(--blue); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; transition:transform .3s ease; }
+  .qitem.open .quest-expand .chev { transform:rotate(180deg); }
+  .quest-birds { max-height:0; overflow:hidden; transition:max-height .32s ease; }
+  .qitem.open .quest-birds { max-height:320px; }
+  .qbird { display:flex; align-items:center; gap:12px; padding:11px 2px; border-top:1px solid #EEF1F6; }
+  .qbird:first-child { margin-top:4px; }
+  .qb-photo { width:42px; height:42px; border-radius:10px; overflow:hidden; background:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .qb-photo img { width:100%; height:100%; object-fit:cover; }
+  .qb-info { flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
+  .qb-name { font-size:15px; font-weight:600; }
+  .qb-log { flex-shrink:0; display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:#fff; background:var(--blue); border-radius:99px; padding:7px 14px; }
+  .qb-log svg { width:11px; height:11px; stroke:#fff; stroke-width:2.8; fill:none; stroke-linecap:round; }
+
+  /* ── S4 quest detail ── */
+  .qdetail .body { padding:0 22px; }
+  .qdetail .dh { display:flex; align-items:center; gap:16px; margin-top:6px; }
+  .qdetail h1 { font-size:25px; font-weight:700; line-height:1.15; margin-top:14px; letter-spacing:-.01em; }
+  .qdetail .dprog { font-size:16px; font-weight:600; color:var(--ink); }
+  .qdetail .dsub { font-size:14px; color:var(--muted); margin:16px 0 6px; }
+  .targets { display:flex; flex-direction:column; gap:12px; margin-top:10px; }
+  .target { border:1px solid var(--line); border-radius:14px; padding:13px 14px; }
+  .target.tick { background:var(--blue-5); border-color:transparent; }
+  .target .trow { display:flex; align-items:center; gap:13px; }
+  .target .tav { width:48px; height:48px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#fff; }
+  .target .tinfo { flex:1; min-width:0; }
+  .target .tn { font-size:18px; font-weight:700; }
+  .target .tmeta { display:flex; align-items:center; gap:8px; margin-top:4px; }
+  .target .tdesc { font-size:13.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .target .tcheck { width:26px; height:26px; border-radius:50%; border:2px solid #D7DBE2; flex-shrink:0; }
+  .target .tcheck.on { border:none; background:var(--green); display:flex; align-items:center; justify-content:center; }
+  .target .tcheck.on svg { width:13px; height:13px; }
+  .target .tip { display:flex; gap:8px; background:#fff; border-radius:10px; padding:11px 12px; margin-top:11px; font-size:13.5px; line-height:1.4; color:#5B6072; }
+  .qdetail .complete-line { font-size:15px; font-weight:700; color:var(--gold); margin-top:20px; }
+  .qdetail .social { display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--muted); margin-top:10px; }
+
+  /* ── S5 log ── */
+  .log .body { padding:0 24px; }
+  .log .hero { height:230px; display:flex; align-items:center; justify-content:center; margin-top:6px; }
+  .log .hero img { max-width:100%; max-height:100%; object-fit:contain; }
+  .log .namerow { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-top:6px; }
+  .log .nm { font-size:28px; font-weight:700; }
+  .log .lt { font-size:14px; font-style:italic; color:var(--muted); margin-top:2px; }
+  .log .notabird { color:var(--blue); font-size:15px; font-weight:600; cursor:pointer; flex-shrink:0; padding-top:6px; }
+  .log .toward { display:flex; align-items:center; gap:8px; background:var(--blue-5); border-radius:10px; padding:11px 14px; font-size:13.5px; font-weight:600; color:#1763C4; margin-top:18px; }
+  .field { background:#F2F4F8; border-radius:12px; padding:12px 16px; margin-top:12px; display:flex; align-items:center; justify-content:space-between; }
+  .field .fl { font-size:12.5px; color:var(--muted); }
+  .field .fv { font-size:16px; font-weight:600; margin-top:3px; }
+  .field svg { width:18px; height:18px; stroke:var(--blue); fill:none; stroke-width:1.6; flex-shrink:0; }
+  .countrow { display:flex; align-items:center; justify-content:space-between; padding:6px 4px; margin-top:16px; }
+  .countrow .ql { font-size:18px; font-weight:600; }
+  .stepper { display:flex; align-items:center; gap:18px; }
+  .stepper button { width:38px; height:38px; border-radius:50%; background:#fff; border:1.5px solid #E1E5EC; display:flex; align-items:center; justify-content:center; }
+  .stepper button svg { width:16px; height:16px; stroke:var(--blue); stroke-width:2.4; }
+  .stepper .num { font-size:20px; font-weight:700; min-width:22px; text-align:center; }
+  .log .addnote { color:var(--blue); font-size:15px; font-weight:600; margin-top:16px; cursor:pointer; }
+
+  /* ── S6 payoff / S7 complete ── */
+  .center-screen .body { padding:0 24px; }
+  /* feather balance (top-right) — ticks up as the +10 flies in */
+  .fbal { position:absolute; top:52px; right:18px; z-index:20; display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid var(--line); border-radius:99px; padding:6px 13px; box-shadow:0 2px 8px rgba(45,49,66,.10); cursor:pointer; }
+  .fbal-icn { font-size:15px; }
+  .fbal-num { font-size:16px; font-weight:700; color:var(--gold-strong); font-variant-numeric:tabular-nums; min-width:10px; text-align:center; }
+  .fbal.bump { animation: fbalBump .34s cubic-bezier(.2,.9,.3,1.4); }
+  @keyframes fbalBump { 0%{transform:scale(1);} 45%{transform:scale(1.14);} 100%{transform:scale(1);} }
+  /* flying feather particles (fixed overlay so they ignore the phone's transform-scale) */
+  #featherFX { position:fixed; inset:0; z-index:9999; pointer-events:none; overflow:hidden; }
+  .feather-fly { position:fixed; font-size:13px; line-height:1; will-change:transform,opacity; }
+  .bigtick { width:80px; height:80px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; margin:26px auto 0; }
+  .bigtick svg { width:38px; height:38px; }
+  .payoff-titlebar { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:48px; }
+  .payoff-check { width:28px; height:28px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .payoff-check svg { width:14px; height:14px; }
+  .payoff-title { font-size:26px; font-weight:700; }
+  /* unified header: progress ring + time limit (live countdown) + ambient social proof */
+  .payoff-head { background:#fff; border:1px solid var(--line); border-radius:16px; padding:16px 18px; margin-top:18px; box-shadow:0 6px 18px rgba(45,49,66,.07); }
+  .ph-top { display:flex; align-items:center; gap:18px; }
+  .ph-ring-wrap { display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; }
+  .ph-ring-cap { font-size:11px; font-weight:600; color:var(--muted); }
+  .ph-time { flex:1; min-width:0; }
+  .ph-time-label { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--amber); }
+  .ph-countdown { font-size:25px; font-weight:700; color:var(--amber); font-variant-numeric:tabular-nums; letter-spacing:.5px; margin-top:4px; }
+  .ph-divider { height:1px; background:#E1E6EF; margin:14px 0; }
+  .ph-social { display:flex; align-items:flex-start; gap:8px; font-size:13.5px; color:#5B6072; line-height:1.4; }
+  .ph-social b { color:var(--ink); font-weight:700; }
+  .feather-banner { display:flex; align-items:center; gap:14px; background:var(--gold-bg); border-radius:14px; padding:15px 18px; margin-top:14px; cursor:pointer; }
+  .feather-banner .icn { font-size:26px; flex-shrink:0; transform:rotate(8deg); }
+  .feather-banner .fb-text { flex:1; min-width:0; }
+  .feather-banner .ftitle { font-size:20px; font-weight:700; color:var(--gold); }
+  .feather-banner .fsub { font-size:13.5px; color:#8A7333; line-height:1.4; margin-top:2px; }
+  .feather-banner .fb-go { flex-shrink:0; align-self:center; display:inline-flex; align-items:center; gap:3px; font-size:13px; font-weight:700; color:#fff; background:var(--gold-strong); border-radius:99px; padding:8px 13px; box-shadow:0 2px 6px rgba(176,129,15,.3); }
+  .nextup { background:var(--blue-5); border-radius:14px; padding:15px 16px; margin-top:14px; }
+  .nextup .nlabel { font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--blue); }
+  .nextup .nrow { display:flex; align-items:center; gap:13px; margin-top:9px; }
+  .nextup .nav-av { width:46px; height:46px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#fff; overflow:hidden; background:#fff; }
+  .nextup .nav-av img { width:100%; height:100%; object-fit:cover; }
+  .nextup .nn { font-size:18px; font-weight:700; }
+  .nextup .ndesc { font-size:13.5px; color:var(--muted); line-height:1.4; margin-top:9px; }
+  .meta-row { display:flex; align-items:center; justify-content:space-between; margin-top:18px; font-size:13.5px; }
+  .meta-row .left { color:var(--gold); font-weight:700; display:flex; align-items:center; gap:6px; }
+  .meta-row .right { color:var(--muted); display:flex; align-items:center; gap:6px; }
+
+  /* S7 trophy hero card */
+  .trophy-card { background:var(--green-bg); border-radius:18px; padding:26px 22px 24px; text-align:center; margin-top:8px; }
+  .trophy { width:84px; height:84px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; margin:0 auto; font-size:38px; }
+  .trophy-card h1 { font-size:27px; font-weight:700; margin-top:16px; }
+  .trophy-card p { font-size:15px; color:#5B6072; line-height:1.5; margin-top:12px; }
+  .unlocked { border:1px solid var(--line); border-radius:14px; padding:15px 16px; margin-top:14px; }
+  .unlocked .ulabel { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.05em; color:var(--blue); background:var(--blue-5); padding:3px 9px; border-radius:99px; }
+  .unlocked .urow { display:flex; align-items:center; gap:13px; margin-top:11px; }
+  .unlocked .uav { width:44px; height:44px; border-radius:12px; background:var(--green-bg); color:var(--green-d); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; flex-shrink:0; }
+  .unlocked .un { font-size:17px; font-weight:700; }
+  .unlocked .ud { font-size:13.5px; color:var(--muted); margin-top:3px; line-height:1.35; }
+
+  /* ── S10 feathers wallet ── */
+  .wallet .body { padding:0 24px 24px; }
+  .wallet h1 { font-size:27px; font-weight:700; margin-top:6px; }
+  .wallet .balance { display:flex; align-items:center; justify-content:center; gap:14px; background:var(--gold-bg); border-radius:16px; padding:22px; margin-top:18px; }
+  .wallet .balance .bicn { font-size:30px; transform:rotate(8deg); }
+  .wallet .balance .bnum { font-size:38px; font-weight:700; color:var(--gold-strong); }
+  .wallet .balance .blbl { font-size:17px; color:#8A7333; align-self:flex-end; margin-bottom:8px; }
+  .wallet h2 { font-size:17px; font-weight:700; margin-top:24px; }
+  .earned { background:#F4F6FA; border-radius:14px; padding:6px 16px; margin-top:12px; }
+  .earned .erow { display:flex; align-items:center; justify-content:space-between; padding:11px 0; border-bottom:1px solid #E8EBF1; }
+  .earned .erow:last-child { border-bottom:none; }
+  .earned .el { font-size:15px; }
+  .earned .ev { font-size:15px; font-weight:700; color:var(--gold); }
+  .spend { border:1px solid var(--line); border-radius:14px; padding:15px 16px; margin-top:12px; }
+  .spend .srow { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .spend .sn { font-size:18px; font-weight:700; }
+  .spend .scost { display:flex; align-items:center; gap:5px; font-size:13px; font-weight:600; color:#5B6072; background:#EEF1F6; padding:5px 10px; border-radius:99px; white-space:nowrap; }
+  .spend .sd { font-size:14px; color:var(--muted); margin-top:7px; line-height:1.4; }
+  .spend .track { height:7px; background:#E7EBF1; border-radius:99px; margin-top:12px; overflow:hidden; }
+  .spend .track i { display:block; height:100%; background:var(--gold-strong); border-radius:99px; }
+  .spend .frac { font-size:12.5px; color:var(--muted); margin-top:7px; font-weight:600; }
+  /* affordable rewards — green cost + a Redeem button */
+  .spend.avail { border-color:#CFE0F7; }
+  .spend .scost.avail { color:var(--green-d); background:var(--green-bg); }
+  .spend .redeem { margin-top:12px; display:inline-flex; align-items:center; background:var(--blue); color:#fff; border-radius:99px; padding:9px 18px; font-size:14px; font-weight:600; }
+  .spend .redeem:active { background:#0f6fe0; }
+
+  /* ── S11 migration event ── */
+  .event .body { padding:0 24px; }
+  .event .ehero { height:150px; border-radius:16px; overflow:hidden; margin-top:6px; }
+  .event .ehero img { width:100%; height:100%; object-fit:cover; }
+  .event .elimited { margin-top:16px; }
+  .event h1 { font-size:28px; font-weight:700; line-height:1.12; margin-top:12px; letter-spacing:-.01em; }
+  .event .leaving { display:flex; align-items:center; gap:10px; background:var(--gold-bg); border-radius:12px; padding:14px 16px; margin-top:16px; font-size:19px; font-weight:700; color:var(--gold-strong); }
+  .event .edesc { font-size:15px; color:#5B6072; line-height:1.55; margin-top:16px; }
+  .event .equest { background:#F4F6FA; border-radius:14px; padding:15px 16px; margin-top:16px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .event .equest .eqn { font-size:18px; font-weight:700; }
+  .event .equest .eqtags { display:flex; gap:7px; margin-top:9px; }
+  .event .esocial { display:flex; align-items:center; gap:8px; font-size:13.5px; color:var(--muted); margin-top:14px; }
+  .event .expander { background:var(--blue-5); border-radius:14px; padding:15px 16px; margin-top:16px; }
+  .event .expander .eh { display:flex; align-items:center; justify-content:space-between; font-size:16px; font-weight:700; color:#1763C4; }
+  .event .expander p { font-size:14px; color:#3C4658; line-height:1.5; margin-top:10px; }
+
+  /* back-to-prototypes button (matches PEX-43) */
+  .proto-back { position:fixed; top:22px; left:22px; z-index:200; display:inline-flex; align-items:center; gap:7px;
+    font-size:13px; font-weight:500; color:#4A4E5A; text-decoration:none; padding:7px 12px 7px 10px; background:#fff;
+    border:1px solid #E5E5EA; border-radius:8px; transition:background .12s; }
+  .proto-back:hover { background:#F7F7FA; }
+  .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+  </style>
+</head>
+<body>
+<a class="proto-back" href="../../index.html">
+  <svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  All prototypes
+</a>
+<div class="shell">
+  <div class="viewport" id="viewport">
+
+    <!-- ════ P1 · Welcome (reused from Route 2) ════ -->
+    <section class="screen flat" data-screen="1" onclick="next()">
+      <img src="images/welcome.png" alt="Welcome to Birda — identify and collect over 10,000 birds">
+    </section>
+
+    <!-- ════ P3 · Birding journey (reused from Route 2) ════ -->
+    <section class="screen p3" data-screen="2">
+      <div class="statusbar"></div>
+      <div class="progress"><i></i></div>
+      <div class="body">
+        <h1>Where are you in your birding journey?</h1>
+        <div class="opts" id="journeyOpts">
+          <button class="opt" data-level="0" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>I'm new to birdwatching</span></button>
+          <button class="opt" data-level="1" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>I know a few garden birds</span></button>
+          <button class="opt" data-level="2" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>I birdwatch regularly and know a variety of species</span></button>
+          <button class="opt" data-level="3" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>Gulls and LBJ's are no problem to me</span></button>
+        </div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" id="journeyBtn" onclick="next()">Skip</button></div>
+    </section>
+
+    <!-- ════ S1 · Location setup ════ -->
+    <section class="screen loc" data-screen="3">
+      <div class="statusbar"></div>
+      <div class="body">
+        <h1>Quests built around you</h1>
+        <p>Birda uses your location to build quests from the birds that are actually near you — so every one is a quest you can finish on your own patch. Turn it on for quests that fit where you bird.</p>
+        <div class="locimg"><img src="images/location-illustration.png" alt="Birds near your location"></div>
+        <div class="taste">🎯 A taste of what's waiting</div>
+        <div class="qpreview">
+          <div class="ring" style="width:42px;height:42px;">
+            <svg width="42" height="42" viewBox="0 0 42 42"><circle class="track" cx="21" cy="21" r="17" fill="none" stroke-width="4"/></svg>
+            <span class="lbl" style="font-size:13px;color:var(--muted);">0/3</span>
+          </div>
+          <div class="qtext">
+            <div class="qt">This week: spot 3 garden birds</div>
+            <div class="qtags"><span class="chip chip-starter">Starter</span><span class="chip chip-feather">+30 feathers</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="btn btn-primary" onclick="goTo(4)">Continue</button>
+        <span class="sublink" style="color:var(--muted);font-weight:400;font-size:13px;cursor:default;">You can always update this later in Settings.</span>
+      </div>
+    </section>
+
+    <!-- ════ S1.5 · Game of Birda intro / quick start ════ -->
+    <section class="screen intro" data-screen="4">
+      <div class="statusbar"></div>
+      <div class="body">
+        <h1>Your first quest is waiting.</h1>
+        <p class="lede">Any you already know get a head start — you'll find the rest out there.</p>
+
+        <div class="questcard">
+          <div class="qrow">
+            <div class="qmeta">
+              <div class="qlabel">YOUR FIRST QUEST</div>
+              <div class="qname">Spot 3 common garden birds</div>
+              <div class="qtags"><span class="chip chip-starter">Starter</span><span class="chip chip-feather">+30 feathers</span></div>
+            </div>
+            <div class="ring" id="introRing" style="width:54px;height:54px;">
+              <svg width="54" height="54" viewBox="0 0 54 54">
+                <circle class="track" cx="27" cy="27" r="22" fill="none" stroke-width="5"/>
+                <circle class="arc" id="introArc" cx="27" cy="27" r="22" fill="none" stroke-width="5" stroke-dasharray="138.2" stroke-dashoffset="92.1"/>
+              </svg>
+              <span class="lbl" id="introRingLbl" style="font-size:14px;">1/3</span>
+            </div>
+          </div>
+          <div class="qcredit" id="introCredit"><span class="tick"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span id="introCreditText">Remembered — that's 1 of 3.</span></div>
+        </div>
+
+        <h2>Seen any of these recently?</h2>
+        <div class="picklist" id="pickList">
+          <button class="pick sel" data-bird="blue-tit" onclick="togglePick(this)">
+            <span class="pphoto"><img src="../../resources/bird-photos/Eurasian_Blue_Tit.webp" alt="Blue Tit"></span>
+            <span class="pinfo"><span class="pn">Blue Tit</span><span class="pl">Cyanistes caeruleus</span><span class="psex">♂ ♀</span></span>
+            <span class="pcheck"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </button>
+          <button class="pick" data-bird="robin" onclick="togglePick(this)">
+            <span class="pphoto"><img src="../../resources/bird-photos/European_Robin.webp" alt="Robin"></span>
+            <span class="pinfo"><span class="pn">Robin</span><span class="pl">Erithacus rubecula</span><span class="psex">⚥</span></span>
+            <span class="pcheck"></span>
+          </button>
+          <button class="pick" data-bird="house-sparrow" onclick="togglePick(this)">
+            <span class="pphoto"><img src="../../resources/bird-photos/House_Sparrow_-_Male.webp" alt="House Sparrow"></span>
+            <span class="pinfo"><span class="pn">House Sparrow</span><span class="pl">Passer domesticus</span><span class="psex">⚥</span></span>
+            <span class="pcheck"></span>
+          </button>
+          <button class="pick" data-bird="blackbird" onclick="togglePick(this)">
+            <span class="pphoto"><img src="../../resources/bird-photos/Common_Blackbird_-_Male.webp" alt="Blackbird"></span>
+            <span class="pinfo"><span class="pn">Blackbird</span><span class="pl">Turdus merula</span><span class="psex">♂ ♀</span></span>
+            <span class="pcheck"></span>
+          </button>
+          <button class="pick" data-bird="wood-pigeon" onclick="togglePick(this)">
+            <span class="pphoto"><img src="../../resources/bird-photos/Common_Wood_Pigeon_2.webp" alt="Wood Pigeon"></span>
+            <span class="pinfo"><span class="pn">Wood Pigeon</span><span class="pl">Columba palumbus</span><span class="psex">⚥</span></span>
+            <span class="pcheck"></span>
+          </button>
+          <button class="pick" data-bird="great-tit" onclick="togglePick(this)">
+            <span class="pphoto"><img src="../../resources/bird-photos/Great_Tit_-_Male.webp" alt="Great Tit"></span>
+            <span class="pinfo"><span class="pn">Great Tit</span><span class="pl">Parus major</span><span class="psex">♂ ♀</span></span>
+            <span class="pcheck"></span>
+          </button>
+          <button class="pick" data-bird="magpie" onclick="togglePick(this)">
+            <span class="pphoto"><img src="../../resources/bird-photos/Eurasian_Magpie.webp" alt="Magpie"></span>
+            <span class="pinfo"><span class="pn">Magpie</span><span class="pl">Pica pica</span><span class="psex">⚥</span></span>
+            <span class="pcheck"></span>
+          </button>
+          <button class="pick" data-bird="dunnock" onclick="togglePick(this)">
+            <span class="pphoto"><img src="../../resources/bird-photos/Dunnock.webp" alt="Dunnock"></span>
+            <span class="pinfo"><span class="pn">Dunnock</span><span class="pl">Prunella modularis</span><span class="psex">⚥</span></span>
+            <span class="pcheck"></span>
+          </button>
+        </div>
+        <p class="lede" style="font-size:12.5px;margin-top:14px;">Recognising a bird gives your quest a head start — but only the field counts toward your sightings. Log the rest when you actually see them.</p>
+      </div>
+      <div class="footer"><button class="btn btn-primary" onclick="goBirding()">Let's go birding</button></div>
+    </section>
+
+    <!-- ════ S2 · Map home (landing) ════ -->
+    <section class="screen mapscreen" data-screen="5">
+      <div class="statusbar"></div>
+      <div class="mapbg">
+        <div class="water" style="width:150px;height:130px;right:-30px;top:60px;"></div>
+        <div class="water" style="width:200px;height:170px;left:-60px;bottom:120px;"></div>
+        <div class="road"></div>
+      </div>
+      <div class="mapcircle left"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="6"/><line x1="13" y1="13" x2="18" y2="18"/></svg></div>
+      <div class="mapcircle right"><svg viewBox="0 0 20 20"><line x1="3" y1="6" x2="17" y2="6"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="14" x2="17" y2="14"/></svg></div>
+      <div class="hex" style="left:70px;top:120px;">75</div>
+      <div class="hex" style="left:108px;top:78px;">110</div>
+      <div class="hex" style="right:46px;top:130px;">53</div>
+      <div class="locdot" style="left:48%;top:33%;"></div>
+
+      <div class="sheet" style="top:44%;">
+        <div class="handle"></div>
+        <div class="sbody">
+          <div class="qprog" onclick="goTo(6)">
+            <div class="ring" style="width:50px;height:50px;">
+              <svg width="50" height="50" viewBox="0 0 50 50"><circle class="track" cx="25" cy="25" r="20" fill="none" stroke-width="5"/><circle class="arc" cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke-dasharray="125.6" stroke-dashoffset="83.7"/></svg>
+              <span class="lbl" style="font-size:13px;">1/3</span>
+            </div>
+            <div class="qp-text">
+              <div class="qp-title">Your first quest: spot 3 garden birds</div>
+              <div class="qp-tags"><span class="chip chip-feather">+30 feathers</span><span class="chip chip-days">4 days left</span></div>
+            </div>
+          </div>
+          <div class="likely-head"><h3>Quest Birds Likely Near You</h3><span class="seeall" onclick="goTo(6)">See all</span></div>
+          <div class="likely">
+            <div class="lbird"><div class="lphoto"><img src="../../resources/bird-photos/European_Robin.webp"></div><div class="lname">Robin</div><span class="chip chip-common">Common</span><button class="logbtn" onclick="goTo(8)"><svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>Log</button></div>
+            <div class="lbird"><div class="lphoto"><img src="../../resources/bird-photos/House_Sparrow_-_Male.webp"></div><div class="lname">House Sparrow</div><span class="chip chip-common">Common</span><button class="logbtn" onclick="goTo(8)"><svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>Log</button></div>
+            <div class="lbird"><div class="lphoto"><img src="../../resources/bird-photos/Eurasian_Blue_Tit.webp"></div><div class="lname">Blue Tit</div><span class="chip chip-common">Common</span><button class="logbtn" onclick="goTo(8)"><svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>Log</button></div>
+          </div>
+          <div style="height:14px;"></div>
+        </div>
+        <div class="appnav">
+          <div class="navt on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="15.5,8.5 10.5,10.5 8.5,15.5 13.5,13.5" fill="currentColor" stroke="none"/></svg>Explore</div>
+          <div class="navt"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><circle cx="17.5" cy="7.5" r="2.2"/><path d="M16.5 13.5c2.4 0 4 1.7 4 4"/></svg>Community</div>
+          <div class="navt plus" onclick="goTo(8)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+          <div class="navt" onclick="goTo(6)"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1A3.5 3.5 0 0 0 8 10.5M17 6h2.5v1A3.5 3.5 0 0 1 16 10.5"/><path d="M12 13v3M8.5 19h7M9.6 19l.4-3M14.4 19l-.4-3"/></svg>Challenges</div>
+          <div class="navt"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ S3 · Quests (expanded) ════ -->
+    <section class="screen qlist" data-screen="6">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="qlist-head"><h1>Your quests</h1><div class="meta"><span class="chip chip-date">9–15 June</span><span class="chip chip-days">4 days left</span></div></div>
+        <p class="intro-line">Spot the birds, log them, earn feathers. Quests refresh each week.</p>
+
+        <div class="qitem active" id="gardenQuest" onclick="toggleQuestBirds()">
+          <div class="qhead">
+            <div class="qh-text">
+              <div class="qh-title">Spot 3 common garden birds</div>
+              <div class="qh-sub">Robin · House Sparrow · Blue Tit</div>
+              <div class="qh-tags"><span class="chip chip-starter">Starter</span><span class="chip chip-feather">+30 feathers</span></div>
+            </div>
+            <div class="ring" style="width:50px;height:50px;">
+              <svg width="50" height="50" viewBox="0 0 50 50"><circle class="track" cx="25" cy="25" r="20" fill="none" stroke-width="5"/><circle class="arc" cx="25" cy="25" r="20" fill="none" stroke-width="5" stroke-dasharray="125.6" stroke-dashoffset="83.7"/></svg>
+              <span class="lbl" style="font-size:13px;">1/3</span>
+            </div>
+          </div>
+          <div class="quest-expand">
+            <span>Likely near you</span>
+            <svg class="chev" viewBox="0 0 12 8"><path d="M1 1.5 6 6.5l5-5"/></svg>
+          </div>
+          <div class="quest-birds">
+            <div class="qbird" onclick="event.stopPropagation(); goTo(8)">
+              <span class="qb-photo"><img src="../../resources/bird-photos/European_Robin.webp" alt="Robin"></span>
+              <span class="qb-info"><span class="qb-name">Robin</span><span class="chip chip-common">Common</span></span>
+              <span class="qb-log"><svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>Log</span>
+            </div>
+            <div class="qbird" onclick="event.stopPropagation(); goTo(8)">
+              <span class="qb-photo"><img src="../../resources/bird-photos/House_Sparrow_-_Male.webp" alt="House Sparrow"></span>
+              <span class="qb-info"><span class="qb-name">House Sparrow</span><span class="chip chip-common">Common</span></span>
+              <span class="qb-log"><svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>Log</span>
+            </div>
+            <div class="qbird" onclick="event.stopPropagation(); goTo(8)">
+              <span class="qb-photo"><img src="../../resources/bird-photos/Eurasian_Blue_Tit.webp" alt="Blue Tit"></span>
+              <span class="qb-info"><span class="qb-name">Blue Tit</span><span class="chip chip-common">Common</span></span>
+              <span class="qb-log"><svg viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg>Log</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="qitem locked">
+          <span class="lockword">🔒 Locked</span>
+          <div class="qh-text">
+            <div class="qh-title">Find a duck</div>
+            <div class="qh-sub">Unlocks when you finish Quest 1</div>
+            <div class="qh-tags"><span class="chip chip-feather">+20 feathers</span></div>
+          </div>
+        </div>
+
+        <div class="qitem locked">
+          <span class="lockword">🔒 Locked</span>
+          <div class="qh-text">
+            <div class="qh-title">Spot something new to you</div>
+            <div class="qh-sub">Unlocks when you finish Quest 2</div>
+            <div class="qh-tags"><span class="chip chip-feather">+40 feathers</span></div>
+          </div>
+        </div>
+
+        <div class="teaser click" onclick="goTo(14)"><span class="ic">⏳</span><span>Winter waders — a special quest appears in 3 weeks</span></div>
+      </div>
+      <div class="footer" style="padding-bottom:10px;"><button class="btn btn-primary" onclick="goTo(5)">Find My Next Bird</button></div>
+      <div class="appnav">
+        <div class="navt" onclick="goTo(5)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="15.5,8.5 10.5,10.5 8.5,15.5 13.5,13.5" fill="currentColor" stroke="none"/></svg>Explore</div>
+        <div class="navt"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><circle cx="17.5" cy="7.5" r="2.2"/><path d="M16.5 13.5c2.4 0 4 1.7 4 4"/></svg>Community</div>
+        <div class="navt plus" onclick="goTo(8)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+        <div class="navt on"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1A3.5 3.5 0 0 0 8 10.5M17 6h2.5v1A3.5 3.5 0 0 1 16 10.5"/><path d="M12 13v3M8.5 19h7M9.6 19l.4-3M14.4 19l-.4-3"/></svg>Challenges</div>
+        <div class="navt"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+      </div>
+    </section>
+
+    <!-- ════ S4 · Active quest detail ════ (HIDDEN — remove data-hidden to restore) -->
+    <section class="screen qdetail" data-screen="7" data-hidden="1">
+      <div class="statusbar"></div>
+      <div class="nav"><span class="back" onclick="goTo(6)"><svg viewBox="0 0 8 14" fill="none"><path d="M7 1 1 7l6 6" stroke="#1F87FE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Your quests</span></div>
+      <div class="body">
+        <h1>Spot 3 common garden birds</h1>
+        <div class="dh" style="margin-top:16px;">
+          <div class="ring" style="width:52px;height:52px;">
+            <svg width="52" height="52" viewBox="0 0 52 52"><circle class="track" cx="26" cy="26" r="21" fill="none" stroke-width="5"/><circle class="arc" cx="26" cy="26" r="21" fill="none" stroke-width="5" stroke-dasharray="131.9" stroke-dashoffset="87.9"/></svg>
+            <span class="lbl" style="font-size:13px;">1/3</span>
+          </div>
+          <span class="dprog">1 of 3 spotted</span>
+        </div>
+        <p class="dsub">Suggested birds to find — any Common garden bird counts.</p>
+        <div class="targets">
+          <div class="target">
+            <div class="trow">
+              <div class="tav" style="background:#F2C8A0;color:#9A5A22;">R</div>
+              <div class="tinfo"><div class="tn">Robin</div><div class="tmeta"><span class="chip chip-common">Common</span><span class="tdesc">Often in gardens — look low</span></div></div>
+              <div class="tcheck"></div>
+            </div>
+            <div class="tip"><span>📍</span><span>Robin tip: check near flower beds or freshly-dug soil. They follow the dig.</span></div>
+          </div>
+          <div class="target">
+            <div class="trow">
+              <div class="tav" style="background:#E8DDC2;color:#8A7A4A;">H</div>
+              <div class="tinfo"><div class="tn">House Sparrow</div><div class="tmeta"><span class="chip chip-common">Common</span><span class="tdesc">Usually in small flocks near buildings</span></div></div>
+              <div class="tcheck"></div>
+            </div>
+          </div>
+          <div class="target tick">
+            <div class="trow">
+              <div class="tav" style="background:#A9D2F0;color:#2A6CA0;">B</div>
+              <div class="tinfo"><div class="tn">Blue Tit</div><div class="tmeta"><span class="chip chip-common">Common</span><span class="tdesc">Small and quick — trees and feeders</span></div></div>
+              <div class="tcheck on"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            </div>
+          </div>
+        </div>
+        <div class="complete-line">Complete this quest: +30 feathers</div>
+        <div class="social">👥 14 people completed this quest near you this week</div>
+      </div>
+      <div class="footer">
+        <button class="btn btn-primary" onclick="goTo(8)">Go log a bird</button>
+        <span class="sublink">How do I log?</span>
+      </div>
+    </section>
+
+    <!-- ════ S5 · Log a bird ════ -->
+    <section class="screen log" data-screen="8">
+      <div class="statusbar"></div>
+      <!-- "Cancel" orig → goTo(7) Quest detail (now hidden); points to Your quests while trimmed -->
+      <div class="nav" style="justify-content:space-between;">
+        <span class="back" onclick="goTo(6)"><svg viewBox="0 0 8 14" fill="none"><path d="M7 1 1 7l6 6" stroke="#1F87FE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Cancel</span>
+      </div>
+      <div class="body">
+        <div class="hero"><img src="../../resources/bird-photos/European_Robin.webp" alt="Robin"></div>
+        <div class="namerow">
+          <div><div class="nm">Robin</div><div class="lt">Erithacus rubecula</div></div>
+          <span class="notabird">Not a Robin?</span>
+        </div>
+        <div class="toward">🎯 This logs toward: Spot 3 garden birds · 1 of 3</div>
+        <div class="field"><div><div class="fl">Location</div><div class="fv">Victoria Park, London (detected)</div></div><svg viewBox="0 0 20 20"><path d="M10 2C7.2 2 5 4.2 5 7C5 11 10 18 10 18C10 18 15 11 15 7C15 4.2 12.8 2 10 2Z"/><circle cx="10" cy="7" r="2"/></svg></div>
+        <div class="field"><div><div class="fl">Date and time</div><div class="fv">Today, 14 June · 10:43 am</div></div><svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="13" rx="2"/><line x1="3" y1="8" x2="17" y2="8"/><line x1="7" y1="2" x2="7" y2="6"/><line x1="13" y1="2" x2="13" y2="6"/></svg></div>
+        <div class="countrow">
+          <span class="ql">How many did you see?</span>
+          <div class="stepper">
+            <button onclick="bumpCount(-1)"><svg viewBox="0 0 16 16"><line x1="3" y1="8" x2="13" y2="8"/></svg></button>
+            <span class="num" id="logCount">1</span>
+            <button onclick="bumpCount(1)"><svg viewBox="0 0 16 16"><line x1="8" y1="3" x2="8" y2="13"/><line x1="3" y1="8" x2="13" y2="8"/></svg></button>
+          </div>
+        </div>
+        <div class="addnote">+ Add a note (optional)</div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" onclick="goTo(9)">Log this Robin</button></div>
+    </section>
+
+    <!-- ════ S6 · Post-log payoff ════ -->
+    <section class="screen center-screen" data-screen="9">
+      <div class="statusbar"></div>
+      <div class="fbal" id="fbal" onclick="goTo(13)"><span class="fbal-icn">🪶</span><span class="fbal-num" id="fbalNum">0</span></div>
+      <div class="body">
+        <div class="payoff-titlebar">
+          <span class="payoff-check"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="payoff-title">Robin logged</span>
+        </div>
+
+        <div class="payoff-head">
+          <div class="ph-top">
+            <div class="ph-ring-wrap">
+              <div class="ring green" style="width:72px;height:72px;">
+                <svg width="72" height="72" viewBox="0 0 72 72"><circle class="track" cx="36" cy="36" r="32" fill="none" stroke-width="7"/><circle class="arc" cx="36" cy="36" r="32" fill="none" stroke-width="7" stroke-dasharray="201.1" stroke-dashoffset="67"/></svg>
+                <span class="lbl" style="font-size:20px;">2/3</span>
+              </div>
+              <span class="ph-ring-cap">garden birds</span>
+            </div>
+            <div class="ph-time">
+              <div class="ph-time-label">⏳ Quest closes in</div>
+              <div class="ph-countdown" id="questCountdown">3d 21:14:08</div>
+            </div>
+          </div>
+          <div class="ph-divider"></div>
+          <div class="ph-social">👥 <span><b>14 people</b> completed this quest in the past hour</span></div>
+        </div>
+
+        <div class="feather-banner" onclick="goTo(13)">
+          <span class="icn">🪶</span>
+          <div class="fb-text"><div class="ftitle">+10 feathers</div><div class="fsub">You now have 10 feathers<br>Log all 3 to earn +30 more</div></div>
+          <span class="fb-go">View ›</span>
+        </div>
+        <div class="nextup">
+          <div class="nlabel">LIKELY NEARBY</div>
+          <div class="nrow"><div class="nav-av"><img src="../../resources/bird-photos/House_Sparrow_-_Male.webp" alt="House Sparrow"></div><div><div class="nn">House Sparrow</div><span class="chip chip-common">Common</span></div></div>
+          <div class="ndesc">Usually near buildings and hedges. Listen for chattering in small groups.</div>
+        </div>
+      </div>
+      <div class="footer">
+        <!-- "Keep going" orig → goTo(10) Quest complete (now hidden); points to the map while trimmed -->
+        <button class="btn btn-primary" onclick="goTo(5)">Keep going</button>
+        <span class="sublink" onclick="goTo(6)">Back to all quests</span>
+      </div>
+    </section>
+
+    <!-- ════ S7 · Quest complete ════ (HIDDEN — remove data-hidden to restore) -->
+    <section class="screen center-screen" data-screen="10" data-hidden="1">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="trophy-card">
+          <div class="trophy">🏆</div>
+          <h1>Quest done. Well spotted.</h1>
+          <p>You found 3 garden birds and finished your first quest. Most people see a Robin and call it a day — you kept going.</p>
+        </div>
+        <div class="feather-banner">
+          <span class="icn">🪶</span>
+          <div><div class="ftitle">+30 feathers</div><div class="fsub">You now have 60 feathers</div></div>
+        </div>
+        <div class="unlocked">
+          <span class="ulabel">NOW UNLOCKED</span>
+          <div class="urow"><div class="uav">D</div><div><div class="un">Find a duck</div><div class="ud">Ducks are Common — look near any pond, canal or park lake.</div></div></div>
+        </div>
+        <div class="teaser"><span class="ic">⏳</span><span>Winter waders leave in 3 weeks. A special quest opens soon.</span></div>
+      </div>
+      <div class="footer">
+        <button class="btn btn-primary" onclick="goTo(11)">Start next quest</button>
+        <span class="sublink" onclick="goTo(13)">See all my feathers</span>
+      </div>
+    </section>
+
+    <!-- ════ S8 · Return home (map) ════ (HIDDEN — remove data-hidden to restore) -->
+    <section class="screen mapscreen" data-screen="11" data-hidden="1">
+      <div class="statusbar"></div>
+      <div class="mapbg">
+        <div class="water" style="width:120px;height:120px;left:-40px;top:70px;"></div>
+        <div class="water" style="width:230px;height:200px;right:-70px;bottom:150px;"></div>
+        <div class="road"></div>
+      </div>
+      <div class="mapcircle left"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="6"/><line x1="13" y1="13" x2="18" y2="18"/></svg></div>
+      <div class="feather-pill"><span class="fe">🪶</span>60</div>
+      <div class="mapcircle right"><svg viewBox="0 0 20 20"><line x1="3" y1="6" x2="17" y2="6"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="14" x2="17" y2="14"/></svg></div>
+      <div class="hex" style="left:60px;top:90px;">48</div>
+      <div class="hex" style="right:90px;top:200px;">31</div>
+      <div class="locdot" style="left:48%;top:32%;"></div>
+
+      <div class="sheet" style="top:50%;">
+        <div class="handle"></div>
+        <div class="sbody">
+          <div class="greeting">Good morning — ready to find a duck?</div>
+          <div class="qprog" onclick="goTo(12)">
+            <div class="ring" style="width:50px;height:50px;">
+              <svg width="50" height="50" viewBox="0 0 50 50"><circle class="track" cx="25" cy="25" r="20" fill="none" stroke-width="5"/></svg>
+              <span class="lbl" style="font-size:13px;color:var(--muted);">0/1</span>
+            </div>
+            <div class="qp-text">
+              <div class="qp-title">This week: find a duck</div>
+              <div class="qp-tags"><span class="chip chip-feather">+20 feathers</span><span class="chip chip-days">3 days left</span></div>
+              <div class="qp-tip">📍 Try any local pond, canal or park with water.</div>
+            </div>
+          </div>
+          <div class="likely-head"><h3>Likely near you</h3><span class="seeall" onclick="goTo(12)">See all</span></div>
+          <div class="likely">
+            <div class="lbird"><div class="lphoto"><img src="../../resources/bird-photos/Mallard.webp"></div><div class="lname">Mallard</div><span class="chip chip-common">Common</span></div>
+            <div class="lbird"><div class="lphoto"><img src="../../resources/bird-photos/Tufted_Duck_-_Male_-_Swimming.webp"></div><div class="lname">Tufted Duck</div><span class="chip chip-common">Common</span></div>
+            <div class="lbird"><div class="lphoto"><img src="../../resources/bird-photos/Common_Moorhen.webp"></div><div class="lname">Moorhen</div><span class="chip chip-common">Common</span></div>
+          </div>
+          <div style="height:14px;"></div>
+        </div>
+        <div class="appnav">
+          <div class="navt on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="15.5,8.5 10.5,10.5 8.5,15.5 13.5,13.5" fill="currentColor" stroke="none"/></svg>Explore</div>
+          <div class="navt"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><circle cx="17.5" cy="7.5" r="2.2"/><path d="M16.5 13.5c2.4 0 4 1.7 4 4"/></svg>Community</div>
+          <div class="navt plus" onclick="goTo(8)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+          <div class="navt" onclick="goTo(12)"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1A3.5 3.5 0 0 0 8 10.5M17 6h2.5v1A3.5 3.5 0 0 1 16 10.5"/><path d="M12 13v3M8.5 19h7M9.6 19l.4-3M14.4 19l-.4-3"/></svg>Challenges</div>
+          <div class="navt"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ S9 · Full week quest view ════ (HIDDEN — remove data-hidden to restore) -->
+    <section class="screen qlist" data-screen="12" data-hidden="1">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="qlist-head"><h1>Your quests</h1><div class="meta"><span class="chip chip-date">9–15 June</span><span class="chip chip-days">3 days left</span></div></div>
+
+        <div class="qitem done">
+          <div class="qhead">
+            <div class="qh-text">
+              <div class="qh-title">Spot 3 common garden birds</div>
+              <div class="qh-sub">Robin · House Sparrow · Blue Tit</div>
+              <div class="qh-tags"><span class="chip" style="background:var(--green);color:#fff;">✓ Done</span><span class="chip chip-feather">+30 feathers earned</span></div>
+            </div>
+            <div class="donecheck"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          </div>
+        </div>
+
+        <div class="qitem active" onclick="goTo(11)">
+          <div class="qhead">
+            <div class="qh-text">
+              <div class="qh-title">Find a duck</div>
+              <div class="qh-sub">Common near ponds, canals and park lakes</div>
+              <div class="qh-tags"><span class="chip chip-feather">+20 feathers</span></div>
+            </div>
+            <div class="ring" style="width:50px;height:50px;">
+              <svg width="50" height="50" viewBox="0 0 50 50"><circle class="track" cx="25" cy="25" r="20" fill="none" stroke-width="5"/></svg>
+              <span class="lbl" style="font-size:13px;color:var(--muted);">0/1</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="qitem">
+          <div class="qhead">
+            <div class="qh-text">
+              <div class="qh-title">Spot something new to you</div>
+              <div class="qh-sub">Any bird you haven't logged before counts</div>
+              <div class="qh-tags"><span class="chip chip-feather">+40 feathers</span></div>
+            </div>
+            <div class="ring" style="width:50px;height:50px;">
+              <svg width="50" height="50" viewBox="0 0 50 50"><circle class="track" cx="25" cy="25" r="20" fill="none" stroke-width="5"/></svg>
+              <span class="lbl" style="font-size:13px;color:var(--muted);">0/1</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="teaser click" onclick="goTo(14)"><span class="ic">⏳</span><span>Winter waders — a special quest appears in 3 weeks</span></div>
+      </div>
+      <div class="appnav">
+        <div class="navt" onclick="goTo(11)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="15.5,8.5 10.5,10.5 8.5,15.5 13.5,13.5" fill="currentColor" stroke="none"/></svg>Explore</div>
+        <div class="navt"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><circle cx="17.5" cy="7.5" r="2.2"/><path d="M16.5 13.5c2.4 0 4 1.7 4 4"/></svg>Community</div>
+        <div class="navt plus" onclick="goTo(8)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+        <div class="navt on"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1A3.5 3.5 0 0 0 8 10.5M17 6h2.5v1A3.5 3.5 0 0 1 16 10.5"/><path d="M12 13v3M8.5 19h7M9.6 19l.4-3M14.4 19l-.4-3"/></svg>Challenges</div>
+        <div class="navt"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+      </div>
+    </section>
+
+    <!-- ════ S10 · Feathers wallet ════ -->
+    <section class="screen wallet" data-screen="13">
+      <div class="statusbar"></div>
+      <!-- "Back" orig → goTo(11) Return home (now hidden); points to the payoff while trimmed -->
+      <div class="nav"><span class="back" onclick="goTo(9)"><svg viewBox="0 0 8 14" fill="none"><path d="M7 1 1 7l6 6" stroke="#1F87FE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</span></div>
+      <div class="body">
+        <h1>Your feathers</h1>
+        <div class="balance"><span class="bicn">🪶</span><span class="bnum">60</span><span class="blbl">feathers</span></div>
+
+        <h2>How you earned them</h2>
+        <div class="earned">
+          <div class="erow"><span class="el">Robin logged</span><span class="ev">+10</span></div>
+          <div class="erow"><span class="el">House Sparrow logged</span><span class="ev">+10</span></div>
+          <div class="erow"><span class="el">Blue Tit logged</span><span class="ev">+10</span></div>
+          <div class="erow"><span class="el">Quest: 3 garden birds</span><span class="ev">+30</span></div>
+        </div>
+
+        <h2>What you can do with feathers</h2>
+        <div class="spend avail">
+          <div class="srow"><span class="sn">Unlock the next quest early</span><span class="scost avail">40 feathers</span></div>
+          <div class="sd">Don't wait for the weekly refresh — open your next quest now.</div>
+          <button class="redeem">Redeem</button>
+        </div>
+        <div class="spend avail">
+          <div class="srow"><span class="sn">Donate to charity</span><span class="scost avail">50 feathers</span></div>
+          <div class="sd">Turn your feathers into a donation to bird conservation.</div>
+          <button class="redeem">Donate</button>
+        </div>
+        <div class="spend">
+          <div class="srow"><span class="sn">Your custom bird guide</span><span class="scost">🔒 150 feathers</span></div>
+          <div class="sd">A guide to your area, built from birds you've seen.</div>
+        </div>
+        <div class="spend">
+          <div class="srow"><span class="sn">One month of Birda Pro</span><span class="scost">🔒 200 feathers</span></div>
+          <div class="sd">Full offline maps, unlimited ID, no ads.</div>
+          <div class="track"><i style="width:30%;"></i></div>
+          <div class="frac">60 of 200 feathers</div>
+        </div>
+      </div>
+      <div class="appnav">
+        <div class="navt" onclick="goTo(5)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="15.5,8.5 10.5,10.5 8.5,15.5 13.5,13.5" fill="currentColor" stroke="none"/></svg>Explore</div>
+        <div class="navt"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><circle cx="17.5" cy="7.5" r="2.2"/><path d="M16.5 13.5c2.4 0 4 1.7 4 4"/></svg>Community</div>
+        <div class="navt plus" onclick="goTo(8)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+        <div class="navt" onclick="goTo(6)"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1A3.5 3.5 0 0 0 8 10.5M17 6h2.5v1A3.5 3.5 0 0 1 16 10.5"/><path d="M12 13v3M8.5 19h7M9.6 19l.4-3M14.4 19l-.4-3"/></svg>Challenges</div>
+        <div class="navt on"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+      </div>
+    </section>
+
+    <!-- ════ S11 · Migration event ════ (HIDDEN — remove data-hidden to restore) -->
+    <section class="screen event" data-screen="14" data-hidden="1">
+      <div class="statusbar"></div>
+      <div class="nav"><span class="back" onclick="goTo(12)"><svg viewBox="0 0 8 14" fill="none"><path d="M7 1 1 7l6 6" stroke="#1F87FE" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Back</span></div>
+      <div class="body">
+        <div class="ehero"><img src="images/wader-hero.png" alt="A Dunlin, a winter wader, feeding at the water's edge"></div>
+        <span class="chip chip-limited elimited">LIMITED-TIME EVENT</span>
+        <h1>Winter waders — before they leave</h1>
+        <div class="leaving">⏳ Leaving in 21 days</div>
+        <p class="edesc">Waders feed along wetland edges, mudflats and shorelines. They visit the UK in winter, then head north to breed in spring. Once they go, they're gone until next autumn.</p>
+        <div class="equest">
+          <div><div class="eqn">Spot a wader on your patch</div><div class="eqtags"><span class="chip chip-feather">+60 feathers</span><span class="chip chip-date">🔒 Opens 6 July</span></div></div>
+        </div>
+        <div class="esocial">👥 47 Birda users have spotted waders near you this season</div>
+        <div class="expander">
+          <div class="eh">What's a wader?<span>▾</span></div>
+          <p>A wader is a bird that picks food from shallow water or wet mud — long legs, long beak, slow walk. The Lapwing and Snipe are both waders. You'll often hear them before you see them.</p>
+        </div>
+      </div>
+      <div class="footer">
+        <button class="btn btn-primary" onclick="goTo(12)">Remind me when the quest opens</button>
+        <span class="sublink" onclick="goTo(12)">Back to quests</span>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+  /* ─── status bar injection ─── */
+  const sbSVG = '<svg width="78" height="14" viewBox="0 0 82 16" fill="black"><path d="M3.7 9H2.5a1 1 0 0 0-1 1v2.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1m5.2-2.5H7.7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1M14.1 4h-1.2a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1m5.2-2.5h-1.2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1"/><path d="M70.5 1c2.05 0 3.08 0 3.88.34a4.3 4.3 0 0 1 2.28 2.28c.34.8.34 1.83.34 3.88s0 3.08-.34 3.88a4.3 4.3 0 0 1-2.28 2.28c-.8.34-1.83.34-3.88.34h-12c-2.05 0-3.08 0-3.88-.34a4.3 4.3 0 0 1-2.28-2.28C52 10.58 52 9.55 52 7.5s0-3.08.34-3.88a4.3 4.3 0 0 1 2.28-2.28C55.42 1 56.45 1 58.5 1z" opacity=".35"/><path d="M54 7c0-1.4 0-2.1.27-2.63a2.5 2.5 0 0 1 1.1-1.1C55.9 3 56.6 3 58 3h13c1.4 0 2.1 0 2.64.27q.72.37 1.09 1.1C75 4.9 75 5.6 75 7v1c0 1.4 0 2.1-.27 2.64a2.5 2.5 0 0 1-1.1 1.09C73.1 12 72.4 12 71 12H58c-1.4 0-2.1 0-2.63-.27a2.5 2.5 0 0 1-1.1-1.1C54 10.1 54 9.4 54 8z"/></svg>';
+  document.querySelectorAll('.statusbar').forEach(sb => { sb.innerHTML = '<span class="time">9:41</span>' + sbSVG; });
+
+  /* ─── navigation ─── */
+  const screens = [...document.querySelectorAll('.screen')];
+  // Some screens are temporarily hidden from the flow (data-hidden) — kept in the DOM so
+  // they can be brought back later by simply removing the attribute. `visible` is the live flow.
+  const visible = screens.filter(s => !s.dataset.hidden);
+  // If a link targets a hidden screen, fall through to the next visible screen (or the last one).
+  function resolve(n) {
+    const t = screens.find(s => +s.dataset.screen === n);
+    if (t && !t.dataset.hidden) return n;
+    const fwd = visible.find(s => +s.dataset.screen > n);
+    return +(fwd || visible[visible.length - 1]).dataset.screen;
+  }
+  let cur = 1;
+  function show(n) {
+    cur = resolve(n);
+    screens.forEach(s => s.classList.toggle('active', +s.dataset.screen === cur));
+    const active = screens.find(s => +s.dataset.screen === cur);
+    const body = active && active.querySelector('.body'); if (body) body.scrollTop = 0;
+    const sheet = active && active.querySelector('.sheet .sbody'); if (sheet) sheet.scrollTop = 0;
+    if (cur === 9) { const fb = document.getElementById('fbalNum'); if (fb) fb.textContent = '0'; setTimeout(runFeatherFly, 320); }
+    if (cur === 6) { const q = document.getElementById('gardenQuest'); if (q) q.classList.remove('open'); }
+  }
+  function step(dir) {
+    const i = visible.findIndex(s => +s.dataset.screen === cur);
+    const nx = visible[(i + dir + visible.length) % visible.length];
+    show(+nx.dataset.screen);
+  }
+  function next() { step(1); }
+  function goTo(n) { show(n); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') step(1);
+    else if (e.key === 'ArrowLeft') step(-1);
+  });
+
+  /* ─── S1.5 quick-start picks ─── */
+  // Only the FIRST pick pre-credits the quest (1/3). Further picks are recognised but
+  // must be logged in the field — they never credit progress or sightings (honesty rule).
+  const C = 138.2; // 2πr for r=22
+  function refreshCredit() {
+    const anySel = document.querySelectorAll('#pickList .pick.sel').length > 0;
+    const arc = document.getElementById('introArc');
+    const lbl = document.getElementById('introRingLbl');
+    const credit = document.getElementById('introCredit');
+    const ctext = document.getElementById('introCreditText');
+    if (anySel) {
+      arc.style.strokeDashoffset = (C * (1 - 1/3)).toFixed(1);
+      lbl.textContent = '1/3';
+      credit.style.display = 'flex';
+      ctext.textContent = "Remembered — that's 1 of 3.";
+    } else {
+      arc.style.strokeDashoffset = C.toFixed(1);
+      lbl.textContent = '0/3';
+      credit.style.display = 'none';
+    }
+  }
+  function togglePick(el) { el.classList.toggle('sel'); refreshCredit(); }
+
+  /* "Let's go birding": fade the intro's extra content away, then hand its quest card
+     off to the map screen's bottom sheet, which shrinks down into place. */
+  function goBirding() {
+    const intro = screens.find(s => +s.dataset.screen === 4);
+    const sheet = document.querySelector('.mapscreen[data-screen="5"] .sheet');
+    intro.classList.add('leaving');
+    setTimeout(() => {
+      show(5);
+      if (sheet) { sheet.classList.remove('intro-enter'); void sheet.offsetWidth; sheet.classList.add('intro-enter'); }
+      intro.classList.remove('leaving');
+    }, 250);
+  }
+
+  /* "Robin logged": +10 feathers fly from the banner into the top-right balance, which ticks 0 → 10. */
+  function runFeatherFly() {
+    if (cur !== 9) return;
+    const num = document.getElementById('fbalNum');
+    const bal = document.getElementById('fbal');
+    const src = document.querySelector('.center-screen[data-screen="9"] .feather-banner .icn');
+    if (!num || !bal || !src) return;
+    let fx = document.getElementById('featherFX');
+    if (!fx) { fx = document.createElement('div'); fx.id = 'featherFX'; document.body.appendChild(fx); }
+    fx.innerHTML = '';
+    num.textContent = '0';
+    const s = src.getBoundingClientRect(), d = bal.getBoundingClientRect();
+    const sx = s.left + s.width / 2, sy = s.top + s.height / 2;
+    const dx = (d.left + d.width / 2) - sx, dy = (d.top + d.height / 2) - sy;
+    const N = 6, DUR = 720;
+    for (let i = 0; i < N; i++) {
+      const p = document.createElement('span');
+      p.className = 'feather-fly'; p.textContent = '🪶';
+      p.style.left = sx + 'px'; p.style.top = sy + 'px';
+      fx.appendChild(p);
+      const jx = (i - N / 2) * 7;            // slight spread so they don't overlap exactly
+      p.animate([
+        { transform: 'translate(-50%,-50%) scale(.6) rotate(-8deg)', opacity: 0 },
+        { opacity: 1, offset: .18 },
+        { transform: `translate(calc(-50% + ${dx * .5 + jx}px), calc(-50% + ${dy * .5 - 26}px)) scale(1) rotate(10deg)`, opacity: 1, offset: .55 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.45) rotate(18deg)`, opacity: 0 }
+      ], { duration: DUR, delay: i * 70, easing: 'cubic-bezier(.45,0,.25,1)', fill: 'forwards' })
+        .onfinish = () => p.remove();
+    }
+    // tick the number up over the flight, then a little pop on arrival
+    const t0 = performance.now(), tickStart = 160, tickDur = DUR;
+    (function tick(now) {
+      if (cur !== 9) return;
+      const prog = Math.min(1, Math.max(0, (now - t0 - tickStart) / tickDur));
+      num.textContent = Math.round(prog * 10);
+      if (prog < 1) requestAnimationFrame(tick);
+      else { bal.classList.remove('bump'); void bal.offsetWidth; bal.classList.add('bump'); }
+    })(t0);
+  }
+
+  /* ─── P3 birding journey single-select (button reads Skip until you pick) ─── */
+  function selJourney(el) {
+    document.querySelectorAll('#journeyOpts .opt').forEach(o => o.classList.remove('sel'));
+    el.classList.add('sel');
+    document.getElementById('journeyBtn').textContent = 'Continue';
+  }
+
+  /* ─── Your quests: active quest expands to reveal the likely birds ─── */
+  function toggleQuestBirds() {
+    const q = document.getElementById('gardenQuest');
+    if (q) q.classList.toggle('open');
+  }
+
+  /* ─── S5 count stepper ─── */
+  function bumpCount(d) {
+    const el = document.getElementById('logCount');
+    el.textContent = Math.max(1, parseInt(el.textContent) + d);
+  }
+
+  /* ─── payoff: live quest countdown (ticks every second) ─── */
+  (function () {
+    const el = document.getElementById('questCountdown');
+    if (!el) return;
+    let secs = 3 * 86400 + 21 * 3600 + 14 * 60 + 8;   // 3d 21:14:08
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = s => Math.floor(s / 86400) + 'd ' + pad(Math.floor((s % 86400) / 3600)) + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60);
+    el.textContent = fmt(secs);
+    setInterval(() => { if (secs > 0) { secs--; el.textContent = fmt(secs); } }, 1000);
+  })();
+
+  const startN = parseInt((location.hash || '').replace('#','')) || 1;
+  show(startN);
+
+  /* ─── scale the phone to always fit the viewport ─── */
+  const shell = document.querySelector('.shell');
+  function fitShell() {
+    shell.style.transform = 'none';
+    const W = shell.offsetWidth, H = shell.offsetHeight, margin = 24;
+    const s = Math.min(1, (window.innerHeight - margin) / H, (window.innerWidth - margin) / W);
+    shell.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fitShell);
+  fitShell();
+</script>
+</body>
+</html>

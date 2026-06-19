@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game of Birda — Route 3 · Mastery & Identity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <style>
+  /* ─── Reset & tokens (mirrors production: Rubik + brand palette) ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  button { font: inherit; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --blue:#1F87FE; --blue-5:#E3F0FF; --ink:#2D3142; --muted:#8890AE;
+    --cloud:#F4F6FA; --line:#E4E8F0; --off:#FAFCFE; --green:#00C9A7;
+    /* mastery tier scale: Spotter → Learner → Identifier → Knower → Expert */
+    --t-spotter:#8890AE;   --t-spotter-bg:#EDEFF6;
+    --t-learner:#1F87FE;   --t-learner-bg:#E3F0FF;
+    --t-identifier:#00A88B;--t-identifier-bg:#DCF5EF;
+    --t-knower:#7C5CE0;    --t-knower-bg:#ECE7FB;
+    --t-expert:#C58B3F;    --t-expert-bg:#F6EBD8;
+    --r:14px;
+  }
+
+  html, body { height:100%; }
+  body {
+    height:100vh; overflow:hidden; background:#dde1e9; display:flex; align-items:center; justify-content:center;
+    font-family:'Rubik',-apple-system,sans-serif; color:var(--ink); padding:0;
+  }
+
+  /* ─── Phone shell (PEX-43 house style) ─── */
+  .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:center center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.45); }
+  .shell::before { content:''; position:absolute; left:-3px; top:106px; width:3px; height:34px; background:#222; border-radius:2px 0 0 2px; box-shadow:0 44px 0 #222,0 88px 0 #222; }
+  .shell::after { content:''; position:absolute; right:-3px; top:156px; width:3px; height:72px; background:#222; border-radius:0 2px 2px 0; }
+  .viewport { width:369px; height:798px; border-radius:44px; overflow:hidden; position:relative; background:#fff; }
+
+  /* ─── Screen scaffold ─── */
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; background:#fff; }
+  .screen.active { display:flex; }
+  .body { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .body::-webkit-scrollbar { display:none; }
+  .footer { flex-shrink:0; padding:12px 24px 28px; background:#fff; }
+
+  /* status bar */
+  .statusbar { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:14px 26px 6px; z-index:5; }
+  .statusbar .time { font-size:15px; font-weight:600; }
+  .statusbar svg { display:block; }
+  .statusbar.light .time { color:#fff; } .statusbar.light svg { fill:#fff; }
+
+  /* buttons */
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px; border-radius:4px; font-size:16px; font-weight:600; }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:active { background:#0f6fe0; }
+  .btn-ghost { background:transparent; color:var(--ink); }
+  .link { color:var(--blue); font-weight:600; cursor:pointer; }
+  .ghost-link { display:block; text-align:center; color:#5B606E; font-size:15px; font-weight:500; margin-top:14px; cursor:pointer; }
+
+  /* ── Shared onboarding screens copied from Route 2 (P1 Welcome + P3 journey) ── */
+  .screen.flat img { width:100%; height:100%; object-fit:cover; display:block; cursor:pointer; }
+  .progress { height:7px; background:var(--line); border-radius:99px; margin:6px 24px 0; overflow:hidden; }
+  .progress > i { display:block; height:100%; width:25%; background:var(--blue); border-radius:99px; }
+  .p3 h1 { font-size:27px; font-weight:700; text-align:center; line-height:1.2; padding:20px 24px 8px; }
+  .opts { padding:8px 24px; display:flex; flex-direction:column; gap:14px; }
+  .opt { display:flex; align-items:center; gap:18px; padding:18px 18px; border:1.5px solid var(--line); border-radius:var(--r); background:#fff; text-align:left; transition:.12s; }
+  .opt:hover { border-color:#c9d2e6; }
+  .opt.sel { border-color:var(--blue); background:var(--blue-5); }
+  .opt .bars { display:flex; align-items:flex-end; gap:4px; width:42px; height:34px; flex-shrink:0; }
+  .opt .bars i { width:10px; background:var(--blue-5); border-radius:2px; }
+  .opt .bars i:nth-child(1){height:45%;} .opt .bars i:nth-child(2){height:72%;} .opt .bars i:nth-child(3){height:100%;}
+  .opt[data-level="1"] .bars i:nth-child(1),
+  .opt[data-level="2"] .bars i:nth-child(-n+2),
+  .opt[data-level="3"] .bars i { background:var(--blue); }
+  .opt span { font-size:17px; color:var(--ink); }
+
+  /* mastery rank pill (shared) */
+  .rank { display:inline-flex; align-items:center; font-size:10px; font-weight:700; letter-spacing:.03em; padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .rank.spotter    { color:var(--t-spotter);    background:var(--t-spotter-bg); }
+  .rank.learner    { color:var(--t-learner);    background:var(--t-learner-bg); }
+  .rank.identifier { color:var(--t-identifier); background:var(--t-identifier-bg); }
+  .rank.knower     { color:var(--t-knower);     background:var(--t-knower-bg); }
+  .rank.expert     { color:var(--t-expert);     background:var(--t-expert-bg); }
+
+  /* generic thin progress bar */
+  .bar { height:7px; background:#E7EBF2; border-radius:99px; overflow:hidden; }
+  .bar > i { display:block; height:100%; background:var(--blue); border-radius:99px; }
+
+  /* ════════════ 1 · Welcome ════════════ */
+  .welcome { background:linear-gradient(180deg,#EAF3FF 0%,#F7FBFF 46%,#fff 100%); }
+  .welcome .body { padding:0; display:flex; flex-direction:column; align-items:center; }
+  .wl-hero { width:300px; max-width:84%; margin:34px auto 4px; display:flex; align-items:center; justify-content:center; }
+  .wl-hero img { width:100%; height:auto; display:block; }
+  .wl-text { padding:30px 30px 0; text-align:center; }
+  .wl-text h1 { font-size:29px; font-weight:700; line-height:1.18; }
+  .wl-text p { font-size:16px; color:#5B606E; line-height:1.5; margin-top:14px; }
+  .wl-chips { display:flex; gap:8px; justify-content:center; margin-top:22px; flex-wrap:wrap; }
+  .wl-chip { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#5B606E; background:#fff; border:1px solid var(--line); border-radius:99px; padding:7px 13px; }
+
+  /* ════════════ 2 · Calibration picker ════════════ */
+  .calib .body { padding:4px 24px 8px; }
+  .calib h1 { font-size:26px; font-weight:700; line-height:1.2; margin-top:10px; }
+  .calib .lead { font-size:15px; color:#5B606E; line-height:1.5; margin-top:12px; }
+  .calib-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px; }
+  .ctile { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:10px; padding:14px 12px 13px; border:1.5px solid var(--line); border-radius:16px; background:#fff; text-align:center; transition:.12s; }
+  .ctile:hover { border-color:#c9d2e6; }
+  .ctile .cphoto { width:84px; height:84px; border-radius:14px; overflow:hidden; flex-shrink:0; background:var(--cloud); display:flex; align-items:center; justify-content:center; }
+  .ctile .cphoto img { width:100%; height:100%; object-fit:cover; }
+  .ctile .cnm { font-size:15px; font-weight:500; color:var(--ink); line-height:1.2; }
+  .ctile .cmark { position:absolute; top:10px; right:10px; width:24px; height:24px; border-radius:50%; border:2px solid #D7DBE2; background:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .ctile.sel { border-color:var(--blue); background:#F4F9FF; }
+  .ctile.sel .cmark { border:none; background:var(--blue); }
+  .calib .foot-note { text-align:center; font-size:13px; color:var(--muted); margin-top:18px; }
+
+  /* ════════════ 3 · Rank reveal ════════════ */
+  .reveal .body { padding:8px 24px 0; text-align:center; }
+  .rv-badge { margin:24px auto 0; width:120px; height:120px; border-radius:50%; background:radial-gradient(circle at 50% 40%,#E9F2FF 0%,#D3E6FF 70%); display:flex; align-items:center; justify-content:center; font-size:54px; box-shadow:0 14px 30px rgba(31,135,254,.20); position:relative; }
+  .reveal.active .rv-badge { animation:popIn .55s cubic-bezier(.2,.9,.3,1.3) both; }
+  @keyframes popIn { 0%{opacity:0;transform:scale(.55)} 60%{opacity:1;transform:scale(1.07)} 100%{transform:scale(1)} }
+  .reveal h1 { font-size:25px; font-weight:700; line-height:1.2; margin-top:22px; }
+  .rv-level { display:inline-flex; align-items:center; gap:8px; margin:18px auto 0; padding:10px 18px; border-radius:99px; background:var(--blue-5); color:var(--blue); font-size:17px; font-weight:700; }
+  .rv-xp { margin:20px 4px 0; }
+  .rv-xp-top { display:flex; align-items:center; justify-content:space-between; }
+  .rv-xp-label { font-size:13px; font-weight:600; color:var(--muted); }
+  .rv-xp-val { font-size:14px; font-weight:700; color:#C0820F; font-variant-numeric:tabular-nums; }
+  .rv-xp-bar { height:11px; background:#F1E7D4; border-radius:99px; overflow:hidden; margin-top:8px; }
+  .rv-xp-bar > i { display:block; height:100%; width:0; background:linear-gradient(90deg,#FF9D1C 0%,#FFC44C 100%); border-radius:99px; box-shadow:inset 0 1px 0 rgba(255,255,255,.5); }
+  .rv-xp-foot { font-size:12px; color:var(--muted); margin-top:9px; text-align:left; }
+  .rv-xp-gain { color:#C0820F; font-weight:700; opacity:0; transition:opacity .4s ease; }
+  .rv-xp-gain.show { opacity:1; }
+  .reveal .lead { font-size:15px; color:#5B606E; line-height:1.5; margin:16px 6px 0; }
+  .rv-section { text-align:left; font-size:13px; font-weight:600; color:var(--muted); letter-spacing:.02em; margin:28px 0 12px; text-transform:none; }
+  .rv-list { display:flex; flex-direction:column; gap:8px; }
+  .rv-row { display:flex; align-items:center; justify-content:space-between; padding:13px 16px; border:1px solid var(--line); border-radius:12px; background:#fff; }
+  .rv-row .nm { font-size:16px; font-weight:500; }
+  .reveal .closer { font-size:14px; color:#5B606E; line-height:1.5; text-align:left; margin:26px 2px 6px; }
+
+  /* ════════════ 6 · Home — full-bleed map + bottom sheet (aligned with Routes 1 & 2) ════════════ */
+  .mapscreen { background:#E6EBDF; }
+  .mapbg { position:absolute; inset:0; background:#E6EBDF; overflow:hidden; }
+  .mapbg .water { position:absolute; background:#BBD6EA; border-radius:50%; }
+  .mapbg .road { position:absolute; left:-6%; right:-6%; height:30px; background:#fff; transform:rotate(-12deg); top:25%; box-shadow:0 1px 0 #e4ead8 inset; }
+  .mapbg .road.two { top:34%; height:16px; opacity:.8; }
+  .locdot { position:absolute; left:50%; top:24%; transform:translate(-50%,-50%); width:18px; height:18px; border-radius:50%; background:var(--blue); border:3px solid #fff; box-shadow:0 0 0 7px rgba(31,135,254,.18), 0 2px 6px rgba(0,0,0,.25); z-index:4; }
+  .hex { position:absolute; width:50px; height:56px; background:var(--blue); clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%); display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:700; box-shadow:0 6px 14px rgba(31,135,254,.34); z-index:3; }
+  .mapcircle { position:absolute; top:54px; width:44px; height:44px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(45,49,66,.16); z-index:6; }
+  .mapcircle svg { width:20px; height:20px; stroke:#3A3F4C; stroke-width:2; fill:none; }
+  .mapcircle.left { left:20px; } .mapcircle.right { right:20px; }
+  /* bottom sheet anchored on the map (Route 1 pattern) */
+  .sheet { position:absolute; left:0; right:0; bottom:0; top:35%; background:#fff; border-radius:22px 22px 0 0; box-shadow:0 -8px 30px rgba(20,22,30,.16); display:flex; flex-direction:column; z-index:8; }
+  .sheet .handle { width:38px; height:4px; border-radius:99px; background:#E0E3EB; margin:10px auto 6px; flex-shrink:0; }
+  .sheet .sbody { flex:1; padding:4px 20px 0; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; }
+  .sheet .sbody::-webkit-scrollbar { display:none; }
+  /* current-level card (replaces the old "Log a bird" hero; level moved down off the map) */
+  .level-card { border:1px solid var(--line); border-radius:16px; padding:15px 16px; box-shadow:0 6px 16px rgba(45,49,66,.06); }
+  .lc-top { display:flex; align-items:center; gap:13px; }
+  .lc-badge { width:46px; height:46px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:24px; background:radial-gradient(circle at 50% 38%,#EAF3FF 0%,#CFE2FF 75%); }
+  .lc-info { flex:1; min-width:0; }
+  .lc-name { font-size:17px; font-weight:700; }
+  .lc-xp { font-size:13px; color:#5B606E; margin-top:2px; }
+  .lc-streak { flex-shrink:0; font-size:14px; font-weight:600; color:var(--ink); background:var(--cloud); border-radius:99px; padding:6px 12px; }
+  /* user's overall XP bar — thicker + warm "points" gradient, distinct from the birds' thin cool tier bars */
+  .level-card .bar { margin-top:13px; height:11px; background:#F1E7D4; }
+  .level-card .bar > i { background:linear-gradient(90deg,#FF9D1C 0%,#FFC44C 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.5); }
+  .yb-head { font-size:18px; font-weight:700; margin:20px 0 4px; }
+  .yb-list { display:flex; flex-direction:column; }
+  .yb-row { padding:12px 0; border-bottom:1px solid var(--line); }
+  .yb-row:last-child { border-bottom:none; }
+  .yb-top { display:flex; align-items:center; gap:10px; cursor:pointer; }
+  .yb-photo { width:34px; height:34px; border-radius:9px; overflow:hidden; background:var(--cloud); flex-shrink:0; }
+  .yb-photo img { width:100%; height:100%; object-fit:cover; }
+  .yb-nm { font-size:16px; font-weight:500; }
+  .yb-prog { display:flex; align-items:center; gap:12px; margin-top:10px; margin-left:44px; }
+  .yb-prog .bar { flex:1; }
+  .yb-row.learner .bar > i { background:var(--t-learner); }
+  .yb-row.spotter .bar > i { background:var(--t-spotter); }
+  .yb-count { flex-shrink:0; font-size:13px; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .yb-count b { color:var(--ink); font-weight:600; }
+  .logplus { flex-shrink:0; font-size:13px; font-weight:600; color:var(--blue); background:var(--blue-5); border-radius:99px; padding:7px 13px; cursor:pointer; }
+  .logplus:active { background:#D3E6FF; }
+  .practice-row { display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--cloud); border-radius:12px; padding:14px 16px; margin-top:14px; cursor:pointer; }
+  .practice-row .pl { font-size:14px; font-weight:500; color:var(--ink); display:flex; align-items:center; gap:9px; }
+  .practice-row .chev { color:#AEB4C4; font-size:20px; }
+
+  /* ── app bottom nav (3-item, matches Route 3 Figma) ── */
+  .appnav { flex-shrink:0; display:flex; align-items:flex-end; justify-content:space-around; padding:9px 12px 22px; border-top:1px solid var(--line); background:#fff; }
+  .navt { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; color:#9097A3; cursor:pointer; }
+  .navt.on { color:var(--blue); }
+  .navt > svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .navt.plus { flex:0 0 auto; }
+  .navt.plus .fab { width:52px; height:52px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(31,135,254,.4); transform:translateY(-6px); }
+  .navt.plus .fab svg { width:26px; height:26px; stroke:#fff; stroke-width:2.4; fill:none; stroke-linecap:round; }
+
+  /* ── 5 · Species select (copied from PEX-43-v2 "What did you see?") ── */
+  .sp-nav { flex-shrink:0; height:44px; display:flex; align-items:center; padding:6px 16px 0; position:relative; }
+  .sp-nav .back { display:flex; align-items:center; color:#8E8E93; }
+  .sp-nav .back svg { width:10px; height:18px; fill:none; stroke:#8E8E93; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+  .sp-nav .title { position:absolute; left:50%; transform:translateX(-50%); font-size:16px; font-weight:600; white-space:nowrap; }
+  .sp-nav .save { position:absolute; right:16px; font-size:14px; color:var(--blue); background:none; }
+  .search-bar { margin:8px 16px 12px; background:#F2F2F7; border-radius:999px; display:flex; align-items:center; gap:8px; padding:8px 12px; }
+  .search-bar svg { fill:#AEAEB2; width:16px; height:16px; }
+  .search-bar input { flex:1; font:inherit; font-size:15px; color:var(--ink); background:none; border:none; outline:none; }
+  .search-bar input::placeholder { color:#AEAEB2; }
+  .species-list { padding:0 16px; display:flex; flex-direction:column; gap:12px; }
+  .species-item { display:flex; align-items:center; gap:14px; padding:10px 12px; background:#fff; border-radius:6px; border:1px solid #E5E5EA; cursor:pointer; }
+  .species-item:active { background:#F2F2F7; }
+  .species-item.highlighted { background:none; }
+  .species-item.highlighted .name.blue { display:inline-block; background:var(--blue-5); color:var(--blue); padding:2px 8px; border-radius:4px; }
+  .species-avatar { width:66px; height:66px; border-radius:8px; overflow:hidden; flex-shrink:0; background:#fff; display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .species-avatar img { width:100%; height:100%; object-fit:contain; }
+  .species-info { flex:1; min-width:0; }
+  .species-info .name { font-size:14px; font-weight:500; color:var(--ink); }
+  .species-info .name.blue { color:var(--blue); }
+  .species-info .latin { font-size:13px; font-style:italic; color:#8E8E93; margin-top:1px; }
+  .species-info .gender { font-size:16px; color:#8E8E93; margin-top:4px; }
+
+  /* ── 6 · Review sighting (copied from PEX-43-v2, scoped to .review) ── */
+  .review .map-block { width:100%; position:relative; height:200px; background:linear-gradient(160deg,#c8dfc8 0%,#d8e8d0 30%,#b8d4b8 55%,#a0c8b8 100%); overflow:hidden; flex-shrink:0; }
+  .review .map-block::after { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,.25) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,.25) 40px); opacity:.5; }
+  .review .map-roads { position:absolute; inset:0; pointer-events:none; opacity:.45; }
+  .review .map-pin { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; display:flex; flex-direction:column; align-items:center; }
+  .review .map-pin-avatar { width:52px; height:52px; border-radius:50%; border:2.5px solid #fff; background:#fff; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; }
+  .review .map-pin-avatar img { width:100%; height:100%; object-fit:cover; }
+  .review .map-pin::after { content:''; width:10px; height:10px; background:rgba(0,0,0,.2); border-radius:50%; margin-top:4px; transform:scaleX(2); }
+  .review .mapbox-badge { position:absolute; bottom:8px; left:10px; z-index:3; font-size:10px; color:rgba(0,0,0,.5); background:rgba(255,255,255,.7); border-radius:3px; padding:1px 4px; }
+  .review .section-label { font-size:14px; font-weight:500; color:var(--ink); padding:0 20px 10px; }
+  .review .group { margin:0 16px; background:#fff; border-radius:10px; border:1px solid #E5E5EA; overflow:hidden; }
+  .review .species-row-inner { display:flex; align-items:center; gap:12px; padding:12px 16px 10px; }
+  .review .species-icon { width:22px; height:22px; flex-shrink:0; color:#8E8E93; }
+  .review .species-name { flex:1; font-size:15px; font-weight:500; color:var(--ink); }
+  .review .frow { display:flex; align-items:center; padding:12px 16px; border-bottom:1px solid #E5E5EA; gap:12px; min-height:50px; }
+  .review .frow:last-child { border-bottom:none; }
+  .review .row-icon { width:22px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .review .row-icon svg { width:20px; height:20px; fill:none; stroke:#8E8E93; stroke-width:1.5; }
+  .review .row-label { flex:1; font-size:14px; font-weight:400; color:var(--ink); line-height:1.3; }
+  .review .row-value { font-size:14px; font-weight:400; color:#8E8E93; }
+  .review .row-chevron { color:#AEAEB2; font-size:18px; font-weight:300; }
+  .review .count-input { width:64px; height:36px; border:1.5px solid #E5E5EA; border-radius:8px; text-align:center; font:inherit; font-size:17px; font-weight:500; color:var(--blue); background:none; }
+  .review .notes-row { margin:0 16px; border:1px solid #E5E5EA; border-radius:10px; padding:12px 16px; min-height:44px; }
+  .review .notes-row input { width:100%; font:inherit; font-size:14px; font-weight:400; color:var(--ink); border:none; background:none; outline:none; }
+  .review .notes-row input::placeholder { color:#C3C7D7; }
+  .review .photos-section { padding:0 20px 0; }
+  .review .photos-heading { font-size:14px; font-weight:500; color:var(--ink); padding:12px 0 10px; }
+  .review .photos-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .review .photo-add { width:88px; height:88px; border-radius:8px; border:1.5px dashed var(--blue); display:flex; align-items:center; justify-content:center; font-size:28px; color:var(--blue); cursor:pointer; flex-shrink:0; }
+  .review .btn-save { display:block; width:calc(100% - 40px); margin:16px 20px 8px; background:var(--blue); color:#fff; border-radius:10px; padding:15px; text-align:center; font-size:14px; font-weight:600; cursor:pointer; }
+  .review .btn-del { display:block; width:100%; padding:10px; text-align:center; font-size:14px; color:var(--blue); cursor:pointer; margin-bottom:24px; }
+  .review .sp12 { height:12px; } .review .sp16 { height:16px; }
+  /* mastery progress block inside the Sighting card (Route 3 addition) */
+  .mastery-inline { padding:12px 16px 14px; border-bottom:1px solid #E5E5EA; background:#F8FBFF; }
+  .mastery-inline .mhead { display:flex; align-items:center; justify-content:space-between; }
+  .mastery-inline .mhead .ml { font-size:13px; font-weight:600; color:var(--ink); }
+  .mastery-inline .mhead .mr { font-size:12px; font-weight:600; color:var(--blue); }
+  .mastery-inline .bar { margin-top:10px; }
+  .mastery-inline .mnote { font-size:12px; color:#5B606E; margin-top:9px; line-height:1.35; }
+
+  /* ════════════ 7 · Post-log payoff ════════════ */
+  .payoff .body { padding:0 20px; }
+  .pay-top { position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; padding:30px 0 10px; }
+  .pay-confetti { position:absolute; top:0; left:0; right:0; height:84px; pointer-events:none; }
+  .pay-confetti i { position:absolute; top:38px; width:9px; height:9px; border-radius:2px; opacity:0; transform:rotate(var(--r,0deg)); }
+  .payoff.active .pay-confetti i { animation: payConfetti 1.15s ease-out both; }
+  @keyframes payConfetti {
+    0%   { opacity:0; transform:translate(0,0) scale(.3) rotate(var(--r,0deg)); }
+    18%  { opacity:1; }
+    70%  { opacity:1; transform:translate(var(--dx,0),var(--dy,0)) scale(1) rotate(var(--r,0deg)); }
+    100% { opacity:0; transform:translate(calc(var(--dx,0) * 1.3), calc(var(--dy,0) * 1.3 + 42px)) scale(.9) rotate(var(--r,0deg)); }
+  }
+  .pay-xp { position:relative; z-index:1; display:inline-flex; align-items:center; gap:5px; font-size:42px; font-weight:800; color:#E8990F; line-height:1; letter-spacing:-.01em; }
+  .pay-xp .bolt { font-size:30px; }
+  .payoff.active .pay-xp { animation:popIn .55s cubic-bezier(.2,.9,.3,1.35) both; }
+  .pay-title { position:relative; z-index:1; font-size:18px; font-weight:600; color:var(--ink); margin-top:9px; }
+  .pay-card { border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:18px; box-shadow:0 8px 20px rgba(45,49,66,.06); }
+  .pay-card .crow { display:flex; align-items:center; justify-content:space-between; }
+  .pay-card .cnm { font-size:17px; font-weight:600; }
+  .pay-tierjump { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; color:var(--t-learner); background:var(--t-learner-bg); padding:4px 10px; border-radius:99px; }
+  .pay-card .bar { margin-top:14px; }
+  .pay-card .bar > i { background:var(--t-learner); }
+  .pay-card .csub { font-size:13px; color:#5B606E; line-height:1.45; margin-top:11px; }
+  .pay-streak { display:flex; align-items:center; justify-content:center; gap:7px; font-size:15px; font-weight:600; color:var(--ink); margin-top:20px; }
+  .unlock { position:relative; border-radius:16px; padding:16px; margin-top:18px; overflow:hidden;
+    background:linear-gradient(135deg,#2A2350 0%,#3C2F73 50%,#5B3FA0 100%); color:#fff; }
+  .unlock .ulabel { font-size:11px; font-weight:700; letter-spacing:.08em; opacity:.85; }
+  .unlock .urow { display:flex; align-items:center; gap:14px; margin-top:14px; }
+  .unlock .medallion { width:64px; height:64px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:26px;
+    background:radial-gradient(circle at 50% 38%,#FFE6A8 0%,#F4B23E 60%,#C8841C 100%); box-shadow:0 0 0 4px rgba(255,255,255,.16), 0 8px 18px rgba(0,0,0,.3); }
+  .payoff.active .unlock .medallion { animation:popIn .6s .15s cubic-bezier(.2,.9,.3,1.4) both; }
+  .unlock .uinfo { flex:1; min-width:0; }
+  .unlock .uinfo .ut { font-size:12px; opacity:.8; }
+  .unlock .uinfo .un { font-size:19px; font-weight:700; margin-top:2px; }
+  .unlock .equip { flex-shrink:0; background:#fff; color:#3C2F73; font-size:13px; font-weight:700; padding:9px 16px; border-radius:99px; }
+  .unlock .equip.equipped { background:rgba(255,255,255,.2); color:#fff; }
+  .unlock .usub { font-size:12px; opacity:.82; line-height:1.4; margin-top:13px; }
+  .unlock .sparkles { position:absolute; inset:0; pointer-events:none; }
+  .unlock .sparkles i { position:absolute; width:6px; height:6px; border-radius:50%; background:#fff; opacity:0; }
+  .payoff.active .unlock .sparkles i { animation:twinkle 1.6s ease-in-out infinite; }
+  @keyframes twinkle { 0%,100%{opacity:0;transform:scale(.4)} 50%{opacity:.9;transform:scale(1)} }
+  .payoff .btn { margin-top:26px; }
+
+  /* ════════════ 8 · Species mastery detail ════════════ */
+  .detail .body { padding:0 20px; }
+  .dt-back { display:flex; align-items:center; gap:6px; padding:8px 0 6px; color:#8E8E93; font-size:15px; cursor:pointer; }
+  .dt-back svg { width:9px; height:16px; fill:none; stroke:#8E8E93; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+  .dt-head { display:flex; align-items:center; gap:14px; padding:8px 0 4px; }
+  .dt-photo { width:80px; height:80px; border-radius:16px; overflow:hidden; background:var(--cloud); flex-shrink:0; }
+  .dt-photo img { width:100%; height:100%; object-fit:cover; }
+  .dt-head .nm { font-size:26px; font-weight:700; }
+  .dt-card { border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:18px; }
+  .dt-card .drow { display:flex; align-items:baseline; justify-content:space-between; }
+  .dt-card .dcount { font-size:16px; font-weight:600; }
+  .dt-card .dnext { font-size:13px; font-weight:500; color:var(--blue); }
+  .dt-card .bar { margin-top:12px; }
+  .dt-card .bar > i { background:var(--t-learner); }
+  /* mastery ladder */
+  .ladder { display:flex; align-items:flex-start; justify-content:space-between; margin-top:20px; position:relative; }
+  .ladder::before { content:''; position:absolute; top:13px; left:24px; right:24px; height:2px; background:var(--line); z-index:0; }
+  .lstep { display:flex; flex-direction:column; align-items:center; gap:7px; flex:1; z-index:1; }
+  .lstep .node { width:28px; height:28px; border-radius:50%; background:#fff; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; }
+  .lstep .node svg { width:14px; height:14px; stroke:#fff; stroke-width:3; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .lstep .lnm { font-size:10px; font-weight:600; color:#A7AEBE; }
+  .lstep.done .node { background:var(--t-spotter); border-color:var(--t-spotter); }
+  .lstep.done .lnm { color:var(--t-spotter); }
+  .lstep.current .node { background:var(--t-learner); border-color:var(--t-learner); box-shadow:0 0 0 4px var(--t-learner-bg); }
+  .lstep.current .node .core { width:9px; height:9px; border-radius:50%; background:#fff; }
+  .lstep.current .lnm { color:var(--t-learner); }
+  .gives { margin-top:26px; }
+  .gives h3 { font-size:18px; font-weight:700; }
+  .gives ul { list-style:none; margin-top:12px; display:flex; flex-direction:column; gap:11px; }
+  .gives li { display:flex; gap:10px; font-size:14px; color:var(--ink); line-height:1.45; }
+  .gives li::before { content:'•'; color:var(--blue); font-weight:700; }
+
+  /* ════════════ 9 · Profile ════════════ */
+  .profile .body { padding:0; }
+  .pf-header { width:100%; height:350px; overflow:hidden; flex-shrink:0; }
+  .pf-header img { width:100%; display:block; }
+  .pf-content { padding:18px 20px 8px; }
+  /* level hero — the focus: current level + progress to the next */
+  .lvl-hero { position:relative; border:1px solid #E4ECF7; border-radius:18px; padding:18px; background:linear-gradient(135deg,#EAF3FF 0%,#F4F8FF 58%,#FFF6E6 100%); box-shadow:0 8px 20px rgba(45,49,66,.06); }
+  .lh-top { display:flex; align-items:center; gap:14px; }
+  .lvl-emblem { width:58px; height:58px; border-radius:50%; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; background:radial-gradient(circle at 50% 32%,#5AA8FF,#1F87FE 72%); box-shadow:0 6px 16px rgba(31,135,254,.4), inset 0 1px 2px rgba(255,255,255,.5); }
+  .lvl-emblem .le-lv { font-size:9px; font-weight:700; letter-spacing:.08em; opacity:.85; line-height:1; }
+  .lvl-emblem .le-n { font-size:24px; font-weight:800; line-height:1.05; }
+  .lh-tier { font-size:21px; font-weight:800; }
+  .lh-sub { font-size:13px; color:#5B606E; margin-top:2px; }
+  .lvl-hero .bar { margin-top:16px; height:11px; background:#F1E7D4; }
+  .lvl-hero .bar > i { background:linear-gradient(90deg,#FF9D1C 0%,#FFC44C 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.5); }
+  .lh-xprow { display:flex; align-items:baseline; justify-content:space-between; margin-top:9px; gap:10px; }
+  .lh-xp { font-size:13px; font-weight:700; color:#B27A12; font-variant-numeric:tabular-nums; }
+  .lh-next { font-size:12px; color:#5B606E; }
+  .pf-sec { font-size:17px; font-weight:700; margin:24px 0 12px; }
+  /* species-mastery distribution */
+  .mast-bar { display:flex; height:12px; border-radius:99px; overflow:hidden; background:#EEF1F6; }
+  .mast-bar > span { height:100%; }
+  .mast-legend { display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:14px; }
+  .mast-legend .ml { display:flex; align-items:center; gap:7px; font-size:13px; color:var(--ink); }
+  .mast-legend .ml .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .mast-legend .ml b { font-weight:700; }
+  .mast-legend .ml.zero { color:#A7AEBE; }
+  /* badges grid */
+  .badge-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .badge { display:flex; flex-direction:column; align-items:center; text-align:center; gap:7px; padding:14px 8px 12px; border:1px solid var(--line); border-radius:14px; background:#fff; }
+  .badge .bicon { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:23px; background:var(--cloud); }
+  .badge.earned .bicon { background:radial-gradient(circle at 50% 32%,#FFE6A8 0%,#F4B23E 72%); box-shadow:0 4px 10px rgba(212,150,40,.35); }
+  .badge .bname { font-size:12px; font-weight:600; line-height:1.2; color:var(--ink); }
+  .badge .bstat { font-size:10px; font-weight:600; color:var(--muted); }
+  .badge.earned .bstat { color:#C0820F; }
+  .badge.prog .bstat { color:var(--t-learner); }
+  .badge.locked { opacity:.55; }
+  .badge.locked .bicon { filter:grayscale(1); }
+  /* ambient social proof — distinct teal treatment + real bird photo */
+  .social { display:flex; align-items:center; gap:14px; margin-top:14px; padding:14px 16px; border-radius:16px; border:1px solid #D6EFE7; background:linear-gradient(135deg,#E3F6F0 0%,#F1FBF8 58%,#FBF6E9 100%); }
+  .social .sp-photo { width:56px; height:56px; border-radius:50%; flex-shrink:0; overflow:hidden; background:#fff; border:2px solid #fff; box-shadow:0 4px 12px rgba(0,138,109,.22); }
+  .social .sp-photo img { width:100%; height:100%; object-fit:cover; }
+  .social .sp-label { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:.06em; color:#0A9A7D; }
+  .social .sp-title { font-size:15px; font-weight:700; color:var(--ink); line-height:1.25; margin-top:3px; }
+  .social .sp-title b { color:#0A9A7D; }
+  .social .sp-sub { font-size:12px; color:#5B7A72; margin-top:4px; }
+
+  /* ════════════ 10 · Sofa practice ════════════ */
+  .sofa .body { padding:8px 24px 0; }
+  .sofa h1 { font-size:27px; font-weight:700; line-height:1.2; margin-top:16px; }
+  .sofa .lead { font-size:15px; color:#5B606E; line-height:1.5; margin-top:12px; }
+  .freeze { display:flex; align-items:center; gap:10px; background:#EAF4FF; border:1px solid #D5E8FB; border-radius:12px; padding:12px 14px; margin-top:22px; font-size:13px; color:#3A6FA8; line-height:1.4; }
+  .drill-card { border:1px solid var(--line); border-radius:18px; padding:18px; margin-top:18px; box-shadow:0 8px 20px rgba(45,49,66,.06); }
+  .drill-card .dtop { display:flex; align-items:center; gap:12px; }
+  .drill-card .dbird { width:58px; height:58px; border-radius:12px; overflow:hidden; background:var(--cloud); flex-shrink:0; }
+  .drill-card .dbird img { width:100%; height:100%; object-fit:cover; }
+  .drill-card .dtitle { font-size:17px; font-weight:600; }
+  .drill-card .dq { font-size:16px; font-weight:500; margin-top:16px; color:var(--ink); }
+  .sofa .back-link { display:inline-flex; align-items:center; gap:6px; padding:6px 0 0; color:#8E8E93; font-size:15px; cursor:pointer; }
+  .sofa .back-link svg { width:9px; height:16px; fill:none; stroke:#8E8E93; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* back to the prototypes index (matches PEX-43) */
+  .proto-back {
+    position:fixed; top:22px; left:22px; z-index:200;
+    display:inline-flex; align-items:center; gap:7px;
+    font-size:13px; font-weight:500; color:#4A4E5A; text-decoration:none;
+    padding:7px 12px 7px 10px; background:#fff;
+    border:1px solid #E5E5EA; border-radius:8px; transition:background .12s;
+  }
+  .proto-back:hover { background:#F7F7FA; }
+  .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+  </style>
+</head>
+<body>
+<a class="proto-back" href="../../index.html">
+  <svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  All prototypes
+</a>
+<div class="shell">
+  <div class="viewport" id="viewport">
+
+    <!-- ════════════ 1 · Welcome (Route 2 P1 — flat Figma export) ════════════ -->
+    <section class="screen flat" data-screen="1" onclick="next()">
+      <img src="images/figma-reference/welcome.png" alt="Welcome — Easily identify over 10,000 birds">
+    </section>
+
+    <!-- ════════════ 2 · Your birding journey (Route 2 P3) ════════════ -->
+    <section class="screen p3" data-screen="2">
+      <div class="statusbar"></div>
+      <div class="progress"><i></i></div>
+      <div class="body">
+        <h1>Where are you in your birding journey?</h1>
+        <div class="opts" id="journeyOpts">
+          <button class="opt" data-level="0" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>I'm new to birdwatching</span></button>
+          <button class="opt" data-level="1" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>I know a few garden birds</span></button>
+          <button class="opt" data-level="2" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>I birdwatch regularly and know a variety of species</span></button>
+          <button class="opt" data-level="3" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>Gulls and LBJ's are no problem to me</span></button>
+        </div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" id="journeyBtn" onclick="next()">Skip</button></div>
+    </section>
+
+    <!-- ════════════ 3 · Welcome ════════════ -->
+    <section class="screen welcome" data-screen="3">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="wl-hero"><img src="images/bird-illustration.png" alt="Bird illustration"></div>
+        <div class="wl-text">
+          <h1>Build a real skill — one bird at a time</h1>
+          <p>Every bird you log makes you a better birder — and the more you see a species, the better you'll know it.</p>
+          <div class="wl-chips">
+            <span class="wl-chip">⚡ Earn XP</span>
+            <span class="wl-chip">📈 Level up species</span>
+            <span class="wl-chip">🦉 Spotter → Expert</span>
+          </div>
+        </div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" onclick="next()">Let's start</button></div>
+    </section>
+
+    <!-- ════════════ 2 · Calibration picker ════════════ -->
+    <section class="screen calib" data-screen="4">
+      <div class="statusbar"></div>
+      <div class="body">
+        <h1>Which of these have you spotted before?</h1>
+        <p class="lead">We'll give you a head start on the ones you already know — there are no wrong answers.</p>
+        <div class="calib-grid" id="calibGrid"></div>
+        <div class="foot-note">Pick any — or none. Either's fine.</div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" onclick="next()">Done</button></div>
+    </section>
+
+    <!-- ════════════ 3 · Rank reveal ════════════ -->
+    <section class="screen reveal" data-screen="5">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="rv-badge">🐦</div>
+        <h1>You're starting as a Spotter.</h1>
+        <div class="rv-level">🐦 Level 2 Spotter</div>
+        <div class="rv-xp">
+          <div class="rv-xp-top"><span class="rv-xp-label" id="xpLabel">Level Two Progress</span><span class="rv-xp-val"><span id="xpNum">0</span> XP</span></div>
+          <div class="rv-xp-bar"><i id="xpFill"></i></div>
+          <div class="rv-xp-foot"><span id="xpGain" class="rv-xp-gain">+60 XP</span> head start for the birds you already know</div>
+        </div>
+        <p class="lead">Every bird you log levels up your mastery of it. Keep logging to climb from Spotter to Expert.</p>
+        <div class="rv-section">You've gained a rank in these birds:</div>
+        <div class="rv-list">
+          <div class="rv-row"><span class="nm">Robin</span><span class="rank spotter">SPOTTER</span></div>
+          <div class="rv-row"><span class="nm">Great Tit</span><span class="rank spotter">SPOTTER</span></div>
+          <div class="rv-row"><span class="nm">House Sparrow</span><span class="rank spotter">SPOTTER</span></div>
+        </div>
+        <p class="closer">The real way to learn is to go and log what you see. The app does the rest.</p>
+      </div>
+      <div class="footer">
+        <button class="btn btn-primary" onclick="goTo(6)">Start logging</button>
+      </div>
+    </section>
+
+    <!-- ════════════ 6 · Home — full-bleed map + bottom sheet (aligned with Routes 1 & 2) ════════════ -->
+    <section class="screen mapscreen home" data-screen="6">
+      <div class="statusbar"></div>
+      <div class="mapbg">
+        <div class="water" style="width:150px;height:130px;right:-34px;top:74px;"></div>
+        <div class="water" style="width:210px;height:180px;left:-72px;bottom:30%;"></div>
+        <div class="road"></div>
+        <div class="road two"></div>
+      </div>
+      <div class="mapcircle left"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="6"/><line x1="13" y1="13" x2="18" y2="18"/></svg></div>
+      <div class="mapcircle right"><svg viewBox="0 0 20 20"><line x1="3" y1="6" x2="17" y2="6"/><line x1="3" y1="10" x2="17" y2="10"/><line x1="3" y1="14" x2="17" y2="14"/></svg></div>
+      <div class="hex" style="left:58px;top:152px;">9</div>
+      <div class="hex" style="left:106px;top:118px;">75</div>
+      <div class="hex" style="right:44px;top:158px;">53</div>
+      <div class="locdot"></div>
+
+      <div class="sheet">
+        <div class="handle"></div>
+        <div class="sbody">
+          <div class="level-card">
+            <div class="lc-top">
+              <div class="lc-badge">🐦</div>
+              <div class="lc-info">
+                <div class="lc-name">Level 2 Spotter</div>
+                <div class="lc-xp">320 XP · 80 to Level 3</div>
+              </div>
+              <div class="lc-streak">🔥 3</div>
+            </div>
+            <div class="bar"><i style="width:60%"></i></div>
+          </div>
+
+          <div class="yb-head">Your birds</div>
+          <div class="yb-list">
+            <div class="yb-row learner">
+              <div class="yb-top" onclick="viewSpecies('Robin')"><span class="yb-photo"><img src="../../resources/bird-photos/European_Robin.webp" alt=""></span><span class="yb-nm">Robin</span><span class="rank learner">LEARNER</span></div>
+              <div class="yb-prog">
+                <div class="bar"><i style="width:62%"></i></div>
+                <span class="yb-count"><b>5</b> logged</span>
+                <button class="logplus" onclick="selectSpecies('Robin')">Log +1</button>
+              </div>
+            </div>
+            <div class="yb-row spotter">
+              <div class="yb-top" onclick="viewSpecies('Blackbird')"><span class="yb-photo"><img src="../../resources/bird-photos/Common_Blackbird_-_Male.webp" alt=""></span><span class="yb-nm">Blackbird</span><span class="rank spotter">SPOTTER</span></div>
+              <div class="yb-prog">
+                <div class="bar"><i style="width:28%; background:var(--t-spotter)"></i></div>
+                <span class="yb-count"><b>2</b> logged</span>
+                <button class="logplus" onclick="selectSpecies('Blackbird')">Log +1</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="practice-row" onclick="goTo(12)">
+            <span class="pl">🛋️ No birds about? Try a quick practice</span>
+            <span class="chev">›</span>
+          </div>
+          <div style="height:16px"></div>
+        </div>
+        <div class="appnav">
+          <div class="navt on"><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5"/><path d="M6 10.5V19h12v-8.5"/></svg>Home</div>
+          <div class="navt plus" onclick="goTo(7)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+          <div class="navt" onclick="goTo(11)"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ 5 · Species select — "What did you see?" ════════════ -->
+    <section class="screen species-select" data-screen="7">
+      <div class="statusbar"></div>
+      <div class="sp-nav">
+        <button class="back" onclick="goTo(6)"><svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg></button>
+        <div class="title">What did you see?</div>
+      </div>
+      <div class="body">
+        <div class="search-bar">
+          <svg viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="10.5" y1="10.5" x2="14.5" y2="14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input placeholder="Describe the bird" type="text">
+        </div>
+        <div class="species-list">
+          <div class="species-item highlighted" onclick="selectSpecies('Unidentified Species')">
+            <div class="species-avatar" style="background:#dde8f8;">🙋</div>
+            <div class="species-info">
+              <div class="name blue">Unidentified Species</div>
+              <div class="latin" style="font-style:normal;">I don't know — ask the community for help</div>
+            </div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Woodpigeon')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/Common_Wood_Pigeon_2.webp" alt="Woodpigeon"></div>
+            <div class="species-info"><div class="name">Woodpigeon</div><div class="latin">Columba palumbus</div><div class="gender">⚥</div></div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Carrion Crow')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/Carrion_Crow.webp" alt="Carrion Crow"></div>
+            <div class="species-info"><div class="name">Carrion Crow</div><div class="latin">Corvus corone</div><div class="gender">⚥</div></div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Robin')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/European_Robin.webp" alt="Robin"></div>
+            <div class="species-info"><div class="name">Robin</div><div class="latin">Erithacus rubecula</div><div class="gender">⚥</div></div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Magpie')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/Eurasian_Magpie.webp" alt="Magpie"></div>
+            <div class="species-info"><div class="name">Magpie</div><div class="latin">Pica pica</div><div class="gender">⚥</div></div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Blackbird')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/Common_Blackbird_-_Male.webp" alt="Blackbird"></div>
+            <div class="species-info"><div class="name">Blackbird</div><div class="latin">Turdus merula</div><div class="gender">♂ ♀</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════ 6 · Review sighting + mastery ════════════ -->
+    <section class="screen review" data-screen="8">
+      <div class="statusbar"></div>
+      <div class="sp-nav">
+        <button class="back" onclick="goTo(7)"><svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg></button>
+        <div class="title">Review Sighting</div>
+        <button class="save" onclick="goTo(9)">Save</button>
+      </div>
+      <div class="body">
+        <div class="map-block">
+          <svg class="map-roads" viewBox="0 0 375 200" preserveAspectRatio="xMidYMid slice">
+            <path d="M0,80 Q60,70 120,90 T240,85 T375,95" stroke="white" stroke-width="8" fill="none" opacity=".6"/>
+            <path d="M0,140 Q80,130 160,150 T375,145" stroke="white" stroke-width="6" fill="none" opacity=".5"/>
+            <path d="M120,0 Q130,50 115,110 T125,200" stroke="white" stroke-width="7" fill="none" opacity=".55"/>
+            <path d="M240,0 Q235,60 245,120 T238,200" stroke="white" stroke-width="5" fill="none" opacity=".4"/>
+          </svg>
+          <div class="map-pin"><div class="map-pin-avatar"><img class="review-pin-img" src="../../resources/bird-photos/European_Robin.webp" alt=""></div></div>
+          <div class="mapbox-badge">© Mapbox</div>
+        </div>
+
+        <div class="photos-section">
+          <div class="photos-heading">Photos</div>
+          <div class="photos-row"><div class="photo-add">+</div></div>
+        </div>
+
+        <div class="sp12"></div>
+        <div class="notes-row"><input placeholder="Got something interesting to add?"></div>
+        <div class="sp16"></div>
+
+        <div class="section-label">Sighting</div>
+        <div class="group">
+          <div class="species-row-inner">
+            <svg class="species-icon" viewBox="0 0 22 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="15" cy="6.5" r="2.2"/>
+              <path d="M16.9 5.6l2.6-.3-2.2 1.8"/>
+              <circle cx="15.7" cy="5.9" r=".45" fill="currentColor" stroke="none"/>
+              <path d="M12.8 8C10.5 8 5 9.8 5 13.5h10.5c2.2 0 2.8-2.2 1.6-3.3L13.5 9"/>
+              <path d="M5 13.5l-2.8-1.2M5 13.5l-2.8 1.2"/>
+              <path d="M8.5 13.5v3M7.5 16.5h2.2M12 13.5v3M11 16.5h2.2"/>
+            </svg>
+            <span class="species-name" data-species-name>Robin</span>
+            <span class="rank learner" data-species-rank>LEARNER</span>
+            <span class="row-chevron">›</span>
+          </div>
+          <!-- Route 3 mastery progress (Figma RL S6) -->
+          <div class="mastery-inline">
+            <div class="mhead"><span class="ml"><span data-species-name>Robin</span> mastery</span><span class="mr" data-mastery-next>2 more to Identifier</span></div>
+            <div class="bar"><i style="width:52%; background:var(--t-learner)" data-mastery-fill></i></div>
+            <div class="mnote" data-mastery-note>This'll be your 6th Robin — logging it gets you closer.</div>
+          </div>
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" stroke-width="1.5"/><path d="M10 6v4l3 2" stroke-width="1.5"/></svg></div>
+            <span class="row-label">How many?</span>
+            <input class="count-input" value="1" readonly>
+          </div>
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="13" rx="2" stroke-width="1.5"/><line x1="3" y1="8" x2="17" y2="8" stroke-width="1.5"/><line x1="7" y1="2" x2="7" y2="6" stroke-width="1.5"/><line x1="13" y1="2" x2="13" y2="6" stroke-width="1.5"/></svg></div>
+            <span class="row-label">3 Jun 2026, 12:01</span>
+            <span class="row-chevron">›</span>
+          </div>
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><path d="M10 2C7.2 2 5 4.2 5 7C5 11 10 18 10 18C10 18 15 11 15 7C15 4.2 12.8 2 10 2Z" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke-width="1.5"/></svg></div>
+            <span class="row-label">The Needles, England, United Kingdo…</span>
+            <span class="row-chevron">›</span>
+          </div>
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.5" stroke-width="1.5"/><path d="M3 18C3 14.7 6.1 12 10 12C13.9 12 17 14.7 17 18" stroke-width="1.5"/></svg></div>
+            <span class="row-label">Tag people</span>
+            <span class="row-chevron">›</span>
+          </div>
+        </div>
+
+        <div class="sp16"></div>
+
+        <div class="section-label">Sighting privacy</div>
+        <div class="group">
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke-width="1.5"/><path d="M2 10h16M10 2c2.5 2.5 2.5 13 0 16M10 2c-2.5 2.5-2.5 13 0 16" stroke-width="1.5"/></svg></div>
+            <span class="row-label">Post Sharing</span>
+            <span class="row-value">Everyone</span>
+            <span class="row-chevron">›</span>
+          </div>
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" stroke-width="1.5"/><path d="M2 10h16M10 2c2.5 2.5 2.5 13 0 16M10 2c-2.5 2.5-2.5 13 0 16" stroke-width="1.5"/></svg></div>
+            <span class="row-label">Location Privacy</span>
+            <span class="row-value">Everyone</span>
+            <span class="row-chevron">›</span>
+          </div>
+        </div>
+
+        <button class="btn-save" onclick="goTo(9)">Save Sighting</button>
+        <button class="btn-del" onclick="goTo(7)">Delete Sighting</button>
+      </div>
+    </section>
+
+    <!-- ════════════ 7 · Post-log payoff ════════════ -->
+    <section class="screen payoff" data-screen="9">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="pay-top">
+          <span class="pay-confetti">
+            <i style="left:12%;--r:18deg;--dx:-26px;--dy:4px;background:#1F87FE;animation-delay:.02s"></i>
+            <i style="left:31%;--r:-14deg;--dx:-12px;--dy:-10px;background:#FFC44C;animation-delay:.10s"></i>
+            <i style="left:50%;--r:24deg;--dx:0;--dy:-16px;background:#00C9A7;animation-delay:.06s"></i>
+            <i style="left:69%;--r:-20deg;--dx:12px;--dy:-10px;background:#7265E3;animation-delay:.12s"></i>
+            <i style="left:88%;--r:16deg;--dx:26px;--dy:4px;background:#FF6B4A;animation-delay:.04s"></i>
+          </span>
+          <div class="pay-xp"><span class="bolt">⚡</span>+20 XP</div>
+          <div class="pay-title">Logged — <span data-species-name>Blackbird</span></div>
+        </div>
+
+        <div class="pay-card">
+          <div class="crow">
+            <span class="cnm" data-species-name>Blackbird</span>
+            <span class="pay-tierjump" data-tier-jump>Spotter → Learner</span>
+          </div>
+          <div class="bar"><i style="width:39%"></i></div>
+          <p class="csub" data-pay-note>That's your 3rd Blackbird — you're getting to know this one.</p>
+        </div>
+
+        <div class="pay-streak">🔥 4-week streak</div>
+
+        <div class="unlock">
+          <span class="sparkles">
+            <i style="left:14%;top:20%;animation-delay:.1s"></i>
+            <i style="left:88%;top:30%;animation-delay:.5s"></i>
+            <i style="left:70%;top:14%;animation-delay:.9s"></i>
+            <i style="left:30%;top:70%;animation-delay:.3s"></i>
+            <i style="left:92%;top:74%;animation-delay:.7s"></i>
+          </span>
+          <div class="ulabel">✨ SURPRISE UNLOCK</div>
+          <div class="urow">
+            <div class="medallion">🦉</div>
+            <div class="uinfo">
+              <div class="ut">New profile effect</div>
+              <div class="un">Dawn Glow</div>
+            </div>
+            <button class="equip" onclick="toggleEquip(this)">Equip</button>
+          </div>
+          <p class="usub">Rare drop for logging on a streak — yours to keep.</p>
+        </div>
+
+        <button class="btn btn-primary" onclick="goTo(6)">Keep going</button>
+        <div style="height:18px"></div>
+      </div>
+    </section>
+
+    <!-- ════════════ 8 · Species mastery detail ════════════ -->
+    <section class="screen detail" data-screen="10">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="dt-back" onclick="goTo(6)"><svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg>Your birds</div>
+        <div class="dt-head">
+          <span class="dt-photo"><img class="detail-photo-img" src="../../resources/bird-photos/Common_Blackbird_-_Male.webp" alt=""></span>
+          <div>
+            <div class="nm" data-species-name>Blackbird</div>
+            <div style="margin-top:6px"><span class="rank learner" data-species-rank>LEARNER</span></div>
+          </div>
+        </div>
+
+        <div class="dt-card">
+          <div class="drow">
+            <span class="dcount" data-detail-count>Logged 5 times</span>
+            <span class="dnext" data-detail-next>3 more to reach Identifier</span>
+          </div>
+          <div class="bar"><i style="width:54%"></i></div>
+          <div class="ladder">
+            <div class="lstep done"><span class="node"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span><span class="lnm">Spotter</span></div>
+            <div class="lstep current"><span class="node"><span class="core"></span></span><span class="lnm">Learner</span></div>
+            <div class="lstep"><span class="node"></span><span class="lnm">Identifier</span></div>
+            <div class="lstep"><span class="node"></span><span class="lnm">Knower</span></div>
+            <div class="lstep"><span class="node"></span><span class="lnm">Expert</span></div>
+          </div>
+        </div>
+
+        <div class="gives">
+          <h3>What gives it away</h3>
+          <ul>
+            <li>Males are jet black with a bright orange-yellow bill.</li>
+            <li>That rich, fluty song — often the last bird singing at dusk.</li>
+            <li>A low, scolding alarm call when startled.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" onclick="goTo(12)">Practice this bird</button></div>
+    </section>
+
+    <!-- ════════════ 9 · Profile ════════════ -->
+    <section class="screen profile" data-screen="11">
+      <div class="body">
+        <div class="pf-header"><img src="images/profile-header.png" alt="Ellen Covey — profile"></div>
+        <div class="pf-content">
+          <!-- level focus: current level + progress to the next -->
+          <div class="lvl-hero">
+            <div class="lh-top">
+              <div class="lvl-emblem"><span class="le-lv">LVL</span><span class="le-n">2</span></div>
+              <div>
+                <div class="lh-tier">Spotter</div>
+                <div class="lh-sub">Your birder level · 🔥 3-week streak</div>
+              </div>
+            </div>
+            <div class="bar"><i style="width:48%"></i></div>
+            <div class="lh-xprow"><span class="lh-xp">1,240 / 1,500 XP</span><span class="lh-next">260 XP to Level 3 · Scout</span></div>
+          </div>
+
+          <div class="social">
+            <span class="sp-photo"><img src="../../resources/bird-photos/Tufted_Duck_-_Male_-_Swimming.webp" alt=""></span>
+            <div>
+              <div class="sp-label">🏆 LOCAL STANDOUT</div>
+              <div class="sp-title">You're Surrey's <b>#1</b> Tufted Duck expert</div>
+              <div class="sp-sub">📍 Ahead of every other birder in your area</div>
+            </div>
+          </div>
+
+          <div class="pf-sec">Species mastery</div>
+          <div class="mast-bar">
+            <span style="width:64.3%;background:#8890AE"></span>
+            <span style="width:28.6%;background:#1F87FE"></span>
+            <span style="width:7.1%;background:#00A88B"></span>
+          </div>
+          <div class="mast-legend">
+            <span class="ml"><span class="dot" style="background:#8890AE"></span><b>9</b>&nbsp;Spotter</span>
+            <span class="ml"><span class="dot" style="background:#1F87FE"></span><b>4</b>&nbsp;Learner</span>
+            <span class="ml"><span class="dot" style="background:#00A88B"></span><b>1</b>&nbsp;Identifier</span>
+            <span class="ml zero"><span class="dot" style="background:#D7DBE2"></span><b>0</b>&nbsp;Knower</span>
+            <span class="ml zero"><span class="dot" style="background:#D7DBE2"></span><b>0</b>&nbsp;Expert</span>
+          </div>
+
+          <div class="pf-sec">Badges</div>
+          <div class="badge-grid">
+            <div class="badge earned"><div class="bicon">🐣</div><div class="bname">First Log</div><div class="bstat">Earned</div></div>
+            <div class="badge earned"><div class="bicon">🔥</div><div class="bname">Week Streak</div><div class="bstat">Earned</div></div>
+            <div class="badge earned"><div class="bicon">🌅</div><div class="bname">Dawn Glow</div><div class="bstat">Earned</div></div>
+            <div class="badge prog"><div class="bicon">🏅</div><div class="bname">Thrush Family</div><div class="bstat">2 / 5 Learner</div></div>
+            <div class="badge locked"><div class="bicon">🦅</div><div class="bname">Raptor Eye</div><div class="bstat">Locked</div></div>
+            <div class="badge locked"><div class="bicon">🎶</div><div class="bname">Song ID</div><div class="bstat">Locked</div></div>
+          </div>
+
+          <div style="height:14px"></div>
+        </div>
+      </div>
+      <div class="appnav">
+        <div class="navt" onclick="goTo(6)"><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5"/><path d="M6 10.5V19h12v-8.5"/></svg>Home</div>
+        <div class="navt plus" onclick="goTo(7)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+        <div class="navt on"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+      </div>
+    </section>
+
+    <!-- ════════════ 10 · Sofa practice (secondary) ════════════ -->
+    <section class="screen sofa" data-screen="12">
+      <div class="statusbar"></div>
+      <div class="body">
+        <span class="back-link" onclick="goTo(6)"><svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg>Back</span>
+        <h1>No birds about?</h1>
+        <p class="lead">Field logs teach you most. But a quick practice keeps your streak going and sharpens your eye.</p>
+        <div class="freeze">❄️ Streak freeze on — your streak's safe this week.</div>
+        <div class="drill-card">
+          <div class="dtop">
+            <span class="dbird"><img src="../../resources/bird-photos/Common_Blackbird_-_Male.webp" alt=""></span>
+            <span class="dbird"><img src="../../resources/bird-photos/Carrion_Crow.webp" alt=""></span>
+            <span class="dtitle">Spot-the-difference</span>
+          </div>
+          <div class="dq">Blackbird or Carrion Crow?</div>
+        </div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" onclick="goTo(6)">Start practice</button></div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+  /* ─── status bar injection ─── */
+  const sbSVG = '<svg width="78" height="14" viewBox="0 0 82 16" fill="black"><path d="M3.7 9H2.5a1 1 0 0 0-1 1v2.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1m5.2-2.5H7.7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1M14.1 4h-1.2a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1m5.2-2.5h-1.2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1"/><path d="M70.5 1c2.05 0 3.08 0 3.88.34a4.3 4.3 0 0 1 2.28 2.28c.34.8.34 1.83.34 3.88s0 3.08-.34 3.88a4.3 4.3 0 0 1-2.28 2.28c-.8.34-1.83.34-3.88.34h-12c-2.05 0-3.08 0-3.88-.34a4.3 4.3 0 0 1-2.28-2.28C52 10.58 52 9.55 52 7.5s0-3.08.34-3.88a4.3 4.3 0 0 1 2.28-2.28C55.42 1 56.45 1 58.5 1z" opacity=".35"/><path d="M54 7c0-1.4 0-2.1.27-2.63a2.5 2.5 0 0 1 1.1-1.1C55.9 3 56.6 3 58 3h13c1.4 0 2.1 0 2.64.27q.72.37 1.09 1.1C75 4.9 75 5.6 75 7v1c0 1.4 0 2.1-.27 2.64a2.5 2.5 0 0 1-1.1 1.09C73.1 12 72.4 12 71 12H58c-1.4 0-2.1 0-2.63-.27a2.5 2.5 0 0 1-1.1-1.1C54 10.1 54 9.4 54 8z"/></svg>';
+  document.querySelectorAll('.statusbar').forEach(sb => {
+    sb.innerHTML = '<span class="time">9:41</span>' + sbSVG;
+  });
+
+  /* ─── navigation ─── */
+  const screens = [...document.querySelectorAll('.screen')];
+  let cur = 1;
+  function show(n) {
+    cur = Math.max(1, Math.min(screens.length, n));
+    screens.forEach(s => s.classList.toggle('active', +s.dataset.screen === cur));
+    const active = screens.find(s => +s.dataset.screen === cur);
+    const body = active && active.querySelector('.body'); if (body) body.scrollTop = 0;
+    if (cur === 5) setTimeout(runRevealXP, 280);  // rank-reveal XP meter ticks up on arrival
+  }
+  // Endowed-progress XP meter — two beats: the head start first fills the bar to
+  // level up to Level 2, then the bar resets and fills a little toward Level 3.
+  let revealTimers = [];
+  function runRevealXP() {
+    const fill = document.getElementById('xpFill');
+    const num = document.getElementById('xpNum');
+    const gain = document.getElementById('xpGain');
+    const label = document.getElementById('xpLabel');
+    if (!fill || !num) return;
+    revealTimers.forEach(clearTimeout); revealTimers = [];
+    const L2_AT = 40, TOTAL = 60, STAGE2_FILL = 32;   // 40 XP reaches Level 2, +20 into Level 3
+    const countTo = (from, to, dur) => {
+      const t0 = performance.now();
+      (function tick(t) {
+        const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        num.textContent = Math.round(from + (to - from) * e);
+        if (k < 1) requestAnimationFrame(tick);
+      })(performance.now());
+    };
+    // reset to empty
+    fill.style.transition = 'none';
+    fill.style.width = '0%';
+    num.textContent = 0;
+    if (gain) gain.classList.remove('show');
+    if (label) label.textContent = 'Level Two Progress';
+    void fill.offsetWidth;
+    // Beat 1 — fill to full = reaching Level 2
+    revealTimers.push(setTimeout(() => {
+      fill.style.transition = 'width .85s cubic-bezier(.25,.8,.3,1)';
+      fill.style.width = '100%';
+      countTo(0, L2_AT, 850);
+    }, 360));
+    // Beat 2 — reset the bar, switch to Level 3, fill a little more
+    revealTimers.push(setTimeout(() => {
+      fill.style.transition = 'none';
+      fill.style.width = '0%';
+      if (label) label.textContent = 'Level Three Progress';
+      void fill.offsetWidth;
+      fill.style.transition = 'width .8s cubic-bezier(.25,.8,.3,1)';
+      fill.style.width = STAGE2_FILL + '%';
+      countTo(L2_AT, TOTAL, 800);
+      if (gain) gain.classList.add('show');
+    }, 360 + 850 + 450));
+  }
+  function next() { show(cur === screens.length ? 1 : cur + 1); }
+  function goTo(n) { show(n); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') next();
+    else if (e.key === 'ArrowLeft') show(cur === 1 ? screens.length : cur - 1);
+  });
+
+  /* ─── 2 · Your birding journey single-select (Route 2 P3) ─── */
+  function selJourney(el) {
+    document.querySelectorAll('#journeyOpts .opt').forEach(o => o.classList.remove('sel'));
+    el.classList.add('sel');
+    document.getElementById('journeyBtn').textContent = 'Continue';
+  }
+
+  /* ─── 4 · Calibration multi-select ─── */
+  const calibBirds = [
+    { name:'Robin',        photo:'European_Robin',          known:true },
+    { name:'Blue Tit',     photo:'Eurasian_Blue_Tit',       known:false },
+    { name:'Great Tit',    photo:'Great_Tit_-_Male',        known:true },
+    { name:'Blackbird',    photo:'Common_Blackbird_-_Male', known:false },
+    { name:'House Sparrow', photo:'House_Sparrow_-_Male',    known:true },
+    { name:'Wood Pigeon',  photo:'Common_Wood_Pigeon_2',    known:false },
+  ];
+  const checkSVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const calibGrid = document.getElementById('calibGrid');
+  calibGrid.innerHTML = calibBirds.map(b =>
+    '<button class="ctile' + (b.known ? ' sel' : '') + '" onclick="toggleCalib(this)">' +
+      '<span class="cphoto"><img src="../../resources/bird-photos/' + b.photo + '.webp" alt=""></span>' +
+      '<span class="cnm">' + b.name + '</span>' +
+      '<span class="cmark">' + (b.known ? checkSVG : '') + '</span>' +
+    '</button>'
+  ).join('');
+  function toggleCalib(el) {
+    const on = el.classList.toggle('sel');
+    el.querySelector('.cmark').innerHTML = on ? checkSVG : '';
+  }
+
+  /* ─── species carry-through (name + rank + photo + mastery copy) ─── */
+  const birdData = {
+    'Robin':        { photo:'European_Robin',          rank:'learner', logged:5, next:'2 more to Identifier', ord:'6th', jump:'Learner → Identifier' },
+    'Blackbird':    { photo:'Common_Blackbird_-_Male', rank:'spotter', logged:2, next:'1 more to Learner',     ord:'3rd', jump:'Spotter → Learner' },
+    'Woodpigeon':   { photo:'Common_Wood_Pigeon_2',    rank:'spotter', logged:1, next:'1 more to Learner',     ord:'2nd', jump:'Spotter → Learner' },
+    'Carrion Crow': { photo:'Carrion_Crow',            rank:'spotter', logged:1, next:'1 more to Learner',     ord:'2nd', jump:'Spotter → Learner' },
+    'Magpie':       { photo:'Eurasian_Magpie',         rank:'spotter', logged:1, next:'1 more to Learner',     ord:'2nd', jump:'Spotter → Learner' },
+    'Unidentified Species': { photo:'European_Robin',  rank:'spotter', logged:1, next:'Confirm an ID to start', ord:'1st', jump:'Identify to level up' },
+  };
+  const photoPath = p => '../../resources/bird-photos/' + p + '.webp';
+  // set the picked-species context everywhere (name / rank / photo / mastery copy) without navigating
+  function setSpecies(name) {
+    const d = birdData[name] || birdData['Robin'];
+    document.querySelectorAll('[data-species-name]').forEach(el => el.textContent = name);
+    document.querySelectorAll('[data-species-rank]').forEach(el => {
+      el.className = 'rank ' + d.rank;
+      el.textContent = d.rank.toUpperCase();
+    });
+    // review-screen mastery copy
+    const mn = document.querySelector('[data-mastery-next]'); if (mn) mn.textContent = d.next;
+    const note = document.querySelector('[data-mastery-note]'); if (note) note.textContent = "This'll be your " + d.ord + ' ' + name + ' — logging it gets you closer.';
+    // payoff copy
+    const tj = document.querySelector('[data-tier-jump]'); if (tj) tj.textContent = d.jump;
+    const pn = document.querySelector('[data-pay-note]'); if (pn) pn.textContent = "That's your " + d.ord + ' ' + name + " — you're getting to know this one.";
+    // detail copy
+    const dc = document.querySelector('[data-detail-count]'); if (dc) dc.textContent = 'Logged ' + d.logged + ' times';
+    const dn = document.querySelector('[data-detail-next]'); if (dn) dn.textContent = d.next.replace(/^(\d+) more to/, '$1 more to reach');
+    // photos
+    document.querySelectorAll('.review-pin-img, .detail-photo-img').forEach(img => img.src = photoPath(d.photo));
+  }
+  function selectSpecies(name) { setSpecies(name); goTo(8); }   // log this bird → Review Sighting
+  function viewSpecies(name, ev) { if (ev) ev.stopPropagation(); setSpecies(name); goTo(10); }  // open the species mastery page
+
+  /* ─── 7 · equip toggle ─── */
+  function toggleEquip(btn) {
+    const on = btn.classList.toggle('equipped');
+    btn.textContent = on ? '✓ Equipped' : 'Equip';
+  }
+
+  const startN = parseInt((location.hash || '').replace('#','')) || 1;
+  show(startN);
+
+  /* ─── scale the phone to always fit the viewport (proportionally) ─── */
+  const shell = document.querySelector('.shell');
+  function fitShell() {
+    shell.style.transform = 'none';
+    const W = shell.offsetWidth, H = shell.offsetHeight, margin = 24;
+    const s = Math.min(1, (window.innerHeight - margin) / H, (window.innerWidth - margin) / W);
+    shell.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fitShell);
+  fitShell();
+</script>
+</body>
+</html>
