@@ -24,9 +24,32 @@
 
   html, body { height:100%; }
   body {
-    height:100vh; overflow:hidden; background:#dde1e9; display:flex; align-items:center; justify-content:center;
+    height:100vh; overflow:hidden; background:#dde1e9; display:flex; align-items:center; justify-content:center; gap:34px;
     font-family:'Rubik',-apple-system,sans-serif; color:var(--ink); padding:0;
   }
+
+  /* ─── Context panel (walkthrough next to the phone) ─── */
+  .ctx-panel { width:322px; flex-shrink:0; align-self:center; max-height:88vh; overflow-y:auto; scrollbar-width:none;
+    background:#fff; border:1px solid #E5E5EA; border-radius:18px; padding:22px 22px 20px; box-shadow:0 14px 38px rgba(0,0,0,.12); }
+  .ctx-panel::-webkit-scrollbar { display:none; }
+  .ctx-route { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--blue); }
+  .ctx-thesis { font-size:12.5px; line-height:1.55; color:#5B606E; margin-top:10px; }
+  .ctx-thesis b { color:var(--ink); font-weight:700; }
+  .ctx-divider { height:1px; background:#ECEFF4; margin:18px 0; }
+  .ctx-step { font-size:11px; font-weight:600; letter-spacing:.05em; color:#9097A3; }
+  .ctx-stage { font-size:19px; font-weight:700; margin-top:3px; line-height:1.2; }
+  .ctx-label { font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#9097A3; margin-top:17px; }
+  .ctx-mechs { display:flex; flex-wrap:wrap; gap:7px; margin-top:9px; }
+  .ctx-mech { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:5px 11px; border-radius:99px; }
+  .ctx-mech.core { background:var(--blue); color:#fff; }
+  .ctx-mech.sup { background:var(--blue-5); color:var(--blue); }
+  .ctx-mech .tag { font-size:8px; font-weight:800; letter-spacing:.04em; opacity:.85; }
+  .ctx-none { font-size:12px; color:#A7AEBE; font-style:italic; margin-top:9px; }
+  .ctx-why { font-size:13px; line-height:1.55; color:var(--ink); margin-top:8px; }
+  .ctx-slice { margin-top:12px; }
+  .ctx-slice .cs-pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; letter-spacing:.03em; color:#fff; background:linear-gradient(135deg,#FF7A45,#F2545B); padding:7px 13px; border-radius:9px; box-shadow:0 4px 12px rgba(242,84,91,.32); }
+  .ctx-slice .cs-note { display:block; font-size:11.5px; line-height:1.45; color:#5B606E; margin-top:9px; }
+  @media (max-width: 900px) { .ctx-panel { display:none; } }
 
   /* ─── Phone shell (PEX-43 house style) ─── */
   .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:center center;
@@ -479,7 +502,6 @@
           <div class="rv-row"><span class="nm">Great Tit</span><span class="rank spotter">SPOTTER</span></div>
           <div class="rv-row"><span class="nm">House Sparrow</span><span class="rank spotter">SPOTTER</span></div>
         </div>
-        <p class="closer">The real way to learn is to go and log what you see. The app does the rest.</p>
       </div>
       <div class="footer">
         <button class="btn btn-primary" onclick="goTo(6)">Start logging</button>
@@ -866,6 +888,22 @@
   </div>
 </div>
 
+<aside class="ctx-panel" id="ctxPanel">
+  <div class="ctx-route">Route 3 · Mastery &amp; identity</div>
+  <div class="ctx-thesis">“Birda is where you learn to truly know the birds around you.” Logging <em>is</em> the game — every ID levels up your mastery of that species, Spotter → Expert.</div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-stage" id="ctxStage"></div>
+  <div class="ctx-slice" id="ctxSlice"><span class="cs-pill">🎯 Testable slice</span><span class="cs-note">The core log → reward loop — the slice to put in front of users first.</span></div>
+  <div id="ctxMechBlock">
+    <div class="ctx-label">Mechanics in play</div>
+    <div class="ctx-mechs" id="ctxMechs"></div>
+  </div>
+  <div id="ctxWhyBlock">
+    <div class="ctx-label">Why it works</div>
+    <div class="ctx-why" id="ctxWhy"></div>
+  </div>
+</aside>
+
 <script>
   /* ─── status bar injection ─── */
   const sbSVG = '<svg width="78" height="14" viewBox="0 0 82 16" fill="black"><path d="M3.7 9H2.5a1 1 0 0 0-1 1v2.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1m5.2-2.5H7.7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1M14.1 4h-1.2a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1m5.2-2.5h-1.2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1"/><path d="M70.5 1c2.05 0 3.08 0 3.88.34a4.3 4.3 0 0 1 2.28 2.28c.34.8.34 1.83.34 3.88s0 3.08-.34 3.88a4.3 4.3 0 0 1-2.28 2.28c-.8.34-1.83.34-3.88.34h-12c-2.05 0-3.08 0-3.88-.34a4.3 4.3 0 0 1-2.28-2.28C52 10.58 52 9.55 52 7.5s0-3.08.34-3.88a4.3 4.3 0 0 1 2.28-2.28C55.42 1 56.45 1 58.5 1z" opacity=".35"/><path d="M54 7c0-1.4 0-2.1.27-2.63a2.5 2.5 0 0 1 1.1-1.1C55.9 3 56.6 3 58 3h13c1.4 0 2.1 0 2.64.27q.72.37 1.09 1.1C75 4.9 75 5.6 75 7v1c0 1.4 0 2.1-.27 2.64a2.5 2.5 0 0 1-1.1 1.09C73.1 12 72.4 12 71 12H58c-1.4 0-2.1 0-2.63-.27a2.5 2.5 0 0 1-1.1-1.1C54 10.1 54 9.4 54 8z"/></svg>';
@@ -881,7 +919,38 @@
     screens.forEach(s => s.classList.toggle('active', +s.dataset.screen === cur));
     const active = screens.find(s => +s.dataset.screen === cur);
     const body = active && active.querySelector('.body'); if (body) body.scrollTop = 0;
+    renderCtx(cur);                                // update the walkthrough panel
     if (cur === 5) setTimeout(runRevealXP, 280);  // rank-reveal XP meter ticks up on arrival
+  }
+
+  /* ─── Walkthrough panel: stage + game mechanics in play (mapped from the Discovery
+       board's "Aligning on routes to explore" — Route 3 row). core:true = the loop. ─── */
+  const STAGES = {
+    1:  { stage:'Welcome' },                                 // generic onboarding — thesis + title only
+    2:  { stage:'Your birding journey' },                    // generic onboarding — thesis + title only
+    3:  { stage:'Build a real skill', mechs:[['Levels',true],['XP',true],['Identity / customisation',false]], why:'States the core loop up front: every bird you log makes you a better birder.' },
+    4:  { stage:'Which do you know?', mechs:[['Endowed progress',false]], why:'Crediting birds you already know buys instant commitment and cuts early drop-off.' },
+    5:  { stage:'Rank reveal', mechs:[['Endowed progress',false],['Levels',true],['XP',true],['Progress meters',false]], why:'You start as Level 2 Spotter, not zero — earning a rank this early makes people commit.' },
+    6:  { stage:'Home', slice:true, mechs:[['Levels',true],['XP',true],['Streaks',false],['Progress meters',false]], why:'The hub: one glance shows your rank, streak and the easiest next bird to log. Showing a running total for each species nudges people to keep logging the birds they already know — not stop once they’ve got their lifer.' },
+    7:  { stage:'What did you see?' },                       // existing app screen — title only
+    8:  { stage:'Review + mastery', mechs:[['XP',true],['Levels',true],['Progress meters',false],['Near-miss nudge',false]], why:'Shows the log advancing this species before you even save — the reward is legible up front. The same cue fits the Identify flow, giving people a reason to save the sighting rather than just take the ID answer and leave.' },
+    9:  { stage:'Logged — payoff', mechs:[['XP',true],['Levels',true],['Streaks',false],['Surprise rewards',false],['Identity / customisation',false],['Progress meters',false]], why:'Instant, celebratory feedback plus a rare surprise drop — the variable reward that pulls you back.' },
+    10: { stage:'Species mastery', mechs:[['Levels',true],['Progress meters',false],['Near-miss nudge',false]], why:'The Spotter → Expert ladder makes progress feel endless — there is always a next rung.' },
+    11: { stage:'Profile', mechs:[['Levels',true],['Badges',false],['Progress meters',false],['Identity / customisation',false],['Ambient social proof',false],['Geo & time-box splits',false]], why:'Identity payoff: rank, mastery spread and badges. You are visibly becoming an expert — and "Surrey\'s #1" stays achievable because standing is split by area and time.' },
+    12: { stage:'Sofa practice', mechs:[['Quests / Challenges',false],['Streaks',false]], why:'Drills work on no-bird days, so the habit survives bad weather and busy weeks — the retention unlock.' },
+  };
+  function renderCtx(n) {
+    const s = STAGES[n]; if (!s) return;
+    document.getElementById('ctxStage').textContent = s.stage;
+    document.getElementById('ctxSlice').style.display = s.slice ? '' : 'none';
+    const mb = document.getElementById('ctxMechBlock');
+    if (s.mechs && s.mechs.length) {
+      mb.style.display = '';
+      document.getElementById('ctxMechs').innerHTML = s.mechs.map(m => '<span class="ctx-mech ' + (m[1] ? 'core' : 'sup') + '">' + (m[1] ? '<span class="tag">CORE</span>' : '') + m[0] + '</span>').join('');
+    } else { mb.style.display = 'none'; }
+    const wb = document.getElementById('ctxWhyBlock');
+    if (s.why) { wb.style.display = ''; document.getElementById('ctxWhy').textContent = s.why; }
+    else { wb.style.display = 'none'; }
   }
   // Endowed-progress XP meter — two beats: the head start first fills the bar to
   // level up to Level 2, then the bar resets and fills a little toward Level 3.
