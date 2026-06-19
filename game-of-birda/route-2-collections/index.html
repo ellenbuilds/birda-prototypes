@@ -156,16 +156,64 @@
   .tab .ic { width:22px; height:22px; border-radius:50%; background:currentColor; opacity:.85; }
   .tab.add .ic { width:44px; height:44px; background:var(--blue); display:flex; align-items:center; justify-content:center; color:#fff; opacity:1; }
 
-  /* ── Home (Figma export + two text overlays) ── */
+  /* ── Home (baked map image + HTML bottom sheet) ── */
   .home { background:#fff; }
   .homewrap { position:absolute; inset:0; }
   .homewrap > .homeimg { width:100%; height:auto; display:block; }
-  .ov-tag { position:absolute; left:19.7%; top:72%; transform:translate(-50%,-50%); display:flex; align-items:center; justify-content:center; width:96px; height:22px; background:#5FAF72; color:#fff; font-family:'Rubik'; font-weight:700; font-size:9.5px; letter-spacing:.2px; border-radius:999px; white-space:nowrap; }
-  .fab-row { position:absolute; left:50%; bottom:54.8%; transform:translateX(-50%); display:flex; gap:16px; z-index:4; }
-  .chunky { display:flex; align-items:center; gap:9px; padding:11px 16px; border-radius:16px; font-family:'Rubik'; font-weight:500; font-size:16px; border:1px solid; border-bottom-width:5px; white-space:nowrap; box-shadow:0 3px 10px rgba(45,49,66,.14); }
-  .chunky.identify { background:#1F87FE; color:#fff; border-color:#1F87FE; border-bottom-color:#0254B1; }
-  .chunky.log { background:#fff; color:#1F87FE; border-color:#fff; border-bottom-color:#78A9EE; }
-  .chunky .ci { flex-shrink:0; display:block; }
+
+  /* bottom sheet rebuilt in HTML over the baked map (covers the baked sheet) */
+  .h2sheet { position:absolute; left:0; right:0; top:344px; bottom:0; z-index:4;
+    background:#fff; border-radius:22px 22px 0 0; box-shadow:0 -10px 30px rgba(20,22,30,.10);
+    display:flex; flex-direction:column; overflow:hidden; }
+  .h2sheet .handle { width:38px; height:5px; border-radius:99px; background:#E0E3EB; margin:10px auto 2px; flex-shrink:0; }
+  .h2body { flex:1; overflow:hidden; padding:8px 20px 0; }
+  /* compact "Start now" header */
+  .h2head { display:flex; align-items:center; gap:14px; padding:2px 0 12px; }
+  .h2start { width:52px; height:52px; flex-shrink:0; border-radius:50%; border:4px solid var(--blue-5);
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    font-size:11px; font-weight:700; line-height:1.1; color:var(--ink); }
+  .h2head .ht { min-width:0; }
+  .h2head .ht b { display:block; font-size:16px; font-weight:700; line-height:1.2; }
+  .h2head .ht span { display:block; font-size:13px; color:var(--muted); margin-top:2px; }
+  /* uncompleted Garden Birds collection row */
+  .h2coll { display:flex; align-items:center; gap:13px; padding:10px 13px; border:1px solid var(--line);
+    border-radius:14px; margin-bottom:16px; cursor:pointer; }
+  .h2coll .thumbs { display:flex; flex-shrink:0; }
+  .h2coll .thumbs span { width:28px; height:28px; border-radius:7px; border:2px solid #fff; overflow:hidden;
+    background:#F1F4F9; margin-left:-10px; box-shadow:0 1px 3px rgba(45,49,66,.16); }
+  .h2coll .thumbs span:first-child { margin-left:0; }
+  .h2coll .thumbs img { width:100%; height:100%; object-fit:cover; }
+  .h2coll .thumbs span.sil { background:#EEF2F8; }
+  .h2coll .thumbs span.sil img { object-fit:contain; padding:3px; opacity:.7; }
+  .h2coll .cinfo { flex:1; min-width:0; }
+  .h2coll .cnm { font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; }
+  .h2coll .cnm .cf { font-weight:500; color:var(--muted); margin-left:4px; }
+  .h2coll .cdots { display:flex; gap:5px; margin-top:8px; }
+  .h2coll .cdots i { width:8px; height:8px; border-radius:50%; background:#E2E6EE; }
+  .h2coll .cdots i.on { background:var(--blue); }
+  .h2coll .chev { color:#C0C6D2; font-size:22px; font-weight:300; flex-shrink:0; }
+  /* Next Targets */
+  .h2nt { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
+  .h2nt b { font-size:16px; font-weight:700; }
+  .h2nt .seeall { color:var(--blue); font-size:14px; font-weight:600; cursor:pointer; }
+  .h2cards { display:flex; gap:12px; }
+  .h2card { flex:1; min-width:0; }
+  .h2card .cph { position:relative; height:108px; border-radius:14px; overflow:hidden;
+    border:1px solid var(--line); background:#fff; display:flex; align-items:center; justify-content:center; }
+  .h2card .cph img { width:100%; height:100%; object-fit:cover; }
+  .h2card .chip { position:absolute; top:8px; left:8px; font-size:9px; font-weight:700; color:#fff;
+    padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .h2card .chip.common { background:#8E97AD; }
+  .h2card .chip.uncommon { background:#E8B84B; }
+  .h2card .cnm { font-size:14px; font-weight:600; text-align:center; padding:8px 2px 8px; }
+  .h2log { width:100%; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:6px 0; border:1.5px solid var(--blue); border-radius:9px; font-size:12px; font-weight:600;
+    background:transparent; color:var(--blue); }
+  .h2log:active { background:var(--blue-5); }
+  /* green set marker — reserves green for the Garden Birds set */
+  .h2log .setleaf { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px;
+    border-radius:50%; background:#5FAF72; flex-shrink:0; }
+  .h2log .setleaf svg { width:9px; height:9px; }
 
   /* ── Species select (copied from PEX-43-v2 "What did you see?") ── */
   .sp-nav { flex-shrink:0; height:44px; display:flex; align-items:center; padding:6px 16px 0; position:relative; }
@@ -365,8 +413,6 @@
   .navt.plus { flex:0 0 auto; }
   .navt.plus .fab { width:52px; height:52px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(31,135,254,.4); transform:translateY(-6px); }
   .navt.plus .fab svg { width:26px; height:26px; stroke:#fff; stroke-width:2.4; fill:none; stroke-linecap:round; }
-  /* home screen: clickable hit-area over the baked-in "+" nav button */
-  .home-plus { position:absolute; left:50%; top:88%; transform:translate(-50%,-50%); width:56px; height:56px; border-radius:50%; background:transparent; cursor:pointer; z-index:5; }
 
   /* back to the prototypes index (matches PEX-43) */
   .proto-back {
@@ -484,16 +530,60 @@
       <div class="footer" style="padding-bottom:10px;"><button class="btn btn-primary" onclick="goTo(7)">Find my next bird</button></div>
     </section>
 
-    <!-- Home (app home screen — Figma export + text overlays) -->
+    <!-- Home (app home screen — baked map image + HTML bottom sheet) -->
     <section class="screen home" data-screen="7">
       <div class="homewrap">
         <img class="homeimg" src="images/home.png" alt="Home — known species in this area">
-        <div class="ov-tag">Garden Birds Set</div>
-        <div class="fab-row">
-          <div class="chunky identify"><svg class="ci" width="22" height="19" viewBox="0 0 29 25" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M12.49 0c6.898 0 12.488 5.59 12.488 12.489 0 2.93-1.008 5.626-2.695 7.751l-.307.386 6.74 6.531a.951.951 0 0 1-.004 1.343c-.365.37-.838.374-1.212 0l-6.874-6.525-.386.307a12.428 12.428 0 0 1-7.75 2.696c-6.9 0-12.49-5.59-12.49-12.49C0 5.59 5.59 0 12.49 0Zm0 1.903c-5.85 0-10.587 4.737-10.587 10.586S6.64 23.075 12.489 23.075s10.586-4.738 10.586-10.586c0-5.849-4.737-10.586-10.586-10.586Z"/><path d="M4.945 10.627v-.107c0-.458.37-.834.834-.834h5.738c.52 0 .94-.42.94-.94v-.941a2.817 2.817 0 0 1 5.593-.477l1.687 1.016a.48.48 0 0 1 .226.401c0 .163-.088.32-.226.402l-1.649.99v.49a6.57 6.57 0 0 1-4.1 6.088l1.197 2.264.031.062a.698.698 0 0 1-.32.884.71.71 0 0 1-.915-.232l-.038-.062-1.341-2.534a6.978 6.978 0 0 1-1.091.095h-.088l.947 1.78.03.063a.698.698 0 0 1-.319.884.71.71 0 0 1-.915-.232l-.038-.063-1.423-2.696a6.54 6.54 0 0 1-4.76-6.302Zm11.03-2.114a.701.701 0 1 0-1.405 0c0 .39.314.703.703.703a.697.697 0 0 0 .702-.703Z"/></svg>Identify</div>
-          <div class="chunky log" style="cursor:pointer" onclick="goTo(8)"><svg class="ci" width="21" height="21" viewBox="0 0 64 64" fill="#1F87FE" xmlns="http://www.w3.org/2000/svg"><ellipse cx="29" cy="38" rx="16" ry="13"/><circle cx="43" cy="27" r="9"/><polygon points="51,25 61,27.5 51,30.5"/><polygon points="15,41 2,45 16,49"/></svg>Log</div>
+      </div>
+      <div class="h2sheet">
+        <div class="handle"></div>
+        <div class="h2body">
+          <div class="h2head">
+            <div class="h2start">Start<br>now</div>
+            <div class="ht">
+              <b>65 known species in this area</b>
+              <span>3 garden birds to collect</span>
+            </div>
+          </div>
+          <div class="h2coll" onclick="goTo(11)">
+            <div class="thumbs">
+              <span><img src="../../resources/bird-photos/European_Robin.webp" alt=""></span>
+              <span><img src="../../resources/bird-photos/Common_Blackbird_-_Male.webp" alt=""></span>
+              <span><img src="../../resources/bird-photos/Dunnock.webp" alt=""></span>
+              <span class="sil"><img src="images/silhouettes/silhouette-1.png" alt=""></span>
+              <span class="sil"><img src="images/silhouettes/silhouette-2.png" alt=""></span>
+              <span class="sil"><img src="images/silhouettes/silhouette-3.png" alt=""></span>
+            </div>
+            <div class="cinfo">
+              <div class="cnm">Garden Birds <span class="cf">3 of 6</span></div>
+              <div class="cdots"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+            </div>
+            <span class="chev">›</span>
+          </div>
+          <div class="h2nt"><b>Likely in your area</b><span class="seeall" onclick="goTo(11)">See All</span></div>
+          <div class="h2cards">
+            <div class="h2card">
+              <div class="cph"><span class="chip common">Common</span><img src="../../resources/bird-photos/Eurasian_Blue_Tit.webp" alt=""></div>
+              <div class="cnm">Eurasian Blue Tit</div>
+              <button class="h2log" onclick="selectSpecies('Eurasian Blue Tit')" title="Counts toward your Garden Birds set">
+                <span class="setleaf"><svg viewBox="0 0 16 16" fill="#fff"><path d="M13 2.5S5.5 2 3.2 6.8C1.6 10 3 13 3 13s.6-3.2 3-5.4c1.7-1.6 4-2.1 4-2.1S7.5 6 5.8 8.2C4.4 10 4 12.8 4 12.8S8 13.5 11 10.4c2.6-2.7 2-7.9 2-7.9Z"/></svg></span>
+                Log
+              </button>
+            </div>
+            <div class="h2card">
+              <div class="cph"><span class="chip uncommon">Uncommon</span><img src="images/willow-warbler.png" alt=""></div>
+              <div class="cnm">Willow Warbler</div>
+              <button class="h2log" onclick="selectSpecies('Willow Warbler')">Log</button>
+            </div>
+          </div>
         </div>
-        <button class="home-plus" onclick="goTo(8)" aria-label="Log a bird"></button>
+        <div class="appnav">
+          <div class="navt on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="15.5,8.5 10.5,10.5 8.5,15.5 13.5,13.5" fill="currentColor" stroke="none"/></svg>Explore</div>
+          <div class="navt"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><circle cx="17.5" cy="7.5" r="2.2"/><path d="M16.5 13.5c2.4 0 4 1.7 4 4"/></svg>Community</div>
+          <div class="navt plus" onclick="goTo(8)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+          <div class="navt"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1A3.5 3.5 0 0 0 8 10.5M17 6h2.5v1A3.5 3.5 0 0 1 16 10.5"/><path d="M12 13v3M8.5 19h7M9.6 19l.4-3M14.4 19l-.4-3"/></svg>Challenges</div>
+          <div class="navt" onclick="goTo(11)"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+        </div>
       </div>
     </section>
 
