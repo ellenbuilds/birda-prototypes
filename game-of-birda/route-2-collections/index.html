@@ -19,9 +19,30 @@
 
   html, body { height:100%; }
   body {
-    height:100vh; overflow:hidden; background:#dde1e9; display:flex; align-items:center; justify-content:center;
+    height:100vh; overflow:hidden; background:#dde1e9; display:flex; align-items:center; justify-content:center; gap:34px;
     font-family:'Rubik',-apple-system,sans-serif; color:var(--ink); padding:0;
   }
+
+  /* ─── Context panel (walkthrough next to the phone) ─── */
+  .ctx-panel { width:322px; flex-shrink:0; align-self:center; max-height:88vh; overflow-y:auto; scrollbar-width:none;
+    background:#fff; border:1px solid #E5E5EA; border-radius:18px; padding:22px 22px 20px; box-shadow:0 14px 38px rgba(0,0,0,.12); }
+  .ctx-panel::-webkit-scrollbar { display:none; }
+  .ctx-route { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--blue); }
+  .ctx-thesis { font-size:12.5px; line-height:1.55; color:#5B606E; margin-top:10px; }
+  .ctx-thesis b { color:var(--ink); font-weight:700; }
+  .ctx-divider { height:1px; background:#ECEFF4; margin:18px 0; }
+  .ctx-stage { font-size:19px; font-weight:700; line-height:1.2; }
+  .ctx-label { font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#9097A3; margin-top:17px; }
+  .ctx-mechs { display:flex; flex-wrap:wrap; gap:7px; margin-top:9px; }
+  .ctx-mech { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:5px 11px; border-radius:99px; }
+  .ctx-mech.core { background:var(--blue); color:#fff; }
+  .ctx-mech.sup { background:var(--blue-5); color:var(--blue); }
+  .ctx-mech .tag { font-size:8px; font-weight:800; letter-spacing:.04em; opacity:.85; }
+  .ctx-why { font-size:13px; line-height:1.55; color:var(--ink); margin-top:8px; }
+  .ctx-slice { margin-top:12px; }
+  .ctx-slice .cs-pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; letter-spacing:.03em; color:#fff; background:linear-gradient(135deg,#FF7A45,#F2545B); padding:7px 13px; border-radius:9px; box-shadow:0 4px 12px rgba(242,84,91,.32); }
+  .ctx-slice .cs-note { display:block; font-size:11.5px; line-height:1.45; color:#5B606E; margin-top:9px; }
+  @media (max-width: 900px) { .ctx-panel { display:none; } }
 
   /* ─── Phone shell (PEX-43 house style) ─── */
   .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:center center;
@@ -424,6 +445,13 @@
   }
   .proto-back:hover { background:#F7F7FA; }
   .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+  .ctx-toggle { position:fixed; top:60px; left:22px; z-index:200; display:inline-flex; align-items:center; gap:7px;
+    font-size:13px; font-weight:500; color:#4A4E5A; cursor:pointer; padding:7px 12px; background:#fff;
+    border:1px solid #E5E5EA; border-radius:8px; transition:background .12s; }
+  .ctx-toggle:hover { background:#F7F7FA; }
+  .ctx-toggle svg { width:14px; height:14px; flex-shrink:0; stroke:#4A4E5A; fill:none; stroke-width:1.6; }
+  body.ctx-hidden .ctx-panel { display:none; }
+  @media (max-width:900px) { .ctx-toggle { display:none; } }
 
 </style>
 </head>
@@ -432,6 +460,17 @@
   <svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
   All prototypes
 </a>
+<button class="ctx-toggle" id="ctxToggle" onclick="toggleCtx()">
+  <svg viewBox="0 0 20 20"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z"/><circle cx="10" cy="10" r="2.6"/></svg>
+  <span id="ctxToggleLbl">Hide walkthrough</span>
+</button>
+<script>
+  function toggleCtx() {
+    const hidden = document.body.classList.toggle('ctx-hidden');
+    document.getElementById('ctxToggleLbl').textContent = hidden ? 'Show walkthrough' : 'Hide walkthrough';
+    if (typeof fitShell === 'function') fitShell();
+  }
+</script>
 <div class="shell">
   <div class="viewport" id="viewport">
 
@@ -831,6 +870,22 @@
   </div>
 </div>
 
+<aside class="ctx-panel" id="ctxPanel">
+  <div class="ctx-route">Route 2 · Collections</div>
+  <div class="ctx-thesis">“A folio to collect every <b>experience</b> of birding — not just lifers.” Log the variations of each bird (singing, female, in flight…) to level its card <b>bronze → gold</b> and complete special sets. Re-logging common birds finally counts — giving lapsed listers a reason to keep going.</div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-stage" id="ctxStage"></div>
+  <div class="ctx-slice" id="ctxSlice"><span class="cs-pill">🎯 Testable slice</span><span class="cs-note">The log → fill a slot → level the card loop — the slice to put in front of users first.</span></div>
+  <div id="ctxMechBlock">
+    <div class="ctx-label">Mechanics in play</div>
+    <div class="ctx-mechs" id="ctxMechs"></div>
+  </div>
+  <div id="ctxWhyBlock">
+    <div class="ctx-label">Why it works</div>
+    <div class="ctx-why" id="ctxWhy"></div>
+  </div>
+</aside>
+
 <script>
   /* ─── status bar injection ─── */
   const sbSVG = '<svg width="78" height="14" viewBox="0 0 82 16" fill="black"><path d="M3.7 9H2.5a1 1 0 0 0-1 1v2.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1m5.2-2.5H7.7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1M14.1 4h-1.2a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1m5.2-2.5h-1.2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1"/><path d="M70.5 1c2.05 0 3.08 0 3.88.34a4.3 4.3 0 0 1 2.28 2.28c.34.8.34 1.83.34 3.88s0 3.08-.34 3.88a4.3 4.3 0 0 1-2.28 2.28c-.8.34-1.83.34-3.88.34h-12c-2.05 0-3.08 0-3.88-.34a4.3 4.3 0 0 1-2.28-2.28C52 10.58 52 9.55 52 7.5s0-3.08.34-3.88a4.3 4.3 0 0 1 2.28-2.28C55.42 1 56.45 1 58.5 1z" opacity=".35"/><path d="M54 7c0-1.4 0-2.1.27-2.63a2.5 2.5 0 0 1 1.1-1.1C55.9 3 56.6 3 58 3h13c1.4 0 2.1 0 2.64.27q.72.37 1.09 1.1C75 4.9 75 5.6 75 7v1c0 1.4 0 2.1-.27 2.64a2.5 2.5 0 0 1-1.1 1.09C73.1 12 72.4 12 71 12H58c-1.4 0-2.1 0-2.63-.27a2.5 2.5 0 0 1-1.1-1.1C54 10.1 54 9.4 54 8z"/><circle cx="42" cy="7" r="0" /></svg>';
@@ -853,8 +908,40 @@
       if (cur === 9) setTimeout(() => scrim.classList.add('open'), 280);
     }
     if (cur === 10) setTimeout(runLevelUp, 220);
+    renderCtx(cur);                                // update the walkthrough panel
   }
   function closeHcw() { const s = document.getElementById('hcwScrim'); if (s) s.classList.remove('open'); }
+
+  /* ─── Walkthrough panel: stage + game mechanics in play, mapped from the Discovery board's
+       "Aligning on routes to explore" — Route 2 row. CORE = forms the loop (Collection sets +
+       Tiered badges); everything else is a supporting layer. Quick win is pulled from the wider
+       "Mapping game mechanics" grid where it fits the first-session collect moment. ─── */
+  const STAGES = {
+    1:  { stage:'Welcome' },                          // generic onboarding — thesis + title only
+    2:  { stage:'Your birding journey' },             // generic onboarding — thesis + title only
+    3:  { stage:'Discover nearby birds' },             // unchanged from today's experience — title only
+    4:  { stage:'Start your collection', mechs:[['Endowed progress',false],['Quick win',false]], why:'Adding the last bird you saw turns it into a card on the spot — you begin the set part-filled, never staring at zero.' },
+    5:  { stage:'Your first card', mechs:[['Quick win',false],['Collection sets',true]], why:'A guaranteed win in session one: a brand-new card slotted into its set, teaching the whole collect loop in a single tap.' },
+    6:  { stage:'Level up your cards', mechs:[['Collection sets',true],['Tiered badges',true],['Progress meters',false]], why:'Complete sets by finding the birds, and re-log birds you already know to level their cards. Every common bird is worth logging again — exactly what today’s life-list wall blocks.' },
+    7:  { stage:'Home', slice:true, mechs:[['Collection sets',true],['Progress meters',false],['Near-miss nudges',false]], why:'The entry point to the core loop: what’s collectable near you right now, with your closest-to-complete sets surfaced so you always know which one you’re nearest to finishing.' },
+    8:  { stage:'Log a bird' },                         // unchanged from today's experience — title only
+    9:  { stage:'Review — one bird, six ways', mechs:[['Tiered badges',true],['Surprise rewards',false],['Collection sets',true]], why:'Tagging how you saw it (male, singing, in flight…) fills a different slot on the card. The surprise is real-world — the thrill of catching a bird doing something new, or a form you haven’t seen, finally fills a slot you were missing.' },
+    10: { stage:'Card levelled up', mechs:[['Tiered badges',true],['Progress meters',false]], why:'Filled slots tier the card bronze → silver → gold — visible progression that rewards logging the same species over and over. The cards are designed to feel realistic, tangible and collectible, like Pokémon cards.' },
+    11: { stage:'Your collection', mechs:[['Collection sets',true],['Tiered badges',true],['Profile customisation',false],['Surprise rewards',false]], why:'Completed sets and gold cards live on your profile — a showcase shelf that gives long-term players something to display and keep chasing. Completing a set hatches a golden egg: a surprise reward that pays off the grind.' },
+  };
+  function renderCtx(n) {
+    const s = STAGES[n]; if (!s) return;
+    document.getElementById('ctxStage').textContent = s.stage;
+    document.getElementById('ctxSlice').style.display = s.slice ? '' : 'none';
+    const mb = document.getElementById('ctxMechBlock');
+    if (s.mechs && s.mechs.length) {
+      mb.style.display = '';
+      document.getElementById('ctxMechs').innerHTML = s.mechs.map(m => '<span class="ctx-mech ' + (m[1] ? 'core' : 'sup') + '">' + (m[1] ? '<span class="tag">CORE</span>' : '') + m[0] + '</span>').join('');
+    } else { mb.style.display = 'none'; }
+    const wb = document.getElementById('ctxWhyBlock');
+    if (s.why) { wb.style.display = ''; document.getElementById('ctxWhy').textContent = s.why; }
+    else { wb.style.display = 'none'; }
+  }
   /* review page: toggle sighting attributes (male/female/singing/in flight/bathing) */
   function toggleAttr(el) { el.classList.toggle('sel'); }
   function next() { show(cur === screens.length ? 1 : cur + 1); }

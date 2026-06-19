@@ -422,6 +422,13 @@
   }
   .proto-back:hover { background:#F7F7FA; }
   .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+  .ctx-toggle { position:fixed; top:60px; left:22px; z-index:200; display:inline-flex; align-items:center; gap:7px;
+    font-size:13px; font-weight:500; color:#4A4E5A; cursor:pointer; padding:7px 12px; background:#fff;
+    border:1px solid #E5E5EA; border-radius:8px; transition:background .12s; }
+  .ctx-toggle:hover { background:#F7F7FA; }
+  .ctx-toggle svg { width:14px; height:14px; flex-shrink:0; stroke:#4A4E5A; fill:none; stroke-width:1.6; }
+  body.ctx-hidden .ctx-panel { display:none; }
+  @media (max-width:900px) { .ctx-toggle { display:none; } }
   </style>
 </head>
 <body>
@@ -429,6 +436,17 @@
   <svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
   All prototypes
 </a>
+<button class="ctx-toggle" id="ctxToggle" onclick="toggleCtx()">
+  <svg viewBox="0 0 20 20"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z"/><circle cx="10" cy="10" r="2.6"/></svg>
+  <span id="ctxToggleLbl">Hide walkthrough</span>
+</button>
+<script>
+  function toggleCtx() {
+    const hidden = document.body.classList.toggle('ctx-hidden');
+    document.getElementById('ctxToggleLbl').textContent = hidden ? 'Show walkthrough' : 'Hide walkthrough';
+    if (typeof fitShell === 'function') fitShell();
+  }
+</script>
 <div class="shell">
   <div class="viewport" id="viewport">
 
