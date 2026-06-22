@@ -1005,8 +1005,12 @@
 
 <aside class="ctx-panel" id="ctxPanel">
   <div class="ctx-route">Route 1 · Field guide with quests</div>
-  <div class="ctx-thesis">“A personalised field guide that gives you <b>quests</b>.” Find what's findable near you <b>right now</b> and finish this week's before the season moves on. Real-world urgency gets brand-new birders logging — and keeps them coming back.</div>
   <div class="ctx-divider"></div>
+  <div class="ctx-thesis" id="ctxThesis">
+    <b>Goal —</b> Get users logging common birds more frequently through time-limited quests, rewarded with spendable “feathers”.<br><br>
+    <b>Hypothesis —</b> If we introduce reasonably achievable weekly quests, real-world urgency will drive engagement and improve early retention.<br><br>
+    <b>Measure —</b> D0 activation, D1 return rate, week-1 → week-2 return rate, and engagement with the quest UI.
+  </div>
   <div class="ctx-stage" id="ctxStage"></div>
   <div class="ctx-slice" id="ctxSlice"><span class="cs-pill">🎯 Testable slice</span><span class="cs-note">The quest → log → feathers loop — the slice to put in front of users first.</span></div>
   <div id="ctxMechBlock">
@@ -1087,6 +1091,8 @@
   };
   function renderCtx(n) {
     const s = STAGES[n]; if (!s) return;
+    document.getElementById('ctxThesis').style.display = (n === 1) ? '' : 'none';
+    document.getElementById('ctxStage').style.display = (n === 1) ? 'none' : '';
     document.getElementById('ctxStage').textContent = s.stage;
     document.getElementById('ctxSlice').style.display = s.slice ? '' : 'none';
     const mb = document.getElementById('ctxMechBlock');

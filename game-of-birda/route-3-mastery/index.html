@@ -908,8 +908,12 @@
 
 <aside class="ctx-panel" id="ctxPanel">
   <div class="ctx-route">Route 3 · Mastery &amp; identity</div>
-  <div class="ctx-thesis">“Birda is where you learn to truly know the birds around you.” Logging <em>is</em> the game — every ID levels up your mastery of that species, Spotter → Expert.</div>
   <div class="ctx-divider"></div>
+  <div class="ctx-thesis" id="ctxThesis">
+    <b>Goal —</b> Give users a sense of achievement and personal progress through a tiered progression with each sighting, resulting in rewards that connect to their identity.<br><br>
+    <b>Hypothesis —</b> If we attach XP and levels to a user’s profile as well as the birds they log, repeated logging of more common species will increase and engagement will improve.<br><br>
+    <b>Measure —</b> D0 activation, D1 return rate, average logs per species per user, % of users advancing at least one tier, and % of users advancing at least one bird at least one tier.
+  </div>
   <div class="ctx-stage" id="ctxStage"></div>
   <div class="ctx-slice" id="ctxSlice"><span class="cs-pill">🎯 Testable slice</span><span class="cs-note">The core log → reward loop — the slice to put in front of users first.</span></div>
   <div id="ctxMechBlock">
@@ -959,6 +963,8 @@
   };
   function renderCtx(n) {
     const s = STAGES[n]; if (!s) return;
+    document.getElementById('ctxThesis').style.display = (n === 1) ? '' : 'none';
+    document.getElementById('ctxStage').style.display = (n === 1) ? 'none' : '';
     document.getElementById('ctxStage').textContent = s.stage;
     document.getElementById('ctxSlice').style.display = s.slice ? '' : 'none';
     const mb = document.getElementById('ctxMechBlock');
