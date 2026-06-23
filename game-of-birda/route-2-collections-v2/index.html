@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game of Birda — Route 2 · Collections (v2)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <style>
+  /* ─── Reset & tokens (mirrors production: Rubik + brand palette) ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  button { font: inherit; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --blue:#1F87FE; --blue-5:#E3F0FF; --ink:#2D3142; --muted:#8890AE;
+    --cloud:#F4F6FA; --line:#E4E8F0; --off:#FAFCFE; --green:#00C9A7;
+    --bronze:#C58B3F; --bronze-bg:#F3E4CE; --amber-border:#D9A066;
+    --r:14px;
+  }
+
+  html, body { height:100%; }
+  body {
+    height:100vh; overflow:hidden; background:#dde1e9; display:flex; align-items:center; justify-content:center; gap:34px;
+    font-family:'Rubik',-apple-system,sans-serif; color:var(--ink); padding:0;
+  }
+
+  /* ─── Context panel (walkthrough next to the phone) ─── */
+  .ctx-panel { width:322px; flex-shrink:0; align-self:center; max-height:88vh; overflow-y:auto; scrollbar-width:none;
+    background:#fff; border:1px solid #E5E5EA; border-radius:18px; padding:22px 22px 20px; box-shadow:0 14px 38px rgba(0,0,0,.12); }
+  .ctx-panel::-webkit-scrollbar { display:none; }
+  .ctx-route { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--blue); }
+  .ctx-thesis { font-size:12.5px; line-height:1.55; color:#5B606E; margin-top:10px; }
+  .ctx-thesis b { color:var(--ink); font-weight:700; }
+  .ctx-divider { height:1px; background:#ECEFF4; margin:18px 0; }
+  .ctx-stage { font-size:19px; font-weight:700; line-height:1.2; }
+  .ctx-label { font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#9097A3; margin-top:17px; }
+  .ctx-mechs { display:flex; flex-wrap:wrap; gap:7px; margin-top:9px; }
+  .ctx-mech { display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:600; padding:5px 11px; border-radius:99px; }
+  .ctx-mech.core { background:var(--blue); color:#fff; }
+  .ctx-mech.sup { background:var(--blue-5); color:var(--blue); }
+  .ctx-mech .tag { font-size:8px; font-weight:800; letter-spacing:.04em; opacity:.85; }
+  .ctx-why { font-size:13px; line-height:1.55; color:var(--ink); margin-top:8px; }
+  .ctx-slice { margin-top:12px; }
+  .ctx-slice .cs-pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800; letter-spacing:.03em; color:#fff; background:linear-gradient(135deg,#FF7A45,#F2545B); padding:7px 13px; border-radius:9px; box-shadow:0 4px 12px rgba(242,84,91,.32); }
+  .ctx-slice .cs-note { display:block; font-size:11.5px; line-height:1.45; color:#5B606E; margin-top:9px; }
+  @media (max-width: 900px) { .ctx-panel { display:none; } }
+
+  /* ─── Phone shell (PEX-43 house style) ─── */
+  .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:center center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.45); }
+  .shell::before { content:''; position:absolute; left:-3px; top:106px; width:3px; height:34px; background:#222; border-radius:2px 0 0 2px; box-shadow:0 44px 0 #222,0 88px 0 #222; }
+  .shell::after { content:''; position:absolute; right:-3px; top:156px; width:3px; height:72px; background:#222; border-radius:0 2px 2px 0; }
+  .viewport { width:369px; height:798px; border-radius:44px; overflow:hidden; position:relative; background:#fff; }
+
+  /* ─── Screen scaffold ─── */
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; background:#fff; }
+  .screen.active { display:flex; }
+  .body { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .body::-webkit-scrollbar { display:none; }
+  .footer { flex-shrink:0; padding:12px 24px 28px; background:#fff; }
+
+  /* status bar */
+  .statusbar { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:14px 26px 6px; z-index:5; }
+  .statusbar .time { font-size:15px; font-weight:600; }
+  .statusbar svg { display:block; }
+  .statusbar.light .time { color:#fff; } .statusbar.light svg { fill:#fff; }
+
+  /* buttons */
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px; border-radius:4px; font-size:16px; font-weight:600; }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:active { background:#0f6fe0; }
+  .btn-dark { background:#000; color:#fff; }
+  .btn-ghost { background:transparent; color:var(--ink); }
+  .link { color:var(--blue); font-weight:600; }
+
+  /* ── P1 Welcome (flat image) ── */
+  .screen.flat img { width:100%; height:100%; object-fit:cover; display:block; cursor:pointer; }
+
+  /* ── Birding journey ── */
+  .progress { height:7px; background:var(--line); border-radius:99px; margin:6px 24px 0; overflow:hidden; }
+  .progress > i { display:block; height:100%; width:58%; background:var(--blue); border-radius:99px; }
+  .p3 h1 { font-size:27px; font-weight:700; text-align:center; line-height:1.2; padding:20px 24px 8px; }
+  .opts { padding:8px 24px; display:flex; flex-direction:column; gap:14px; }
+  .opt { display:flex; align-items:center; gap:18px; padding:18px 18px; border:1.5px solid var(--line); border-radius:var(--r); background:#fff; text-align:left; transition:.12s; }
+  .opt:hover { border-color:#c9d2e6; }
+  .opt.sel { border-color:var(--blue); background:var(--blue-5); }
+  .opt .bars { display:flex; align-items:flex-end; gap:4px; width:42px; height:34px; flex-shrink:0; }
+  .opt .bars i { width:10px; background:var(--blue-5); border-radius:2px; }
+  .opt .bars i:nth-child(1){height:45%;} .opt .bars i:nth-child(2){height:72%;} .opt .bars i:nth-child(3){height:100%;}
+  .opt[data-level="1"] .bars i:nth-child(1),
+  .opt[data-level="2"] .bars i:nth-child(-n+2),
+  .opt[data-level="3"] .bars i { background:var(--blue); }
+  .opt span { font-size:17px; color:var(--ink); }
+
+  /* ── P4 Location ── */
+  .p4 .body { padding:0 24px; text-align:center; }
+  .p4 h1 { font-size:25px; font-weight:700; margin-top:24px; }
+  .p4 p { color:var(--ink); font-size:15px; line-height:1.5; margin:14px 6px 0; }
+  .locimg { margin-top:26px; }
+  .locimg img { width:100%; height:auto; display:block; }
+
+  /* ── P5 Collection picker (Header D) ── */
+  .p5mid { flex:1; position:relative; overflow:hidden; }
+  .p5scroll { position:absolute; inset:0; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; z-index:1; }
+  .p5scroll::-webkit-scrollbar { display:none; }
+  .p5spacer { height:324px; flex-shrink:0; }
+  .p5deck { position:absolute; top:0; left:0; right:0; height:290px; padding-top:18px; background:#fff; z-index:3; pointer-events:none; display:flex; justify-content:center; align-items:flex-start; }
+  .p5fade { position:absolute; left:0; right:0; top:290px; height:34px; background:linear-gradient(180deg,#fff,rgba(255,255,255,0)); z-index:2; pointer-events:none; }
+  .deck { position:relative; height:280px; margin:0 auto; width:226px; }
+  .dcard { position:absolute; left:0; top:8px; width:226px; height:262px; background:#fff; border:1px solid #EEF0F4; border-radius:20px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 12px 26px rgba(45,49,66,.13); transform-origin:center center; transition:transform .42s cubic-bezier(.2,.75,.3,1); will-change:transform; }
+  .dcard.front { box-shadow:0 20px 44px rgba(45,49,66,.22); }
+  .dcard .photo { width:100%; height:190px; background:#fff; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .dcard .photo img { width:100%; height:100%; object-fit:contain; }
+  .dcard .cap { padding:12px 16px; }
+  .dcard .cap b { font-size:18px; font-weight:600; display:block; }
+  .dcard .cap i { font-size:13px; font-style:italic; color:var(--muted); }
+  .p5 h1 { font-size:22px; font-weight:700; text-align:center; padding:18px 24px 8px; line-height:1.2; }
+  .p5 .sub { text-align:center; color:#5B606E; font-size:15px; line-height:1.45; padding:0 28px; }
+  .picker { padding:12px 24px 28px; display:flex; flex-direction:column; gap:10px; }
+  .row { display:flex; align-items:stretch; height:96px; border:1px solid var(--line); border-radius:4px; background:#fff; cursor:pointer; overflow:hidden; transition:.12s; }
+  .row.sel { border:2px solid var(--blue); background:#F2F7FF; }
+  .row .rphoto { width:116px; flex-shrink:0; background:#fff; overflow:hidden; }
+  .row .rphoto img { width:100%; height:100%; object-fit:cover; }
+  .row.sel .rphoto { background:transparent; }
+  .row.sel .rphoto img { mix-blend-mode:multiply; }
+  .row .rtext { flex:1; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; text-align:left; padding:14px 0 14px 14px; }
+  .row .rtop b { font-size:15px; font-weight:500; color:var(--ink); display:block; line-height:20px; letter-spacing:.2px; }
+  .row .rtop i { font-size:14px; font-style:italic; color:var(--muted); display:block; line-height:20px; letter-spacing:.2px; }
+  .row .sex { font-size:14px; color:#9AA0AC; }
+  .row .check { align-self:center; width:26px; height:26px; border-radius:50%; border:2px solid #D7DBE2; flex-shrink:0; margin-right:14px; }
+  .row.sel .check { border:none; background:var(--blue); display:flex; align-items:center; justify-content:center; }
+
+  /* ── P6 Celebration ── */
+  .p6 .body { align-items:center; text-align:center; padding:0 24px; }
+  .celebrate { position:relative; margin:46px auto 6px; width:321px; height:268px; display:flex; align-items:center; justify-content:center; }
+  .celebrate .halo { position:absolute; width:200px; height:200px; border-radius:50%; background:#E8F1FB; }
+  .celebrate .sticker { position:relative; width:300px; height:auto; z-index:2; filter:drop-shadow(0 16px 26px rgba(45,49,66,.28)); }
+  .confetti i { position:absolute; width:12px; height:12px; border-radius:2px; z-index:3; transform:rotate(var(--r,0deg)); }
+  .p6.active .halo { animation: haloIn .45s ease both; }
+  .p6.active .sticker { animation: stickerPop .62s cubic-bezier(.2,.9,.3,1.25) both; }
+  .p6.active .confetti i { animation: confettiPop .5s ease both; }
+  @keyframes haloIn { from { opacity:0; transform:scale(.7); } to { opacity:1; transform:scale(1); } }
+  @keyframes stickerPop { 0% { opacity:0; transform:scale(.55) rotate(-6deg); } 55% { opacity:1; transform:scale(1.06) rotate(2deg); } 100% { opacity:1; transform:scale(1) rotate(0deg); } }
+  @keyframes confettiPop { 0% { opacity:0; transform:scale(0) rotate(var(--r,0deg)); } 60% { opacity:1; } 100% { opacity:1; transform:scale(1) rotate(var(--r,0deg)); } }
+  .pill { display:inline-flex; align-items:center; gap:6px; background:#E2F7F0; color:#089E82; font-size:13px; font-weight:600; padding:6px 14px; border-radius:99px; margin-top:34px; }
+  .p6 h1 { font-size:28px; font-weight:700; margin-top:14px; }
+  .p6 .sp { font-size:20px; font-weight:600; margin-top:2px; }
+  .p6 p { color:#5B606E; font-size:15px; line-height:1.5; margin:12px 4px 0; }
+
+  /* ── P7 Album ── */
+  .p7 .body { padding:0 20px; }
+  .p7 h1 { font-size:26px; font-weight:700; margin-top:8px; }
+  .p7 .p7sub { font-size:14px; color:#5B606E; line-height:1.45; margin-top:8px; }
+  .setbar { background:var(--cloud); border-radius:12px; padding:13px 14px; margin-top:18px; }
+  .setbar .lbl { font-size:13px; font-weight:500; }
+  .setbar .track { height:7px; background:#E2E6EE; border-radius:99px; margin-top:10px; position:relative; }
+  .setbar .track i { display:block; height:100%; width:16.6%; background:var(--blue); border-radius:99px; }
+  .egg { position:absolute; right:-3px; top:50%; transform:translateY(-50%); width:19px; height:24px; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; background:linear-gradient(155deg,#F6D173 0%,#DCA62E 48%,#B07C18 100%); box-shadow:0 1px 4px rgba(150,100,20,.5), inset 1px 1px 2px rgba(255,255,255,.55); }
+  .grid { display:flex; flex-wrap:wrap; gap:11px; margin-top:18px; }
+  .gcard { width:calc(50% - 5.5px); height:188px; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+  .gcard.filled { position:relative; overflow:visible; border:2px solid transparent; border-radius:14px;
+    background:linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg,#D9A066 12%,#F9D9B8 28%,#D9A066 47%,#735536 73%,#C69A6E 100%) border-box; }
+  .gcard.filled .gsticker { position:absolute; top:-18px; left:50%; transform:translateX(-50%); width:172px; height:auto; z-index:2; filter:drop-shadow(0 7px 11px rgba(45,49,66,.20)); pointer-events:none; }
+  .gcard.filled .gtop { height:108px; }
+  .gcard .ginfo { padding:10px 12px; }
+  .gcard .ginfo .nm { font-size:15px; font-weight:600; display:flex; align-items:center; gap:7px; }
+  .tier { font-size:10px; font-weight:700; letter-spacing:.04em; color:var(--bronze); background:var(--bronze-bg); padding:2px 7px; border-radius:6px; }
+  .dots { display:flex; gap:5px; margin-top:8px; }
+  .dots i { width:9px; height:9px; border-radius:50%; background:#E2E6EE; }
+  .dots i.on { background:var(--bronze); }
+  .gcard .ginfo .frac { font-size:12px; color:var(--muted); margin-top:6px; }
+  .gcard.empty { background:#FAFCFF; border:1.5px dashed #D7E4F9; box-shadow:inset 0 3px 6px rgba(48,51,55,.10); align-items:center; justify-content:flex-start; gap:8px; padding:26px 12px 0; text-align:center; }
+  .gcard.empty .sil { width:134px; height:auto; display:block; }
+  .gcard.empty .et { font-size:11px; font-weight:500; color:#A7B7D2; line-height:1.35; }
+  .tabbar { flex-shrink:0; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-around; padding:8px 0 22px; }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; color:#B6BBC6; }
+  .tab.on { color:var(--blue); }
+  .tab .ic { width:22px; height:22px; border-radius:50%; background:currentColor; opacity:.85; }
+  .tab.add .ic { width:44px; height:44px; background:var(--blue); display:flex; align-items:center; justify-content:center; color:#fff; opacity:1; }
+
+  /* ── Home (baked map image + HTML bottom sheet) ── */
+  .home { background:#fff; }
+  .homewrap { position:absolute; inset:0; }
+  .homewrap > .homeimg { width:100%; height:auto; display:block; }
+
+  /* bottom sheet rebuilt in HTML over the baked map (covers the baked sheet) */
+  .h2sheet { position:absolute; left:0; right:0; top:344px; bottom:0; z-index:4;
+    background:#fff; border-radius:22px 22px 0 0; box-shadow:0 -10px 30px rgba(20,22,30,.10);
+    display:flex; flex-direction:column; overflow:hidden; }
+  .h2sheet .handle { width:38px; height:5px; border-radius:99px; background:#E0E3EB; margin:10px auto 2px; flex-shrink:0; }
+  .h2body { flex:1; overflow:hidden; padding:8px 20px 0; }
+  /* compact "Start now" header */
+  .h2head { display:flex; align-items:center; gap:14px; padding:2px 0 12px; }
+  .h2start { width:52px; height:52px; flex-shrink:0; border-radius:50%; border:4px solid var(--blue-5);
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    font-size:11px; font-weight:700; line-height:1.1; color:var(--ink); }
+  .h2head .ht { min-width:0; }
+  .h2head .ht b { display:block; font-size:16px; font-weight:700; line-height:1.2; }
+  .h2head .ht span { display:block; font-size:13px; color:var(--muted); margin-top:2px; }
+  /* uncompleted Garden Birds collection row */
+  .h2coll { display:flex; align-items:center; gap:13px; padding:10px 13px; border:1px solid var(--line);
+    border-radius:14px; margin-bottom:16px; cursor:pointer; }
+  .h2coll .thumbs { display:flex; flex-shrink:0; }
+  .h2coll .thumbs span { width:28px; height:28px; border-radius:7px; border:2px solid #fff; overflow:hidden;
+    background:#F1F4F9; margin-left:-10px; box-shadow:0 1px 3px rgba(45,49,66,.16); }
+  .h2coll .thumbs span:first-child { margin-left:0; }
+  .h2coll .thumbs img { width:100%; height:100%; object-fit:cover; }
+  .h2coll .thumbs span.sil { background:#EEF2F8; }
+  .h2coll .thumbs span.sil img { object-fit:contain; padding:3px; opacity:.7; }
+  .h2coll .cinfo { flex:1; min-width:0; }
+  .h2coll .cnm { font-size:14px; font-weight:600; color:var(--ink); white-space:nowrap; }
+  .h2coll .cnm .cf { font-weight:500; color:var(--muted); margin-left:4px; }
+  .h2coll .cdots { display:flex; gap:5px; margin-top:8px; }
+  .h2coll .cdots i { width:8px; height:8px; border-radius:50%; background:#E2E6EE; }
+  .h2coll .cdots i.on { background:var(--blue); }
+  .h2coll .chev { color:#C0C6D2; font-size:22px; font-weight:300; flex-shrink:0; }
+  /* Next Targets */
+  .h2nt { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; }
+  .h2nt b { font-size:16px; font-weight:700; }
+  .h2nt .seeall { color:var(--blue); font-size:14px; font-weight:600; cursor:pointer; }
+  .h2cards { display:flex; gap:12px; }
+  .h2card { flex:1; min-width:0; }
+  .h2card .cph { position:relative; height:108px; border-radius:14px; overflow:hidden;
+    border:1px solid var(--line); background:#fff; display:flex; align-items:center; justify-content:center; }
+  .h2card .cph img { width:100%; height:100%; object-fit:cover; }
+  .h2card .chip { position:absolute; top:8px; left:8px; font-size:9px; font-weight:700; color:#fff;
+    padding:3px 9px; border-radius:99px; white-space:nowrap; }
+  .h2card.spotted .cph { border:2px solid #d9a066; }
+  .h2card .chip.common { background:#8E97AD; }
+  .h2card .chip.uncommon { background:#E8B84B; }
+  .h2card .cnm { font-size:14px; font-weight:600; text-align:center; padding:8px 2px 8px; }
+  .h2log { width:100%; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:6px 0; border:1.5px solid var(--blue); border-radius:9px; font-size:12px; font-weight:600;
+    background:transparent; color:var(--blue); }
+  .h2log:active { background:var(--blue-5); }
+  /* green set marker — reserves green for the Garden Birds set */
+  .h2log .setleaf { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px;
+    border-radius:50%; background:#5FAF72; flex-shrink:0; }
+  .h2log .setleaf svg { width:9px; height:9px; }
+
+  /* ── Species select (copied from PEX-43-v2 "What did you see?") ── */
+  .sp-nav { flex-shrink:0; height:44px; display:flex; align-items:center; padding:6px 16px 0; position:relative; }
+  .sp-nav .back { display:flex; align-items:center; color:#8E8E93; }
+  .sp-nav .back svg { width:10px; height:18px; fill:none; stroke:#8E8E93; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+  .sp-nav .title { position:absolute; left:50%; transform:translateX(-50%); font-size:16px; font-weight:600; white-space:nowrap; }
+  .search-bar { margin:8px 16px 12px; background:#F2F2F7; border-radius:999px; display:flex; align-items:center; gap:8px; padding:8px 12px; }
+  .search-bar svg { fill:#AEAEB2; width:16px; height:16px; }
+  .search-bar input { flex:1; font:inherit; font-size:15px; color:var(--ink); background:none; border:none; outline:none; }
+  .search-bar input::placeholder { color:#AEAEB2; }
+  .species-list { padding:0 16px; display:flex; flex-direction:column; gap:12px; }
+  .species-item { display:flex; align-items:center; gap:14px; padding:10px 12px; background:#fff; border-radius:6px; border:1px solid #E5E5EA; cursor:pointer; }
+  .species-item:active { background:#F2F2F7; }
+  .species-item.highlighted { background:none; }
+  .species-item.highlighted .name.blue { display:inline-block; background:var(--blue-5); color:var(--blue); padding:2px 8px; border-radius:4px; }
+  .species-avatar { width:66px; height:66px; border-radius:8px; overflow:hidden; flex-shrink:0; background:#fff; display:flex; align-items:center; justify-content:center; font-size:30px; }
+  .species-avatar img { width:100%; height:100%; object-fit:contain; }
+  .species-info { flex:1; min-width:0; }
+  .species-info .name { font-size:14px; font-weight:500; color:var(--ink); }
+  .species-info .name.blue { color:var(--blue); }
+  .species-info .latin { font-size:13px; font-style:italic; color:#8E8E93; margin-top:1px; }
+  .species-info .gender { font-size:16px; color:#8E8E93; margin-top:4px; }
+  .sp-nav .save { position:absolute; right:16px; font-size:14px; color:var(--blue); background:none; }
+
+  /* ── Review sighting (copied from PEX-43-v2, scoped to .review) ── */
+  .review .map-block { width:100%; position:relative; height:220px; background:linear-gradient(160deg,#c8dfc8 0%,#d8e8d0 30%,#b8d4b8 55%,#a0c8b8 100%); overflow:hidden; flex-shrink:0; }
+  .review .map-block::after { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,.25) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,.25) 40px); opacity:.5; }
+  .review .map-roads { position:absolute; inset:0; pointer-events:none; opacity:.45; }
+  .review .map-pin { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:2; display:flex; flex-direction:column; align-items:center; }
+  .review .map-pin-avatar { width:52px; height:52px; border-radius:50%; border:2.5px solid #fff; background:#fff; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; font-size:26px; }
+  .review .map-pin::after { content:''; width:10px; height:10px; background:rgba(0,0,0,.2); border-radius:50%; margin-top:4px; transform:scaleX(2); }
+  .review .mapbox-badge { position:absolute; bottom:8px; left:10px; z-index:3; font-size:10px; color:rgba(0,0,0,.5); background:rgba(255,255,255,.7); border-radius:3px; padding:1px 4px; }
+  .review .section-label { font-size:14px; font-weight:500; color:var(--ink); padding:0 20px 10px; }
+  .review .group { margin:0 16px; background:#fff; border-radius:10px; border:1px solid #E5E5EA; overflow:hidden; }
+  .review .species-row-inner { display:flex; align-items:center; gap:12px; padding:12px 16px 4px; }
+  .review .species-icon { width:22px; height:22px; flex-shrink:0; color:#8E8E93; }
+  .review .species-name { flex:1; font-size:14px; font-weight:400; color:var(--ink); }
+  .review .frow { display:flex; align-items:center; padding:12px 16px; border-bottom:1px solid #E5E5EA; gap:12px; min-height:50px; }
+  .review .frow:last-child { border-bottom:none; }
+  .review .row-icon { width:22px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .review .row-icon svg { width:20px; height:20px; fill:none; stroke:#8E8E93; stroke-width:1.5; }
+  .review .row-label { flex:1; font-size:14px; font-weight:400; color:var(--ink); line-height:1.3; }
+  .review .row-value { font-size:14px; font-weight:400; color:#8E8E93; }
+  .review .row-chevron { color:#AEAEB2; font-size:18px; font-weight:300; }
+  .review .count-input { width:64px; height:36px; border:1.5px solid #E5E5EA; border-radius:8px; text-align:center; font:inherit; font-size:17px; font-weight:500; color:var(--blue); background:none; }
+  .review .notes-row { margin:0 16px; border:1px solid #E5E5EA; border-radius:10px; padding:12px 16px; min-height:44px; }
+  .review .notes-row input { width:100%; font:inherit; font-size:14px; font-weight:400; color:var(--ink); border:none; background:none; outline:none; }
+  .review .notes-row input::placeholder { color:#C3C7D7; }
+  .review .photos-section { padding:0 20px 0; }
+  .review .photos-heading { font-size:14px; font-weight:500; color:var(--ink); padding:12px 0 10px; }
+  .review .photos-row { display:flex; gap:10px; flex-wrap:wrap; }
+  .review .photo-add { width:88px; height:88px; border-radius:8px; border:1.5px dashed var(--blue); display:flex; align-items:center; justify-content:center; font-size:28px; color:var(--blue); cursor:pointer; flex-shrink:0; }
+  .review .btn-save { display:block; width:calc(100% - 40px); margin:16px 20px 8px; background:var(--blue); color:#fff; border-radius:10px; padding:15px; text-align:center; font-size:14px; font-weight:600; cursor:pointer; }
+  .review .btn-del { display:block; width:100%; padding:10px; text-align:center; font-size:14px; color:var(--blue); cursor:pointer; margin-bottom:24px; }
+  .review .sp12 { height:12px; } .review .sp16 { height:16px; }
+
+  /* ── "How a card works" bottom sheet (Figma R2 S2 · How a card works) ── */
+  .sheet-scrim { position:absolute; inset:0; z-index:50; background:rgba(20,22,30,.42); display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity .28s ease; }
+  .sheet-scrim.open { opacity:1; pointer-events:auto; }
+  .sheet { position:relative; width:100%; background:#fff; border-radius:22px 22px 0 0; padding:14px 20px 26px; display:flex; flex-direction:column; gap:16px; box-shadow:0 -10px 40px rgba(20,22,30,.18); transform:translateY(110%); transition:transform .36s cubic-bezier(.2,.85,.25,1); }
+  .sheet-scrim.open .sheet { transform:translateY(0); }
+  .sheet .handle { width:38px; height:4px; border-radius:99px; background:#E0E3EB; align-self:center; margin-bottom:2px; }
+  .sheet .sclose { position:absolute; top:14px; right:16px; width:28px; height:28px; border-radius:50%; background:#F1F2F4; display:flex; align-items:center; justify-content:center; }
+  .sheet .sclose svg { width:13px; height:13px; stroke:#6b7280; stroke-width:2; stroke-linecap:round; }
+  .sheet h2 { font-size:24px; font-weight:700; color:#2d3142; line-height:1.15; padding-right:34px; }
+  .sheet .ssub { font-size:14px; font-weight:400; color:#6b7280; line-height:1.4; }
+  .hcw-card { border:1.5px solid #d9a066; border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:12px; }
+  .hcw-head { display:flex; align-items:center; justify-content:space-between; }
+  .hcw-head .left { display:flex; align-items:center; gap:8px; min-width:0; }
+  .hcw-name { font-size:18px; font-weight:600; color:#2d3142; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hcw-rarity { flex-shrink:0; background:#e6f5ec; color:#2e9e5b; font-size:10px; font-weight:600; padding:3px 9px; border-radius:20px; }
+  .hcw-bronze { flex-shrink:0; background:#f3e2ce; color:#8a5a2b; font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; }
+  .hcw-row { display:flex; gap:8px; }
+  .hcw-slot { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; padding:10px 0 8px; border-radius:10px; background:#f1f2f4; }
+  .hcw-slot .em { font-size:18px; opacity:.28; line-height:1; }
+  .hcw-slot .sl { font-size:9px; color:#aeb4be; text-align:center; }
+  .hcw-slot.on { background:#fff3e0; border:1px solid #d9a066; }
+  .hcw-slot.on .em { opacity:1; }
+  .hcw-slot.on .sl { color:#2d3142; font-weight:600; }
+  .hcw-cap { font-size:12px; font-weight:600; color:#8a5a2b; }
+  .hcw-got { width:100%; background:#006ffd; color:#fff; border-radius:14px; padding:16px; font-size:16px; font-weight:600; text-align:center; }
+  .hcw-got:active { background:#005fe0; }
+
+  /* attribute selector on the review page (tiles mirror the card slots) */
+  .review .attr-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:0 16px; }
+  .review .attr { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding:13px 0 11px; border-radius:10px; background:#f1f2f4; border:1px solid transparent; cursor:pointer; transition:.12s; }
+  .review .attr .em { font-size:20px; line-height:1; opacity:.34; }
+  .review .attr .lb { font-size:11px; color:#aeb4be; }
+  .review .attr.sel { background:#fff3e0; border-color:#d9a066; }
+  .review .attr.sel .em { opacity:1; }
+  .review .attr.sel .lb { color:#2d3142; font-weight:600; }
+
+  /* ── Level-up celebration (Figma R2 S10 · Level up (Silver)) ── */
+  .firstcard .body { padding:0 24px 22px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; perspective:1100px; }
+  .firstcard .pill { margin-top:0; }
+  .firstcard h1 { font-size:26px; font-weight:700; margin:14px 0 6px; }
+  .firstcard .fc-sub { font-size:14px; color:#5B606E; line-height:1.45; margin-bottom:20px; max-width:300px; }
+  .firstcard .lu-panel { width:100%; background:#F6ECDB; }
+  .firstcard .lu-photo { height:320px; }
+  .firstcard .btn { width:100%; }
+  /* bronze sheen sweep when the card first appears (mirrors the silver card's shine) */
+  .firstcard .lu-sheen { background:linear-gradient(110deg, rgba(217,160,102,0) 32%, rgba(217,160,102,.18) 46%, rgba(255,255,255,.45) 50%, rgba(217,160,102,.18) 54%, rgba(217,160,102,0) 68%); }
+  .firstcard .lu-panel.shine .lu-sheen { animation: luSheen 1.4s cubic-bezier(.35,0,.25,1) .05s both; }
+  /* first dot pops in */
+  .firstcard .lu-dots i.pop { animation: dotPop .5s cubic-bezier(.2,.9,.3,1.4) both; }
+  @keyframes dotPop { 0%{transform:scale(.2);} 55%{transform:scale(1.5);} 100%{transform:scale(1);} }
+  .levelup .body { padding:0 20px 22px; display:flex; flex-direction:column; justify-content:center; perspective:1100px; }
+  .lu-panel { position:relative; background:#eef1f4; border-radius:18px; padding:20px 16px; display:flex; flex-direction:column; align-items:center; gap:14px; box-shadow:0 18px 38px rgba(45,49,66,.22); transform-style:preserve-3d; will-change:transform; animation:luTilt 7s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .lu-panel { animation:none; } }
+  .lu-confetti { position:absolute; left:0; right:0; top:0; height:120px; pointer-events:none; z-index:5; }
+  .lu-confetti i { position:absolute; width:9px; height:9px; border-radius:2px; opacity:0; transform:rotate(var(--r,0deg)); }
+  .lu-panel.silver .lu-confetti i { animation: luConfetti 1.15s ease-out both; }
+  @keyframes luConfetti {
+    0%   { opacity:0; transform:translate(0,0) scale(.3) rotate(var(--r,0deg)); }
+    18%  { opacity:1; }
+    62%  { opacity:1; transform:translate(var(--dx,0),var(--dy,0)) scale(1) rotate(var(--r,0deg)); }
+    100% { opacity:0; transform:translate(calc(var(--dx,0) * 1.25), calc(var(--dy,0) * 1.25 + 36px)) scale(.92) rotate(var(--r,0deg)); }
+  }
+  .lu-pill { display:inline-flex; align-items:center; gap:5px; background:#e9ecef; border:1.5px solid #b9c0ca; border-radius:8px; padding:6px 12px; font-size:11px; font-weight:700; color:#5e6675; letter-spacing:.02em; opacity:0; transform:translateY(-6px) scale(.92); transition:.36s cubic-bezier(.2,.9,.3,1.35); }
+  .lu-pill.show { opacity:1; transform:none; }
+  .lu-title { font-size:22px; font-weight:700; color:#2d3142; text-align:center; line-height:1.2; }
+  .lu-title .lu-tier { opacity:0; transition:opacity .45s ease; }
+  .lu-title .lu-tier.show { opacity:1; }
+  .lu-card { width:100%; background:#fff; border:2px solid #d9a066; border-radius:16px; overflow:hidden; transition:border-color .55s ease; }
+  .lu-panel.silver .lu-card { border-color:#b9c0ca; }
+  @keyframes luTilt { 0%,100%{ transform:rotateY(-5deg); } 50%{ transform:rotateY(5deg); } }
+  /* silver sheen sweeps diagonally across the whole panel when it levels up */
+  .lu-sheen-clip { position:absolute; inset:0; z-index:4; border-radius:18px; overflow:hidden; pointer-events:none; }
+  .lu-sheen { position:absolute; inset:0; opacity:0; transform:translateX(-135%); background:linear-gradient(110deg, rgba(150,164,190,0) 32%, rgba(150,164,190,.16) 46%, rgba(255,255,255,.34) 50%, rgba(150,164,190,.16) 54%, rgba(150,164,190,0) 68%); }
+  .lu-panel.silver .lu-sheen { animation: luSheen 1.4s cubic-bezier(.35,0,.25,1) .05s both; }
+  @keyframes luSheen { 0%{transform:translateX(-135%); opacity:0;} 15%{opacity:1;} 85%{opacity:1;} 100%{transform:translateX(135%); opacity:0;} }
+  .lu-dots { display:flex; gap:6px; }
+  .lu-dots i { width:9px; height:9px; border-radius:50%; background:#E2E6EE; transition:background .3s ease; }
+  .lu-dots i.on { background:#d9a066; }
+  .lu-panel.silver .lu-dots i.on { background:#97a0ae; }
+  .lu-photo { height:96px; width:100%; background:#fff; }
+  .lu-photo img { width:100%; height:100%; object-fit:contain; display:block; }
+  .lu-cardbody { padding:10px 12px 12px; display:flex; flex-direction:column; gap:10px; }
+  .lu-namerow { display:flex; align-items:center; justify-content:space-between; }
+  .lu-name { font-size:17px; font-weight:600; color:#2d3142; }
+  .lu-badge { background:#f3e2ce; color:#8a5a2b; font-size:10px; font-weight:600; padding:3px 9px; border-radius:20px; transition:background .45s ease, color .45s ease; }
+  .lu-panel.silver .lu-badge { background:#e9ecef; color:#5e6675; }
+  .lu-slots { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
+  .lu-slot { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:9px 0 7px; border-radius:10px; background:#f1f2f4; border:1px solid transparent; transition:background .3s ease, border-color .3s ease; }
+  .lu-slot .em { font-size:17px; line-height:1; opacity:.28; transition:opacity .3s ease; }
+  .lu-slot .sl { font-size:9px; color:#aeb4be; text-align:center; }
+  .lu-slot .ck { display:none; }
+  .lu-slot.fill { background:#fff3e0; border-color:#d9a066; }
+  .lu-panel.silver .lu-slot.fill { border-color:#b9c0ca; }
+  .lu-slot.fill .em { opacity:1; }
+  .lu-slot.fill .sl { color:#2d3142; font-weight:600; }
+  .lu-slot.fill .ck { display:inline; }
+  .lu-slot.pop { animation: luPop .42s cubic-bezier(.2,.9,.3,1.35); }
+  @keyframes luPop { 0%{transform:scale(1)} 40%{transform:scale(1.13)} 100%{transform:scale(1)} }
+  .lu-cap { font-size:13px; font-weight:600; color:#5e6675; text-align:center; }
+  .lu-cap .lu-goldnote { opacity:0; transition:opacity .45s ease; }
+  .lu-cap .lu-goldnote.show { opacity:1; }
+  .lu-sub { font-size:13px; color:#6b7280; line-height:1.4; text-align:center; margin-top:14px; }
+  .lu-btn { width:100%; background:#006ffd; color:#fff; border-radius:14px; padding:16px; font-size:16px; font-weight:600; text-align:center; margin-top:32px; }
+  .lu-btn:active { background:#005fe0; }
+  .lu-back { display:block; text-align:center; color:#006ffd; font-size:14px; font-weight:500; margin-top:12px; cursor:pointer; }
+
+  /* ── Profile · Collections tab ── */
+  .profile .body { padding:0; }
+  .pf-header { width:100%; height:350px; overflow:hidden; flex-shrink:0; }
+  .pf-header img { width:100%; display:block; }
+  .pf-tabs { position:sticky; top:0; z-index:5; display:flex; gap:22px; padding:0 16px; background:#fff; border-bottom:1px solid #ECEFF4; overflow-x:auto; scrollbar-width:none; }
+  .pf-tabs::-webkit-scrollbar { display:none; }
+  .pf-tab { padding:13px 0; font-size:15px; color:#8E8E93; white-space:nowrap; border-bottom:2px solid transparent; margin-bottom:-1px; flex-shrink:0; cursor:pointer; }
+  .pf-tab.on { color:var(--blue); font-weight:600; border-bottom-color:var(--blue); }
+  .pf-content { padding:16px; }
+  .pf-sub { font-size:13px; color:#6b7280; line-height:1.4; margin-bottom:14px; }
+  /* golden egg + hatch countdown banner */
+  .egg-banner { display:flex; align-items:center; gap:10px; background:#F4F6FA; border:1px solid #E9EDF4; border-radius:12px; padding:9px 14px; margin-bottom:16px; }
+  .egg-big { position:relative; width:22px; height:28px; flex-shrink:0; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; background:linear-gradient(155deg,#F6D173 0%,#DCA62E 48%,#B07C18 100%); box-shadow:0 1px 4px rgba(150,100,20,.4), inset 1px 1px 2px rgba(255,255,255,.55); }
+  .egg-big .crack { position:absolute; inset:0; width:100%; height:100%; }
+  .egg-line { font-size:13px; color:#5B606E; white-space:nowrap; }
+  .egg-line b { font-weight:700; color:var(--blue); font-variant-numeric:tabular-nums; }
+  .sgrid { display:flex; flex-wrap:wrap; gap:11px; }
+  .scard { width:calc(50% - 5.5px); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; background:#fff; }
+  .scard.started { border:2px solid #A6CAF6; }
+  .scard.locked { background:#FAFCFF; border:1.5px dashed #D7E4F9; box-shadow:inset 0 3px 6px rgba(48,51,55,.08); }
+  .scover { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:8px; }
+  .scover .tile { aspect-ratio:1; border-radius:7px; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center; }
+  .scover .tile img { width:100%; height:100%; object-fit:contain; }
+  .scover .tile.more { background:#EDF1F8; color:#7E8AA3; font-size:15px; font-weight:600; }
+  .scard.locked .scover .tile { background:#F3F7FD; }
+  .sinfo { padding:2px 12px 12px; }
+  .sinfo .snm { font-size:14px; font-weight:600; color:var(--ink); }
+  .scard.locked .sinfo .snm { color:#8FA0BC; }
+  .sdots { display:flex; gap:4px; margin-top:7px; }
+  .sdots i { width:8px; height:8px; border-radius:50%; background:#E2E6EE; }
+  .sdots i.on { background:#9CC2F4; }
+  .sfrac { font-size:12px; color:var(--muted); margin-top:6px; }
+  .sfrac.locked { color:#A7B7D2; }
+  /* completed set — gold border + medallion badge instead of a bird grid */
+  .sgrid { align-items:flex-start; }
+  .scard.done { border:2px solid #A6CAF6; }
+  .scover.badge { display:flex; align-items:center; justify-content:center; padding:8px; min-height:157px; background:radial-gradient(circle at 50% 44%, #EAF3FF 0%, #DBEAFF 68%, #CFE2FF 100%); }
+  .seal { width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:linear-gradient(155deg,#62A8FF 0%,#1F87FE 52%,#1565CB 100%); border:3px solid #FFFFFF; box-shadow:0 5px 14px rgba(31,135,254,.42), inset 0 1px 2px rgba(255,255,255,.55); }
+  .seal svg { width:30px; height:30px; display:block; }
+  .scard.done .sdots i.on { background:#1F87FE; }
+  .sfrac.done { color:#1F87FE; font-weight:600; }
+
+  /* app bottom tab bar (matches the Home screen nav) */
+  .appnav { flex-shrink:0; display:flex; align-items:flex-end; justify-content:space-between; padding:9px 12px 22px; border-top:1px solid var(--line); background:#fff; }
+  .navt { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; color:#9097A3; cursor:pointer; }
+  .navt.on { color:var(--blue); }
+  .navt > svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .navt.plus { flex:0 0 auto; }
+  .navt.plus .fab { width:52px; height:52px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(31,135,254,.4); transform:translateY(-6px); }
+  .navt.plus .fab svg { width:26px; height:26px; stroke:#fff; stroke-width:2.4; fill:none; stroke-linecap:round; }
+
+  /* back to the prototypes index (matches PEX-43) */
+  .proto-back {
+    position:fixed; top:22px; left:22px; z-index:200;
+    display:inline-flex; align-items:center; gap:7px;
+    font-size:13px; font-weight:500; color:#4A4E5A; text-decoration:none;
+    padding:7px 12px 7px 10px; background:#fff;
+    border:1px solid #E5E5EA; border-radius:8px; transition:background .12s;
+  }
+  .proto-back:hover { background:#F7F7FA; }
+  .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+  .ctx-toggle { position:fixed; top:60px; left:22px; z-index:200; display:inline-flex; align-items:center; gap:7px;
+    font-size:13px; font-weight:500; color:#4A4E5A; cursor:pointer; padding:7px 12px; background:#fff;
+    border:1px solid #E5E5EA; border-radius:8px; transition:background .12s; }
+  .ctx-toggle:hover { background:#F7F7FA; }
+  .ctx-toggle svg { width:14px; height:14px; flex-shrink:0; stroke:#4A4E5A; fill:none; stroke-width:1.6; }
+  body.ctx-hidden .ctx-panel { display:none; }
+  @media (max-width:900px) { .ctx-toggle { display:none; } }
+
+</style>
+</head>
+<body>
+<a class="proto-back" href="../../index.html">
+  <svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  All prototypes
+</a>
+<button class="ctx-toggle" id="ctxToggle" onclick="toggleCtx()">
+  <svg viewBox="0 0 20 20"><path d="M1 10s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z"/><circle cx="10" cy="10" r="2.6"/></svg>
+  <span id="ctxToggleLbl">Hide walkthrough</span>
+</button>
+<script>
+  function toggleCtx() {
+    const hidden = document.body.classList.toggle('ctx-hidden');
+    document.getElementById('ctxToggleLbl').textContent = hidden ? 'Show walkthrough' : 'Hide walkthrough';
+    if (typeof fitShell === 'function') fitShell();
+  }
+</script>
+<div class="shell">
+  <div class="viewport" id="viewport">
+
+    <!-- P1 Welcome (flat image export) -->
+    <section class="screen flat" data-screen="1" onclick="next()">
+      <img src="images/onboarding/0%20account.jpg" alt="Start building your flock — sign up">
+    </section>
+
+    <!-- Onboarding: creating account (image) -->
+    <section class="screen flat" data-screen="2" onclick="next()">
+      <img src="images/onboarding/1%20creatingAccount.png" alt="We're creating your account">
+    </section>
+
+    <!-- Onboarding: how did you hear about Birda (image) -->
+    <section class="screen flat" data-screen="3" onclick="next()">
+      <img src="images/onboarding/2%20How%20did%20you%20hear%20about%20Birda.png" alt="How did you hear about Birda?">
+    </section>
+
+    <!-- Birding journey (live) -->
+    <section class="screen p3" data-screen="4">
+      <div class="statusbar"></div>
+      <div class="progress"><i></i></div>
+      <div class="body">
+        <h1>Where are you in your birding journey?</h1>
+        <div class="opts" id="journeyOpts">
+          <button class="opt" data-level="0" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>I'm new to birdwatching</span></button>
+          <button class="opt" data-level="1" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>I know a few garden birds</span></button>
+          <button class="opt" data-level="2" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>I birdwatch regularly and know a variety of species</span></button>
+          <button class="opt" data-level="3" onclick="selJourney(this)"><span class="bars"><i></i><i></i><i></i></span><span>Gulls and LBJ's are no problem to me</span></button>
+        </div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" id="journeyBtn" onclick="next()">Skip</button></div>
+    </section>
+
+    <!-- Onboarding: what do you want most from Birda (image) -->
+    <section class="screen flat" data-screen="5" onclick="next()">
+      <img src="images/onboarding/4%20What%20do%20you%20want%20most%20from%20Birda.png" alt="What do you want most from Birda?">
+    </section>
+
+    <!-- Onboarding: bird identification (image) -->
+    <section class="screen flat" data-screen="6" onclick="next()">
+      <img src="images/onboarding/5%20Bird%20identification.png" alt="Bird identification">
+    </section>
+
+    <!-- Onboarding: wellbeing (image) -->
+    <section class="screen flat" data-screen="7" onclick="next()">
+      <img src="images/onboarding/6%20Wellbeing%20Screen%20Landing%20Page.png" alt="Wellbeing">
+    </section>
+
+    <!-- Location (live) -->
+    <section class="screen p4" data-screen="8">
+      <div class="statusbar"></div>
+      <div class="body">
+        <h1>Discover nearby birds</h1>
+        <p>We use your location to make smart suggestions about what birds are in your area. Turn on location permissions for the most accurate bird identification.</p>
+        <div class="locimg"><img src="images/location-illustration.png" alt="Birds near your location"></div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" onclick="next()">Continue</button></div>
+    </section>
+
+    <!-- Onboarding: free trial — 7 days free (image) -->
+    <section class="screen flat" data-screen="9" onclick="next()">
+      <img src="images/onboarding/8%20Warmup%203.png" alt="We offer 7 days free so everyone can go birding with Birda">
+    </section>
+
+    <!-- Onboarding: trial reminder (image) -->
+    <section class="screen flat" data-screen="10" onclick="next()">
+      <img src="images/onboarding/9%20Warmup%204.png" alt="You'll get a reminder 2 days before your trial ends">
+    </section>
+
+    <!-- Onboarding: Birda+ paywall (image) -->
+    <section class="screen flat" data-screen="11" onclick="next()">
+      <img src="images/onboarding/10%20Paywall%20trial_warmup.png" alt="Birda+ trial paywall">
+    </section>
+
+    <!-- Onboarding: welcome to Birda+ / subscription confirmation (image) -->
+    <section class="screen flat" data-screen="12" onclick="next()">
+      <img src="images/onboarding/11%20SubscriptionConfimation.png" alt="Welcome to Birda+">
+    </section>
+
+    <!-- P5 Start your collection -->
+    <section class="screen p5" data-screen="13">
+      <div class="statusbar"></div>
+      <div class="p5mid">
+        <div class="p5scroll">
+          <div class="p5spacer"></div>
+          <h1>Which bird did you see most recently?</h1>
+          <div class="picker" id="picker">
+          <button class="row sel" data-bird="dunnock" onclick="selBird(this)"><span class="rphoto"><img src="../../resources/bird-photos/Dunnock.webp"></span><span class="rtext"><span class="rtop"><b>Dunnock</b><i>Prunella modularis</i></span><span class="sex">♂ ♀</span></span><span class="check"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+          <button class="row" data-bird="robin" onclick="selBird(this)"><span class="rphoto"><img src="../../resources/bird-photos/European_Robin.webp"></span><span class="rtext"><span class="rtop"><b>Robin</b><i>Erithacus rubecula</i></span><span class="sex">⚥</span></span><span class="check"></span></button>
+          <button class="row" data-bird="house-sparrow" onclick="selBird(this)"><span class="rphoto"><img src="../../resources/bird-photos/House_Sparrow_-_Male.webp"></span><span class="rtext"><span class="rtop"><b>House Sparrow</b><i>Passer domesticus</i></span><span class="sex">⚥</span></span><span class="check"></span></button>
+          <button class="row" data-bird="blackbird" onclick="selBird(this)"><span class="rphoto"><img src="../../resources/bird-photos/Common_Blackbird_-_Male.webp"></span><span class="rtext"><span class="rtop"><b>Blackbird</b><i>Turdus merula</i></span><span class="sex">⚥</span></span><span class="check"></span></button>
+          </div>
+        </div>
+        <div class="p5deck">
+          <div class="deck" id="deck">
+            <div class="dcard" data-bird="dunnock"><div class="photo"><img src="../../resources/bird-photos/Dunnock.webp"></div><div class="cap"><b>Dunnock</b><i>Prunella modularis</i></div></div>
+            <div class="dcard" data-bird="robin"><div class="photo"><img src="../../resources/bird-photos/European_Robin.webp"></div><div class="cap"><b>Robin</b><i>Erithacus rubecula</i></div></div>
+            <div class="dcard" data-bird="house-sparrow"><div class="photo"><img src="../../resources/bird-photos/House_Sparrow_-_Male.webp"></div><div class="cap"><b>House Sparrow</b><i>Passer domesticus</i></div></div>
+            <div class="dcard" data-bird="blackbird"><div class="photo"><img src="../../resources/bird-photos/Common_Blackbird_-_Male.webp"></div><div class="cap"><b>Blackbird</b><i>Turdus merula</i></div></div>
+          </div>
+        </div>
+        <div class="p5fade"></div>
+      </div>
+      <div class="footer"><button class="btn btn-primary" onclick="next()">Start my collection</button></div>
+    </section>
+
+    <!-- New card — the bird just chosen (design ref: "Card levelled up") -->
+    <section class="screen firstcard" data-screen="14">
+      <div class="statusbar"></div>
+      <div class="body">
+        <span class="pill">● 1 of 6 garden birds collected</span>
+        <h1>You got a new card!</h1>
+        <p class="fc-sub">Log it again the next time you see a <span class="fc-name">Dunnock</span> to level up.</p>
+        <div class="lu-panel">
+          <span class="lu-sheen-clip"><span class="lu-sheen"></span></span>
+          <div class="lu-card">
+            <div class="lu-photo"><img class="lu-img fc-img" src="../../resources/bird-photos/Dunnock.webp" alt=""></div>
+            <div class="lu-cardbody">
+              <div class="lu-namerow"><span class="lu-name fc-name">Dunnock</span><span class="lu-badge">BRONZE</span></div>
+              <div class="lu-dots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:22px;" onclick="next()">Continue</button>
+      </div>
+    </section>
+
+    <!-- Home (app home screen — baked map image + HTML bottom sheet) -->
+    <section class="screen home" data-screen="15">
+      <div class="homewrap">
+        <img class="homeimg" src="images/home.png" alt="Home — known species in this area">
+      </div>
+      <div class="h2sheet">
+        <div class="handle"></div>
+        <div class="h2body">
+          <div class="h2head">
+            <div class="ht">
+              <b>Find your next garden bird</b>
+              <span>Blue tits likely nearby</span>
+            </div>
+          </div>
+          <div class="h2coll" onclick="openGardenBirds()">
+            <div class="thumbs">
+              <span><img class="spot-img" src="../../resources/bird-photos/Dunnock.webp" alt=""></span>
+              <span class="sil"><img src="images/silhouettes/silhouette-1.png" alt=""></span>
+              <span class="sil"><img src="images/silhouettes/silhouette-2.png" alt=""></span>
+              <span class="sil"><img src="images/silhouettes/silhouette-3.png" alt=""></span>
+              <span class="sil"><img src="images/silhouettes/silhouette-4.png" alt=""></span>
+              <span class="sil"><img src="images/silhouettes/silhouette-5.png" alt=""></span>
+            </div>
+            <div class="cinfo">
+              <div class="cnm">Garden Birds <span class="cf">1 of 6</span></div>
+              <div class="cdots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+            <span class="chev">›</span>
+          </div>
+          <div class="h2nt"><b>Likely in your area</b><span class="seeall" onclick="goTo(19)">See All</span></div>
+          <div class="h2cards">
+            <div class="h2card">
+              <div class="cph"><span class="chip common">Common</span><img src="../../resources/bird-photos/Eurasian_Blue_Tit.webp" alt=""></div>
+              <div class="cnm">Eurasian Blue Tit</div>
+              <button class="h2log" onclick="selectSpecies('Eurasian Blue Tit')" title="Counts toward your Garden Birds set">Log</button>
+            </div>
+            <div class="h2card spotted">
+              <div class="cph"><span class="chip common">Common</span><img class="spot-img" src="../../resources/bird-photos/Dunnock.webp" alt=""></div>
+              <div class="cnm spot-name">Dunnock</div>
+              <button class="h2log" onclick="logSpotted()" title="You've already spotted this one — log it again to level its card">Log again</button>
+            </div>
+          </div>
+        </div>
+        <div class="appnav">
+          <div class="navt on"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="15.5,8.5 10.5,10.5 8.5,15.5 13.5,13.5" fill="currentColor" stroke="none"/></svg>Explore</div>
+          <div class="navt"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><circle cx="17.5" cy="7.5" r="2.2"/><path d="M16.5 13.5c2.4 0 4 1.7 4 4"/></svg>Community</div>
+          <div class="navt plus" onclick="goTo(16)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+          <div class="navt"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1A3.5 3.5 0 0 0 8 10.5M17 6h2.5v1A3.5 3.5 0 0 1 16 10.5"/><path d="M12 13v3M8.5 19h7M9.6 19l.4-3M14.4 19l-.4-3"/></svg>Challenges</div>
+          <div class="navt" onclick="goTo(19)"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Species select — "What did you see?" (copied from PEX-43-v2; reached via Log) -->
+    <section class="screen species-select" data-screen="16">
+      <div class="statusbar"></div>
+      <div class="sp-nav">
+        <button class="back" onclick="goTo(15)"><svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg></button>
+        <div class="title">What did you see?</div>
+      </div>
+      <div class="body">
+        <div class="search-bar">
+          <svg viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="10.5" y1="10.5" x2="14.5" y2="14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input placeholder="Describe the bird" type="text">
+        </div>
+        <div class="species-list">
+          <div class="species-item highlighted" onclick="selectSpecies('Unidentified Species')">
+            <div class="species-avatar" style="background:#dde8f8;">🙋</div>
+            <div class="species-info">
+              <div class="name blue">Unidentified Species</div>
+              <div class="latin" style="font-style:normal;">I don't know, ask the community for help</div>
+            </div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Woodpigeon')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/Common_Wood_Pigeon_2.webp" alt="Woodpigeon"></div>
+            <div class="species-info"><div class="name">Woodpigeon</div><div class="latin">Columba palumbus</div><div class="gender">⚥</div></div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Carrion Crow')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/Carrion_Crow.webp" alt="Carrion Crow"></div>
+            <div class="species-info"><div class="name">Carrion Crow</div><div class="latin">Corvus corone</div><div class="gender">⚥</div></div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Robin')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/European_Robin.webp" alt="Robin"></div>
+            <div class="species-info"><div class="name">Robin</div><div class="latin">Erithacus rubecula</div><div class="gender">⚥</div></div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Magpie')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/Eurasian_Magpie.webp" alt="Magpie"></div>
+            <div class="species-info"><div class="name">Magpie</div><div class="latin">Pica pica</div><div class="gender">⚥</div></div>
+          </div>
+          <div class="species-item" onclick="selectSpecies('Blackbird')">
+            <div class="species-avatar"><img src="../../resources/bird-photos/Common_Blackbird_-_Male.webp" alt="Blackbird"></div>
+            <div class="species-info"><div class="name">Blackbird</div><div class="latin">Turdus merula</div><div class="gender">♂ ♀</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Review sighting — "Review Sighting" (copied from PEX-43-v2; reached by picking a species) -->
+    <section class="screen review" data-screen="17">
+      <div class="statusbar"></div>
+      <div class="sp-nav">
+        <button class="back" onclick="goTo(16)"><svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg></button>
+        <div class="title">Review Sighting</div>
+        <button class="save" onclick="goTo(18)">Save</button>
+      </div>
+      <div class="body">
+        <div class="map-block">
+          <svg class="map-roads" viewBox="0 0 375 220" preserveAspectRatio="xMidYMid slice">
+            <path d="M0,80 Q60,70 120,90 T240,85 T375,95" stroke="white" stroke-width="8" fill="none" opacity=".6"/>
+            <path d="M0,140 Q80,130 160,150 T375,145" stroke="white" stroke-width="6" fill="none" opacity=".5"/>
+            <path d="M120,0 Q130,50 115,110 T125,220" stroke="white" stroke-width="7" fill="none" opacity=".55"/>
+            <path d="M240,0 Q235,60 245,120 T238,220" stroke="white" stroke-width="5" fill="none" opacity=".4"/>
+            <path d="M0,180 Q90,175 180,185 T375,178" stroke="white" stroke-width="4" fill="none" opacity=".3"/>
+          </svg>
+          <div class="map-pin"><div class="map-pin-avatar">🐦</div></div>
+          <div class="mapbox-badge">© Mapbox</div>
+        </div>
+
+        <div class="photos-section">
+          <div class="photos-heading">Photos</div>
+          <div class="photos-row"><div class="photo-add">+</div></div>
+        </div>
+
+        <div class="sp12"></div>
+        <div class="notes-row"><input placeholder="Got something interesting to add?"></div>
+        <div class="sp16"></div>
+
+        <div class="section-label">Sighting</div>
+        <div class="group">
+          <div class="species-row-inner">
+            <svg class="species-icon" viewBox="0 0 22 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="15" cy="6.5" r="2.2"/>
+              <path d="M16.9 5.6l2.6-.3-2.2 1.8"/>
+              <circle cx="15.7" cy="5.9" r=".45" fill="currentColor" stroke="none"/>
+              <path d="M12.8 8C10.5 8 5 9.8 5 13.5h10.5c2.2 0 2.8-2.2 1.6-3.3L13.5 9"/>
+              <path d="M5 13.5l-2.8-1.2M5 13.5l-2.8 1.2"/>
+              <path d="M8.5 13.5v3M7.5 16.5h2.2M12 13.5v3M11 16.5h2.2"/>
+            </svg>
+            <span class="species-name" data-species-name>Robin</span>
+            <span class="row-chevron">›</span>
+          </div>
+          <div class="frow" style="padding:4px 16px 10px 50px;"><input class="count-input" value="1" readonly></div>
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="13" rx="2" stroke-width="1.5"/><line x1="3" y1="8" x2="17" y2="8" stroke-width="1.5"/><line x1="7" y1="2" x2="7" y2="6" stroke-width="1.5"/><line x1="13" y1="2" x2="13" y2="6" stroke-width="1.5"/></svg></div>
+            <span class="row-label">Jun 17th, 2026&nbsp;&nbsp;9:41</span>
+            <span class="row-chevron">›</span>
+          </div>
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><path d="M10 2C7.2 2 5 4.2 5 7C5 11 10 18 10 18C10 18 15 11 15 7C15 4.2 12.8 2 10 2Z" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke-width="1.5"/></svg></div>
+            <span class="row-label">Horsham, England, United Kingdom</span>
+            <span class="row-chevron">›</span>
+          </div>
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.5" stroke-width="1.5"/><path d="M3 18C3 14.7 6.1 12 10 12C13.9 12 17 14.7 17 18" stroke-width="1.5"/></svg></div>
+            <span class="row-label">Tag people</span>
+            <span class="row-chevron">›</span>
+          </div>
+        </div>
+
+        <div class="sp16"></div>
+
+        <div class="section-label">How did you see it?</div>
+        <div class="attr-grid">
+          <div class="attr" onclick="toggleAttr(this)"><span class="em">♂</span><span class="lb">Male</span></div>
+          <div class="attr" onclick="toggleAttr(this)"><span class="em">♀</span><span class="lb">Female</span></div>
+          <div class="attr" onclick="toggleAttr(this)"><span class="em">🎵</span><span class="lb">Singing</span></div>
+          <div class="attr" onclick="toggleAttr(this)"><span class="em">🕊️</span><span class="lb">In flight</span></div>
+          <div class="attr" onclick="toggleAttr(this)"><span class="em">💧</span><span class="lb">Bathing</span></div>
+        </div>
+
+        <div class="sp16"></div>
+
+        <div class="section-label">Sighting privacy</div>
+        <div class="group">
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><path d="M10 4C5 4 1.5 10 1.5 10C1.5 10 5 16 10 16C15 16 18.5 10 18.5 10C18.5 10 15 4 10 4Z" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke-width="1.5"/></svg></div>
+            <span class="row-label">Post Sharing</span>
+            <span class="row-value">Everyone</span>
+            <span class="row-chevron">›</span>
+          </div>
+          <div class="frow">
+            <div class="row-icon"><svg viewBox="0 0 20 20"><rect x="4" y="9" width="12" height="9" rx="2" stroke-width="1.5"/><path d="M7 9V6C7 4.3 8.3 3 10 3C11.7 3 13 4.3 13 6V9" stroke-width="1.5"/></svg></div>
+            <span class="row-label">Location Privacy</span>
+            <span class="row-value">Everyone</span>
+            <span class="row-chevron">›</span>
+          </div>
+        </div>
+
+        <button class="btn-save" onclick="goTo(18)">Save Sighting</button>
+        <button class="btn-del" onclick="goTo(16)">Delete Sighting</button>
+      </div>
+
+      <!-- "How a card works" bottom sheet (appears on arrival) -->
+      <div class="sheet-scrim" id="hcwScrim">
+        <div class="sheet">
+          <span class="handle"></span>
+          <button class="sclose" onclick="closeHcw()" aria-label="Close"><svg viewBox="0 0 14 14" fill="none"><line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/></svg></button>
+          <h2>One bird. Six ways to find it.</h2>
+          <p class="ssub">Want to add any more detail about the bird you saw? Each new kind of sighting fills a different slot on its card.</p>
+          <div class="hcw-card">
+            <div class="hcw-head">
+              <div class="left"><span class="hcw-name" data-species-name>Robin</span><span class="hcw-rarity">Common</span></div>
+              <span class="hcw-bronze">BRONZE</span>
+            </div>
+            <div class="hcw-row">
+              <div class="hcw-slot on"><span class="em">♂</span><span class="sl">✓ Male</span></div>
+              <div class="hcw-slot"><span class="em">🎵</span><span class="sl">Singing</span></div>
+              <div class="hcw-slot"><span class="em">🕊️</span><span class="sl">In flight</span></div>
+            </div>
+            <div class="hcw-row">
+              <div class="hcw-slot"><span class="em">♀</span><span class="sl">Female</span></div>
+              <div class="hcw-slot"><span class="em">📷</span><span class="sl">Photo</span></div>
+              <div class="hcw-slot"><span class="em">💧</span><span class="sl">Bathing</span></div>
+            </div>
+            <div class="hcw-cap">1 of 6 filled — Bronze</div>
+          </div>
+          <button class="hcw-got" onclick="closeHcw()">Got it</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Level-up celebration (Figma R2 S10 · Level up (Silver)) -->
+    <section class="screen levelup" data-screen="18">
+      <div class="statusbar"></div>
+      <div class="body">
+        <div class="lu-panel">
+          <span class="lu-sheen-clip"><span class="lu-sheen"></span></span>
+          <span class="lu-confetti">
+            <i style="left:14%;top:6%;--r:18deg;--dx:-20px;--dy:-12px;background:#1F87FE;animation-delay:.02s"></i>
+            <i style="left:32%;top:2%;--r:-14deg;--dx:-10px;--dy:-20px;background:#E8B84B;animation-delay:.10s"></i>
+            <i style="left:50%;top:0%;--r:24deg;--dx:0;--dy:-24px;background:#7265E3;animation-delay:.06s"></i>
+            <i style="left:68%;top:2%;--r:-20deg;--dx:12px;--dy:-20px;background:#00C9A7;animation-delay:.12s"></i>
+            <i style="left:86%;top:6%;--r:16deg;--dx:22px;--dy:-12px;background:#FF6B4A;animation-delay:.04s"></i>
+            <i style="left:24%;top:14%;--r:-10deg;--dx:-18px;--dy:6px;background:#F6D173;animation-delay:.16s"></i>
+            <i style="left:76%;top:14%;--r:12deg;--dx:18px;--dy:6px;background:#1F87FE;animation-delay:.14s"></i>
+          </span>
+          <div class="lu-pill">⬆ SILVER UNLOCKED</div>
+          <h1 class="lu-title"><span data-species-name>Robin</span><span class="lu-tier"> — Silver tier</span></h1>
+          <div class="lu-card">
+            <div class="lu-photo"><img class="lu-img" src="../../resources/bird-photos/European_Robin.webp" alt=""></div>
+            <div class="lu-cardbody">
+              <div class="lu-namerow"><span class="lu-name" data-species-name>Robin</span><span class="lu-badge">BRONZE</span></div>
+              <div class="lu-dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+              <div class="lu-slots">
+                <div class="lu-slot fill" data-step="0"><span class="em">♂</span><span class="sl"><span class="ck">✓ </span>Male</span></div>
+                <div class="lu-slot" data-step="1"><span class="em">🎵</span><span class="sl"><span class="ck">✓ </span>Singing</span></div>
+                <div class="lu-slot" data-step="2"><span class="em">🕊️</span><span class="sl"><span class="ck">✓ </span>In flight</span></div>
+                <div class="lu-slot" data-step="3"><span class="em">📷</span><span class="sl"><span class="ck">✓ </span>Photo</span></div>
+                <div class="lu-slot"><span class="em">♀</span><span class="sl">Female</span></div>
+                <div class="lu-slot"><span class="em">💧</span><span class="sl">Bathing</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="lu-cap"><span class="lu-count">1</span> of 6 filled.<span class="lu-goldnote"> Two more for Gold.</span></div>
+        </div>
+        <p class="lu-sub">Keep logging the birds you see — you'll fill the rest sooner than you think.</p>
+        <button class="lu-btn" onclick="goTo(15)">Keep birding</button>
+        <a class="lu-back" onclick="goTo(19)">See my collection</a>
+      </div>
+    </section>
+
+    <!-- Profile · Collections tab -->
+    <section class="screen profile" data-screen="19">
+      <div class="body">
+        <div class="pf-header"><img src="images/profile-header.png" alt="Ellen Covey — profile"></div>
+        <div class="pf-tabs">
+          <div class="pf-tab">Summary</div>
+          <div class="pf-tab on">Collections</div>
+          <div class="pf-tab">Life Lists</div>
+          <div class="pf-tab">Posts</div>
+          <div class="pf-tab">Photos</div>
+          <div class="pf-tab">Challenges</div>
+        </div>
+        <div class="pf-content">
+          <div class="egg-banner">
+            <div class="egg-big">
+              <svg class="crack" viewBox="0 0 44 56" fill="none" stroke="#6E4A16" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+                <polyline points="5,25 13,19 18,27 24,20 30,27 36,19 40,25"/>
+              </svg>
+            </div>
+            <div class="egg-line">Your golden egg is hatching in <b id="eggTimer">21:00:00</b></div>
+          </div>
+          <div class="sgrid" id="collGrid"></div>
+        </div>
+      </div>
+      <div class="appnav">
+        <div class="navt" onclick="goTo(15)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="15.5,8.5 10.5,10.5 8.5,15.5 13.5,13.5" fill="currentColor" stroke="none"/></svg>Explore</div>
+        <div class="navt"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.7-5 5.5-5s5.5 2 5.5 5"/><circle cx="17.5" cy="7.5" r="2.2"/><path d="M16.5 13.5c2.4 0 4 1.7 4 4"/></svg>Community</div>
+        <div class="navt plus" onclick="goTo(16)" aria-label="Log a bird"><span class="fab"><svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg></span></div>
+        <div class="navt"><svg viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5v1A3.5 3.5 0 0 0 8 10.5M17 6h2.5v1A3.5 3.5 0 0 1 16 10.5"/><path d="M12 13v3M8.5 19h7M9.6 19l.4-3M14.4 19l-.4-3"/></svg>Challenges</div>
+        <div class="navt on"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 20c0-3.6 3-6 6.5-6s6.5 2.4 6.5 6"/></svg>Profile</div>
+      </div>
+    </section>
+
+    <!-- Garden Birds set detail (silhouette grid) — reached from the map row or profile, NOT part of onboarding -->
+    <section class="screen p7" data-screen="20">
+      <div class="statusbar"></div>
+      <div class="sp-nav">
+        <button class="back" onclick="goBackFromAlbum()"><svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg></button>
+        <div class="title">Garden Birds</div>
+      </div>
+      <div class="body">
+        <p class="p7sub">Complete the set by finding all six birds, and keep logging ones you've seen before to level them up.</p>
+        <div class="setbar"><div class="lbl">Garden Birds — 1 of 6</div><div class="track"><i></i><span class="egg"></span></div></div>
+        <div class="grid" id="albumGrid"></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<aside class="ctx-panel" id="ctxPanel">
+  <div class="ctx-route">Route 2 · Collections (v2)</div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-thesis" id="ctxThesis">
+    <b>Goal —</b> Encourage users to log the same birds multiple times by observing different traits or behaviours, and completing specific sets.<br><br>
+    <b>Hypothesis —</b> We believe that completing collections and levelling cards will make re-logging common birds rewarding.<br><br>
+    <b>Measure —</b> Early predictor: activation. Hypothesis validation: D1–D7 engagement.
+  </div>
+  <div class="ctx-stage" id="ctxStage"></div>
+  <div id="ctxMechBlock">
+    <div class="ctx-label">Mechanics in play</div>
+    <div class="ctx-mechs" id="ctxMechs"></div>
+  </div>
+  <div id="ctxWhyBlock">
+    <div class="ctx-label">Why it works</div>
+    <div class="ctx-why" id="ctxWhy"></div>
+  </div>
+</aside>
+
+<script>
+  /* ─── status bar injection ─── */
+  const sbSVG = '<svg width="78" height="14" viewBox="0 0 82 16" fill="black"><path d="M3.7 9H2.5a1 1 0 0 0-1 1v2.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1m5.2-2.5H7.7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1M14.1 4h-1.2a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1m5.2-2.5h-1.2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1"/><path d="M70.5 1c2.05 0 3.08 0 3.88.34a4.3 4.3 0 0 1 2.28 2.28c.34.8.34 1.83.34 3.88s0 3.08-.34 3.88a4.3 4.3 0 0 1-2.28 2.28c-.8.34-1.83.34-3.88.34h-12c-2.05 0-3.08 0-3.88-.34a4.3 4.3 0 0 1-2.28-2.28C52 10.58 52 9.55 52 7.5s0-3.08.34-3.88a4.3 4.3 0 0 1 2.28-2.28C55.42 1 56.45 1 58.5 1z" opacity=".35"/><path d="M54 7c0-1.4 0-2.1.27-2.63a2.5 2.5 0 0 1 1.1-1.1C55.9 3 56.6 3 58 3h13c1.4 0 2.1 0 2.64.27q.72.37 1.09 1.1C75 4.9 75 5.6 75 7v1c0 1.4 0 2.1-.27 2.64a2.5 2.5 0 0 1-1.1 1.09C73.1 12 72.4 12 71 12H58c-1.4 0-2.1 0-2.63-.27a2.5 2.5 0 0 1-1.1-1.1C54 10.1 54 9.4 54 8z"/><circle cx="42" cy="7" r="0" /></svg>';
+  document.querySelectorAll('.statusbar').forEach(sb => {
+    sb.innerHTML = '<span class="time">9:41</span>' + sbSVG;
+  });
+
+  /* ─── navigation ─── */
+  const screens = [...document.querySelectorAll('.screen')];
+  let cur = 1;
+  function show(n) {
+    cur = Math.max(1, Math.min(screens.length, n));
+    screens.forEach(s => s.classList.toggle('active', +s.dataset.screen === cur));
+    const active = screens.find(s => +s.dataset.screen === cur);
+    const body = active.querySelector('.body'); if (body) body.scrollTop = 0;
+    // "How a card works" sheet appears on arrival at the review screen
+    const scrim = document.getElementById('hcwScrim');
+    if (scrim) {
+      scrim.classList.remove('open');
+      if (cur === 17) setTimeout(() => scrim.classList.add('open'), 280);
+    }
+    if (cur === 18) setTimeout(runLevelUp, 220);
+    if (cur === 2) setTimeout(() => { if (cur === 2) next(); }, 2000);  // "creating your account" auto-advances
+    if (cur === 14) fillFirstCard();               // populate the new card with the chosen bird
+    if (cur === 15) fillSpottedCard();             // sync the "already spotted" card + thumb to the chosen bird
+    renderCtx(cur);                                // update the walkthrough panel
+  }
+  /* ─── new card screen: show the bird chosen on "Start your collection" ─── */
+  const BIRD_INFO = {
+    'dunnock':       { name:'Dunnock',      photo:'../../resources/bird-photos/Dunnock.webp' },
+    'robin':         { name:'Robin',        photo:'../../resources/bird-photos/European_Robin.webp' },
+    'house-sparrow': { name:'House Sparrow', photo:'../../resources/bird-photos/House_Sparrow_-_Male.webp' },
+    'blackbird':     { name:'Blackbird',    photo:'../../resources/bird-photos/Common_Blackbird_-_Male.webp' },
+  };
+  let chosenBird = 'dunnock';
+  function fillFirstCard() {
+    const b = BIRD_INFO[chosenBird] || BIRD_INFO['dunnock'];
+    const img = document.querySelector('.fc-img'); if (img) img.src = b.photo;
+    document.querySelectorAll('.fc-name').forEach(el => el.textContent = b.name);
+    // replay the bronze sheen + first-dot pop each time the screen appears
+    const panel = document.querySelector('.firstcard .lu-panel');
+    const dot = document.querySelector('.firstcard .lu-dots i');
+    if (panel) {
+      panel.classList.remove('shine');
+      if (dot) dot.classList.remove('on', 'pop');
+      void panel.offsetWidth;                      // force reflow to restart the animations
+      panel.classList.add('shine');
+      if (dot) setTimeout(() => dot.classList.add('on', 'pop'), 360);
+    }
+  }
+  // home screen: the "already spotted" card + collection thumb reflect the chosen bird
+  function fillSpottedCard() {
+    const b = BIRD_INFO[chosenBird] || BIRD_INFO['dunnock'];
+    document.querySelectorAll('.spot-img').forEach(el => el.src = b.photo);
+    document.querySelectorAll('.spot-name').forEach(el => el.textContent = b.name);
+  }
+  function logSpotted() { selectSpecies((BIRD_INFO[chosenBird] || BIRD_INFO['dunnock']).name); }
+  /* Garden Birds set detail — opened from the map row or profile, returns to wherever it was opened from */
+  let albumReturn = 15;
+  function openGardenBirds() { albumReturn = cur; goTo(20); }
+  function goBackFromAlbum() { goTo(albumReturn); }
+  function closeHcw() { const s = document.getElementById('hcwScrim'); if (s) s.classList.remove('open'); }
+
+  /* ─── Walkthrough panel: stage + game mechanics in play, mapped from the Discovery board's
+       "Aligning on routes to explore" — Route 2 row. CORE = forms the loop (Collection sets +
+       Tiered badges); everything else is a supporting layer. Quick win is pulled from the wider
+       "Mapping game mechanics" grid where it fits the first-session collect moment. ─── */
+  const STAGES = {
+    1:  { stage:'Welcome' },                          // generic onboarding — thesis + title only
+    2:  { stage:'Creating your account' },            // current onboarding (image) — title only
+    3:  { stage:'How did you hear about Birda?' },     // current onboarding (image) — title only
+    4:  { stage:'Your birding journey' },             // current onboarding (live) — title only
+    5:  { stage:'What do you want from Birda?' },      // current onboarding (image) — title only
+    6:  { stage:'Bird identification' },               // current onboarding (image) — title only
+    7:  { stage:'Wellbeing' },                         // current onboarding (image) — title only
+    8:  { stage:'Discover nearby birds' },             // current onboarding (live) — title only
+    9:  { stage:'Free trial — 7 days free' },          // current onboarding (image) — title only
+    10: { stage:'Trial reminder' },                    // current onboarding (image) — title only
+    11: { stage:'Birda+ paywall' },                    // current onboarding (image) — title only
+    12: { stage:'Welcome to Birda+' },                 // current onboarding (image) — title only
+    13: { stage:'Start your collection', mechs:[['Endowed progress',false],['Quick win',false]], why:'Adding the last bird you saw turns it into a card on the spot — you begin the set part-filled, never staring at zero.' },
+    14: { stage:'Your first card', mechs:[['Quick win',false],['Collection sets',true],['Tiered badges',true]], why:'The reward for adding a bird: a real, collectible card that lands at bronze tier with a celebratory shine. The six dots show how far there is to level it up, and the prompt to log this same species again next time turns one common bird into a reason to come back — exactly the re-logging that today’s life-list wall blocks.' },
+    15: { stage:'Home', slice:true, mechs:[['Collection sets',true],['Progress meters',false],['Near-miss nudges',false]], why:'The entry point to the core loop: what’s collectable near you right now, with your closest-to-complete sets surfaced so you always know which one you’re nearest to finishing.' },
+    16: { stage:'Log a bird' },                         // unchanged from today's experience — title only
+    17: { stage:'Review — one bird, six ways', mechs:[['Tiered badges',true],['Surprise rewards',false],['Collection sets',true]], why:'Tagging how you saw it (male, singing, in flight…) fills a different slot on the card. The surprise is real-world — the thrill of catching a bird doing something new, or a form you haven’t seen, finally fills a slot you were missing.' },
+    18: { stage:'Card levelled up', mechs:[['Tiered badges',true],['Progress meters',false]], why:'Filled slots tier the card bronze → silver → gold — visible progression that rewards logging the same species over and over. The cards are designed to feel realistic, tangible and collectible, like Pokémon cards.' },
+    19: { stage:'Your collection', mechs:[['Collection sets',true],['Tiered badges',true],['Profile customisation',false],['Surprise rewards',false]], why:'Completed sets and gold cards live on your profile — a showcase shelf that gives long-term players something to display and keep chasing. Completing a set hatches a golden egg: a surprise reward that pays off the grind.' },
+    20: { stage:'Garden Birds set', mechs:[['Collection sets',true],['Progress meters',false],['Near-miss nudges',false],['Surprise rewards',false]], why:'Opening a set shows the cards collected and the silhouettes still to find. The empty slots are the pull — each reveals its target as you get closer, and finishing the set hatches the golden egg.' },
+  };
+  function renderCtx(n) {
+    const s = STAGES[n]; if (!s) return;
+    document.getElementById('ctxThesis').style.display = (n === 1) ? '' : 'none';
+    document.getElementById('ctxStage').style.display = (n === 1) ? 'none' : '';
+    document.getElementById('ctxStage').textContent = s.stage;
+    const mb = document.getElementById('ctxMechBlock');
+    if (s.mechs && s.mechs.length) {
+      mb.style.display = '';
+      document.getElementById('ctxMechs').innerHTML = s.mechs.map(m => '<span class="ctx-mech ' + (m[1] ? 'core' : 'sup') + '">' + (m[1] ? '<span class="tag">CORE</span>' : '') + m[0] + '</span>').join('');
+    } else { mb.style.display = 'none'; }
+    const wb = document.getElementById('ctxWhyBlock');
+    if (s.why) { wb.style.display = ''; document.getElementById('ctxWhy').textContent = s.why; }
+    else { wb.style.display = 'none'; }
+  }
+  /* review page: toggle sighting attributes (male/female/singing/in flight/bathing) */
+  function toggleAttr(el) { el.classList.toggle('sel'); }
+  function next() { show(cur === screens.length ? 1 : cur + 1); }
+  function goTo(n) { show(n); }
+  /* species pick → review sighting (screen 9) */
+  const birdPhotos = {
+    'Woodpigeon': '../../resources/bird-photos/Common_Wood_Pigeon_2.webp',
+    'Carrion Crow': '../../resources/bird-photos/Carrion_Crow.webp',
+    'Robin': '../../resources/bird-photos/European_Robin.webp',
+    'Magpie': '../../resources/bird-photos/Eurasian_Magpie.webp',
+    'Blackbird': '../../resources/bird-photos/Common_Blackbird_-_Male.webp',
+    'Dunnock': '../../resources/bird-photos/Dunnock.webp',
+    'House Sparrow': '../../resources/bird-photos/House_Sparrow_-_Male.webp',
+  };
+  function selectSpecies(name) {
+    document.querySelectorAll('[data-species-name]').forEach(el => el.textContent = name);
+    const img = document.querySelector('.levelup .lu-img');
+    if (img && birdPhotos[name]) img.src = birdPhotos[name];
+    goTo(17);
+  }
+  /* level-up celebration: fill the card's slots, then level up to Silver */
+  function runLevelUp() {
+    const p = document.querySelector('.levelup .lu-panel');
+    if (!p) return;
+    p.classList.remove('silver');
+    p.querySelectorAll('.lu-slot[data-step]').forEach(s => {
+      s.classList.toggle('fill', +s.dataset.step === 0);
+      s.classList.remove('pop');
+    });
+    p.querySelector('.lu-badge').textContent = 'BRONZE';
+    p.querySelector('.lu-tier').classList.remove('show');
+    p.querySelector('.lu-pill').classList.remove('show');
+    p.querySelector('.lu-goldnote').classList.remove('show');
+    const countEl = p.querySelector('.lu-count');
+    countEl.textContent = '1';
+    const dots = p.querySelectorAll('.lu-dots i');
+    dots.forEach((d, i) => d.classList.toggle('on', i === 0));
+    let n = 1;
+    [1, 2, 3].forEach((step, i) => setTimeout(() => {
+      const slot = p.querySelector('.lu-slot[data-step="' + step + '"]');
+      slot.classList.add('fill', 'pop');
+      if (dots[step]) dots[step].classList.add('on');
+      countEl.textContent = ++n;
+      if (step === 3) setTimeout(() => {
+        p.classList.add('silver');
+        p.querySelector('.lu-badge').textContent = 'SILVER';
+        p.querySelector('.lu-tier').classList.add('show');
+        p.querySelector('.lu-pill').classList.add('show');
+        countEl.textContent = '4';
+        p.querySelector('.lu-goldnote').classList.add('show');
+      }, 320);
+    }, 480 + i * 520));
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') next();
+    else if (e.key === 'ArrowLeft') show(cur === 1 ? screens.length : cur - 1);
+  });
+
+  /* ─── P3 journey single-select ─── */
+  function selJourney(el) {
+    document.querySelectorAll('#journeyOpts .opt').forEach(o => o.classList.remove('sel'));
+    el.classList.add('sel');
+    document.getElementById('journeyBtn').textContent = 'Continue';
+  }
+  /* ─── P5 bird single-select + hero deck ─── */
+  function selBird(el) {
+    document.querySelectorAll('#picker .row').forEach(r => {
+      r.classList.remove('sel');
+      r.querySelector('.check').innerHTML = '';
+      r.querySelector('.sex').textContent = '⚥';
+    });
+    el.classList.add('sel');
+    el.querySelector('.check').innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    el.querySelector('.sex').textContent = '♂ ♀';
+    chosenBird = el.dataset.bird;
+    layoutDeck(el.dataset.bird);
+  }
+  // Hero deck — animate the selected bird's card to the front
+  const deckCards = {};
+  document.querySelectorAll('#deck .dcard').forEach(c => { deckCards[c.dataset.bird] = c; });
+  const deckOrder = ['dunnock', 'robin', 'house-sparrow', 'blackbird'];
+  const backPos = [ { x:16, y:14, r:6, s:0.96, z:30 }, { x:-14, y:22, r:-9, s:0.93, z:20 }, { x:7, y:30, r:4, s:0.90, z:10 } ];
+  const frontPos = { x:0, y:0, r:-3, s:1, z:40 };
+  function layoutDeck(selKey) {
+    let bi = 0;
+    deckOrder.forEach(key => {
+      const c = deckCards[key]; if (!c) return;
+      const p = (key === selKey) ? frontPos : backPos[bi++];
+      c.style.transform = 'translate(' + p.x + 'px,' + p.y + 'px) rotate(' + p.r + 'deg) scale(' + p.s + ')';
+      c.style.zIndex = p.z;
+      c.classList.toggle('front', key === selKey);
+    });
+  }
+  layoutDeck('dunnock');
+
+  /* ─── Profile · Collections grid (sets, not individual birds) ─── */
+  /* ─── Garden Birds set detail grid (1 filled + 5 silhouette slots) ─── */
+  const albumGrid = document.getElementById('albumGrid');
+  if (albumGrid) {
+    const filled =
+      '<div class="gcard filled"><img class="gsticker" src="images/bird-sticker.png"><div class="gtop"></div>' +
+      '<div class="ginfo"><div class="nm">Dunnock <span class="tier">BRONZE</span></div>' +
+      '<div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div><div class="frac">1 / 6</div></div></div>';
+    const slots = [
+      { s:'silhouette-1.png', t:'Blackbird' },
+      { s:'silhouette-2.png', t:'Log 1 more bird to reveal your next target' },
+      { s:'silhouette-3.png', t:'Log 3 more birds to reveal your next target' },
+      { s:'silhouette-4.png', t:'Log 10 more birds to reveal your next target' },
+      { s:'silhouette-5.png', t:'Log 20 more birds to reveal your next target' },
+    ];
+    albumGrid.innerHTML = filled + slots.map(o =>
+      '<div class="gcard empty"><img class="sil" src="images/silhouettes/' + o.s + '"><div class="et">' + o.t + '</div></div>'
+    ).join('');
+  }
+
+  const collSets = [
+    { name:'Coastal visitors', done:true, total:5 },
+    { name:'Garden Birds', started:true, total:6, got:3, photos:['European_Robin','Common_Blackbird_-_Male','Dunnock'] },
+    { name:'Winter Waders', started:false, total:8 },
+    { name:'Woodland Birds', started:false, total:10 },
+    { name:'Birds of Prey', started:false, total:6 },
+    { name:'Finches & Buntings', started:false, total:9 },
+  ];
+  const collGrid = document.getElementById('collGrid');
+  if (collGrid) collGrid.innerHTML = collSets.map((s, si) => {
+    if (s.done) {
+      const dots = Array.from({length:s.total}, () => '<i class="on"></i>').join('');
+      return '<div class="scard done"><div class="scover badge"><div class="seal">' +
+        '<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+        '</div></div><div class="sinfo"><div class="snm">' + s.name + '</div><div class="sdots">' + dots + '</div>' +
+        '<div class="sfrac done">✓ Complete · ' + s.total + ' of ' + s.total + '</div></div></div>';
+    }
+    if (s.started) {
+      const tiles = s.photos.map(p => '<div class="tile"><img src="../../resources/bird-photos/' + p + '.webp" alt=""></div>').join('')
+        + '<div class="tile more">+' + (s.total - s.got) + '</div>';
+      const dots = Array.from({length:s.total}, (_, i) => '<i class="' + (i < s.got ? 'on' : '') + '"></i>').join('');
+      return '<div class="scard started" style="cursor:pointer" onclick="openGardenBirds()"><div class="scover">' + tiles + '</div>' +
+        '<div class="sinfo"><div class="snm">' + s.name + '</div><div class="sdots">' + dots + '</div>' +
+        '<div class="sfrac">' + s.got + ' of ' + s.total + ' collected</div></div></div>';
+    }
+    const sils = [1,2,3,4].map(n => { const idx = ((si + n) % 5) + 1; return '<div class="tile"><img src="images/silhouettes/silhouette-' + idx + '.png" alt=""></div>'; }).join('');
+    return '<div class="scard locked"><div class="scover">' + sils + '</div>' +
+      '<div class="sinfo"><div class="snm">' + s.name + '</div>' +
+      '<div class="sfrac locked">Not started · 0 of ' + s.total + '</div></div></div>';
+  }).join('');
+
+  /* golden-egg hatch countdown (from 21 hours) */
+  const eggEl = document.getElementById('eggTimer');
+  if (eggEl) {
+    let eggSecs = 21 * 3600;
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = s => pad(Math.floor(s / 3600)) + ':' + pad(Math.floor((s % 3600) / 60)) + ':' + pad(s % 60);
+    eggEl.textContent = fmt(eggSecs);
+    setInterval(() => { if (eggSecs > 0) { eggSecs--; eggEl.textContent = fmt(eggSecs); } }, 1000);
+  }
+
+  const startN = parseInt((location.hash || '').replace('#','')) || 1;
+  show(startN);
+
+  /* ─── scale the phone to always fit the viewport (proportionally) ─── */
+  const shell = document.querySelector('.shell');
+  function fitShell() {
+    shell.style.transform = 'none';
+    const W = shell.offsetWidth, H = shell.offsetHeight, margin = 24;
+    const s = Math.min(1, (window.innerHeight - margin) / H, (window.innerWidth - margin) / W);
+    shell.style.transform = 'scale(' + s + ')';
+  }
+  window.addEventListener('resize', fitShell);
+  fitShell();
+</script>
+</body>
+</html>
