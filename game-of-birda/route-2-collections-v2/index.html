@@ -156,7 +156,7 @@
   .setbar .track i { display:block; height:100%; width:16.6%; background:var(--blue); border-radius:99px; }
   .egg { position:absolute; right:-3px; top:50%; transform:translateY(-50%); width:19px; height:24px; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%; background:linear-gradient(155deg,#F6D173 0%,#DCA62E 48%,#B07C18 100%); box-shadow:0 1px 4px rgba(150,100,20,.5), inset 1px 1px 2px rgba(255,255,255,.55); }
   .grid { display:flex; flex-wrap:wrap; gap:11px; margin-top:18px; }
-  .gcard { width:calc(50% - 5.5px); height:188px; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+  .gcard { width:calc(50% - 5.5px); height:212px; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
   .gcard.filled { position:relative; overflow:visible; border:2px solid transparent; border-radius:14px;
     background:linear-gradient(#fff,#fff) padding-box, linear-gradient(135deg,#D9A066 12%,#F9D9B8 28%,#D9A066 47%,#735536 73%,#C69A6E 100%) border-box; }
   .gcard.filled .gsticker { position:absolute; top:-18px; left:50%; transform:translateX(-50%); width:172px; height:auto; z-index:2; filter:drop-shadow(0 7px 11px rgba(45,49,66,.20)); pointer-events:none; }
@@ -168,9 +168,14 @@
   .dots i { width:9px; height:9px; border-radius:50%; background:#E2E6EE; }
   .dots i.on { background:var(--bronze); }
   .gcard .ginfo .frac { font-size:12px; color:var(--muted); margin-top:6px; }
-  .gcard.empty { background:#FAFCFF; border:1.5px dashed #D7E4F9; box-shadow:inset 0 3px 6px rgba(48,51,55,.10); align-items:center; justify-content:flex-start; gap:8px; padding:26px 12px 0; text-align:center; }
-  .gcard.empty .sil { width:134px; height:auto; display:block; }
-  .gcard.empty .et { font-size:11px; font-weight:500; color:#A7B7D2; line-height:1.35; }
+  .gcard.empty { background:#FAFCFF; border:1.5px dashed #D7E4F9; box-shadow:inset 0 3px 6px rgba(48,51,55,.10); align-items:center; justify-content:flex-start; gap:7px; padding:20px 12px 14px; text-align:center; }
+  .gcard.empty .sil { width:120px; height:auto; display:block; }
+  .gcard.empty .et { font-size:13px; font-weight:600; color:#6B7890; line-height:1.3; }
+  /* small per-bird log button */
+  .gcard .glog { display:flex; align-items:center; justify-content:center; gap:5px; width:100%; padding:6px 0; border:1.5px solid var(--blue); color:var(--blue); background:#fff; font-size:12px; font-weight:600; border-radius:8px; cursor:pointer; }
+  .gcard .glog:active { background:var(--blue-5); }
+  .gcard.empty .glog { margin-top:auto; }
+  .gcard.filled .glog { margin-top:9px; }
   .tabbar { flex-shrink:0; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-around; padding:8px 0 22px; }
   .tab { display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; color:#B6BBC6; }
   .tab.on { color:var(--blue); }
@@ -1012,25 +1017,25 @@
        "Mapping game mechanics" grid where it fits the first-session collect moment. ─── */
   const STAGES = {
     1:  { stage:'Welcome' },                          // generic onboarding — thesis + title only
-    2:  { stage:'Creating your account' },            // current onboarding (image) — title only
-    3:  { stage:'How did you hear about Birda?' },     // current onboarding (image) — title only
-    4:  { stage:'Your birding journey' },             // current onboarding (live) — title only
-    5:  { stage:'What do you want from Birda?' },      // current onboarding (image) — title only
-    6:  { stage:'Bird identification' },               // current onboarding (image) — title only
-    7:  { stage:'Wellbeing' },                         // current onboarding (image) — title only
-    8:  { stage:'Discover nearby birds' },             // current onboarding (live) — title only
-    9:  { stage:'Free trial — 7 days free' },          // current onboarding (image) — title only
-    10: { stage:'Trial reminder' },                    // current onboarding (image) — title only
-    11: { stage:'Birda+ paywall' },                    // current onboarding (image) — title only
-    12: { stage:'Welcome to Birda+' },                 // current onboarding (image) — title only
-    13: { stage:'Start your collection', mechs:[['Endowed progress',false],['Quick win',false]], why:'Adding the last bird you saw turns it into a card on the spot — you begin the set part-filled, never staring at zero.' },
-    14: { stage:'Your first card', mechs:[['Quick win',false],['Collection sets',true],['Tiered badges',true]], why:'The reward for adding a bird: a real, collectible card that lands at bronze tier with a celebratory shine. The six dots show how far there is to level it up, and the prompt to log this same species again next time turns one common bird into a reason to come back — exactly the re-logging that today’s life-list wall blocks.' },
-    15: { stage:'Home', slice:true, mechs:[['Collection sets',true],['Progress meters',false],['Near-miss nudges',false]], why:'The entry point to the core loop: what’s collectable near you right now, with your closest-to-complete sets surfaced so you always know which one you’re nearest to finishing.' },
+    2:  { stage:'Existing onboarding' },               // current onboarding (image) — title only
+    3:  { stage:'Existing onboarding' },               // current onboarding (image) — title only
+    4:  { stage:'Existing onboarding' },               // current onboarding (live) — title only
+    5:  { stage:'Existing onboarding' },               // current onboarding (image) — title only
+    6:  { stage:'Existing onboarding' },               // current onboarding (image) — title only
+    7:  { stage:'Existing onboarding' },               // current onboarding (image) — title only
+    8:  { stage:'Existing onboarding' },               // current onboarding (live) — title only
+    9:  { stage:'Existing onboarding' },               // current onboarding (image) — title only
+    10: { stage:'Existing onboarding' },               // current onboarding (image) — title only
+    11: { stage:'Existing onboarding' },               // current onboarding (image) — title only
+    12: { stage:'Existing onboarding' },               // current onboarding (image) — title only
+    13: { stage:'Game onboarding', mechs:[['Endowed progress',false],['Quick win',false]], why:'Adding the last bird you saw turns it into a card on the spot — you begin the set part-filled, never staring at zero.' },
+    14: { stage:'Introduction to cards and levels', mechs:[['Quick win',false],['Collection sets',true],['Tiered badges',true]], why:'The reward for adding a bird: a real, collectible card that lands at bronze tier with a celebratory shine. The six dots show how far there is to level it up, and the prompt to log this same species again next time turns one common bird into a reason to come back — exactly the re-logging that today’s life-list wall blocks.' },
+    15: { stage:'Next action', slice:true, mechs:[['Collection sets',true],['Progress meters',false],['Near-miss nudges',false]], why:'The entry point to the core loop: what’s collectable near you right now, with your closest-to-complete sets surfaced so you always know which one you’re nearest to finishing.' },
     16: { stage:'Log a bird' },                         // unchanged from today's experience — title only
     17: { stage:'Review — one bird, six ways', mechs:[['Tiered badges',true],['Surprise rewards',false],['Collection sets',true]], why:'Tagging how you saw it (male, singing, in flight…) fills a different slot on the card. The surprise is real-world — the thrill of catching a bird doing something new, or a form you haven’t seen, finally fills a slot you were missing.' },
     18: { stage:'Card levelled up', mechs:[['Tiered badges',true],['Progress meters',false]], why:'Filled slots tier the card bronze → silver → gold — visible progression that rewards logging the same species over and over. The cards are designed to feel realistic, tangible and collectible, like Pokémon cards.' },
     19: { stage:'Your collection', mechs:[['Collection sets',true],['Tiered badges',true],['Profile customisation',false],['Surprise rewards',false]], why:'Completed sets and gold cards live on your profile — a showcase shelf that gives long-term players something to display and keep chasing. Completing a set hatches a golden egg: a surprise reward that pays off the grind.' },
-    20: { stage:'Garden Birds set', mechs:[['Collection sets',true],['Progress meters',false],['Near-miss nudges',false],['Surprise rewards',false]], why:'Opening a set shows the cards collected and the silhouettes still to find. The empty slots are the pull — each reveals its target as you get closer, and finishing the set hatches the golden egg.' },
+    20: { stage:'Garden Birds set', mechs:[['Collection sets',true],['Progress meters',false],['Surprise rewards',false]], why:'Logged birds are shown in their levelled card, and unlogged ones are silhouettes, creating a sense that there is an action to take. Birds can be logged straight from the set, removing as much friction as possible. Finishing the set grants a golden egg, which can be used for surprise rewards.' },
   };
   function renderCtx(n) {
     const s = STAGES[n]; if (!s) return;
@@ -1059,6 +1064,8 @@
     'Blackbird': '../../resources/bird-photos/Common_Blackbird_-_Male.webp',
     'Dunnock': '../../resources/bird-photos/Dunnock.webp',
     'House Sparrow': '../../resources/bird-photos/House_Sparrow_-_Male.webp',
+    'Blue Tit': '../../resources/bird-photos/Eurasian_Blue_Tit.webp',
+    'Great Tit': '../../resources/bird-photos/Great_Tit_-_Male.webp',
   };
   function selectSpecies(name) {
     document.querySelectorAll('[data-species-name]').forEach(el => el.textContent = name);
@@ -1148,16 +1155,18 @@
     const filled =
       '<div class="gcard filled"><img class="gsticker" src="images/bird-sticker.png"><div class="gtop"></div>' +
       '<div class="ginfo"><div class="nm">Dunnock <span class="tier">BRONZE</span></div>' +
-      '<div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div><div class="frac">1 / 6</div></div></div>';
+      '<div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div><div class="frac">1 / 6</div>' +
+      '<button class="glog" onclick="selectSpecies(\'Dunnock\')">Log</button></div></div>';
     const slots = [
       { s:'silhouette-1.png', t:'Blackbird' },
-      { s:'silhouette-2.png', t:'Log 1 more bird to reveal your next target' },
-      { s:'silhouette-3.png', t:'Log 3 more birds to reveal your next target' },
-      { s:'silhouette-4.png', t:'Log 10 more birds to reveal your next target' },
-      { s:'silhouette-5.png', t:'Log 20 more birds to reveal your next target' },
+      { s:'silhouette-2.png', t:'Robin' },
+      { s:'silhouette-3.png', t:'House Sparrow' },
+      { s:'silhouette-4.png', t:'Blue Tit' },
+      { s:'silhouette-5.png', t:'Great Tit' },
     ];
     albumGrid.innerHTML = filled + slots.map(o =>
-      '<div class="gcard empty"><img class="sil" src="images/silhouettes/' + o.s + '"><div class="et">' + o.t + '</div></div>'
+      '<div class="gcard empty"><img class="sil" src="images/silhouettes/' + o.s + '"><div class="et">' + o.t + '</div>' +
+      '<button class="glog" onclick="selectSpecies(\'' + o.t + '\')">Log</button></div>'
     ).join('');
   }
 
