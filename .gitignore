@@ -9,3 +9,7 @@ PEX-43/*/imgs/06-review-sighting-reset.png
 PEX-43/*/imgs/select-badge.png
 # Original oversized bird thumbnail (replaced by bird-thumb-small.jpg)
 PEX-43/*/imgs/bird-thumb.jpg
+
+# Archived route prototypes — kept locally, deliberately not tracked.
+# Their last tracked version is in history at 60c47b2 if they're ever needed.
+game-of-birda/_archive/

@@ -2,18 +2,22 @@
 
 Interactive prototypes for the three explored routes. One folder per route so they stay independent.
 
-**The route prototypes are archived.** They live in `_archive/` — kept in full working order (open any `index.html` and the flow still runs), but no longer listed on the prototypes index. `animation-demos/` is the live work.
+**The route prototypes are archived and kept locally only.** They sit in `game-of-birda/_archive/`, which is **gitignored** — so it's on Ellen's machine, not in this repo. They're still in full working order (open any `index.html` and the flow runs), just no longer tracked or listed on the prototypes index. Their last tracked version is in git history at commit `60c47b2`, so they can be recovered with `git checkout 60c47b2 -- game-of-birda/route-1-quests` (and the other route folders) if needed.
+
+`animation-demos/` is the live, tracked work. The route write-ups below are kept as a record of the explorations.
 
 ```
 birda-prototypes/
-├─ _resources/bird-photos/       ← SHARED bird photos (proper cutouts) — used by all routes
+├─ _resources/
+│  ├─ template.html              ← copy this to start a new prototype
+│  └─ bird-photos/               ← SHARED bird photos (proper cutouts)
 └─ game-of-birda/
-   ├─ animation-demos/           ← standalone animation studies (current)
+   ├─ animation-demos/           ← standalone animation studies (current, tracked)
    │  ├─ toast-demo.html
    │  ├─ level-up-demo.html
    │  ├─ upgrade-demo.html
    │  └─ goal-complete-demo.html
-   └─ _archive/                  ← the explored routes, parked
+   └─ _archive/                  ← the explored routes, parked — LOCAL ONLY, gitignored
       ├─ route-2-collections/    ← collections & sets
       │  ├─ index.html           ← open in a browser
       │  └─ images/
