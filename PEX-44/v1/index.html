@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Birda Prototype – PEX-44</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <!--
+    ╔══════════════════════════════════════════════════════════════════╗
+    ║  PEX-44 · Photo grow — expanding sighting photos                  ║
+    ║  Built from _resources/template.html, so the phone shell, the      ║
+    ║  wayfinding nav and the scale-to-fit all come from the house       ║
+    ║  template. The prototype-specific CSS is the "PEX-44: photo grow"  ║
+    ║  block below; tapping the photo toggles .exp on the card.          ║
+    ╚══════════════════════════════════════════════════════════════════╝
+  -->
+  <style>
+  /* ─── Reset & tokens ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  button { font: inherit; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  :root { --blue:#1F87FE; --blue-5:#E3F0FF; --ink:#2D3142; --muted:#8890AE; --cloud:#F4F6FA; --line:#E4E8F0; }
+  html, body { height:100%; }
+  body {
+    height:100vh; overflow:hidden; background:#dde1e9;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    font-family:'Rubik',-apple-system,sans-serif; color:var(--ink);
+  }
+
+  /* ─── Phone shell (house style) ─── */
+  .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:top center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.45); }
+  .shell::before { content:''; position:absolute; left:-3px; top:106px; width:3px; height:34px; background:#222; border-radius:2px 0 0 2px; box-shadow:0 44px 0 #222,0 88px 0 #222; }
+  .shell::after { content:''; position:absolute; right:-3px; top:156px; width:3px; height:72px; background:#222; border-radius:0 2px 2px 0; }
+  .viewport { width:369px; height:798px; border-radius:44px; overflow:hidden; position:relative; background:#fff; }
+
+  /* ─── Screen scaffold ─── */
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; background:#fff; }
+  .screen.active { display:flex; }
+  .body { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .body::-webkit-scrollbar { display:none; }
+  .footer { flex-shrink:0; padding:12px 24px 28px; background:#fff; }
+
+  /* status bar */
+  .statusbar { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:14px 26px 6px; z-index:5; }
+  .statusbar .time { font-size:15px; font-weight:600; }
+  .statusbar svg { display:block; }
+  .statusbar.light .time { color:#fff; } .statusbar.light svg { fill:#fff; }
+
+  /* buttons */
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px; border-radius:4px; font-size:16px; font-weight:600; }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:active { background:#0f6fe0; }
+
+  /* ─── Wayfinding: back to list + (optional) iteration switcher & about ─── */
+  .proto-nav { position:fixed; top:22px; left:22px; z-index:200; width:190px; display:flex; flex-direction:column; gap:12px; font-family:'Rubik',-apple-system,sans-serif; }
+  .proto-back { align-self:flex-start; display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:500; color:#4A4E5A; text-decoration:none; padding:7px 12px 7px 10px; background:#fff; border:1px solid #E5E5EA; border-radius:8px; transition:background .12s; }
+  .proto-back:hover { background:#F7F7FA; }
+  .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+  .proto-pages { background:#fff; border:1px solid #E5E5EA; border-radius:10px; padding:6px; }
+  .proto-pages-head { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#8E8E93; padding:7px 10px 8px; }
+  .proto-page { display:block; font-size:14px; font-weight:500; color:#2D3142; text-decoration:none; padding:8px 10px; border-radius:7px; transition:background .12s; }
+  .proto-page:hover { background:#F2F2F7; }
+  .proto-page.active { background:#E2F0FF; color:#1F87FE; }
+  .proto-about { background:#fff; border:1px solid #E5E5EA; border-radius:10px; padding:13px; display:flex; flex-direction:column; gap:11px; }
+  .proto-about-head { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#8E8E93; }
+  .proto-about-text { font-size:12px; line-height:1.5; color:#6B6F7B; }
+  .proto-about-text strong { font-weight:600; color:#2D3142; }
+  .proto-reset { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; font-size:13px; font-weight:500; color:#2D3142; background:#F2F2F7; border:1px solid #E5E5EA; border-radius:8px; padding:9px 10px; cursor:pointer; transition:background .12s; }
+  .proto-reset:hover { background:#EBEBF0; }
+  .proto-reset svg { width:13px; height:13px; flex-shrink:0; }
+  /* narrow windows: the nav sits above the phone instead of overlapping it */
+  @media (max-width: 920px) { .proto-nav { position:static; width:auto; margin:0 0 20px; align-items:center; } }
+
+  /* ─── PEX-44: photo grow ───────────────────────────────────────────────
+     Ported from the Figma/DC export, which was authored against a 402x874
+     screen (iPhone 16 Pro). The house frame is 369x798, so the whole card
+     design is scaled by --k = 798/874. Every length below is written as
+     `calc(N * var(--k))` where N is the ORIGINAL authored number, so the
+     provenance stays readable and the scale is applied in exactly one place.
+
+     This is a pure LAYOUT scale — no transform, no zoom. The design keeps its
+     proportions, the screen fills the frame like every other prototype, and
+     the CTA in the image below still sits above the fold as it did originally.
+
+     The photo's background-size/position are percentages, so its crop holds
+     as the photo grows. */
+  :root { --dur:400ms; --ease:cubic-bezier(0.4,0,0.2,1); --k:0.913043; }
+
+  .pg-head { height:44px; flex-shrink:0; position:relative; background:#FAFCFE; box-shadow:0 .5px 0 #D4D8E4; display:flex; align-items:center; }
+  .pg-head .pg-title { position:absolute; left:0; right:0; text-align:center; font-size:17px; font-weight:500; color:#2D3142; }
+  .pg-head .pg-chev { position:absolute; left:20px; }
+  .pg-body { display:flex; flex-direction:column; gap:calc(24px * var(--k)); padding:12px 23px; }
+  .pg-body > img { width:calc(354px * var(--k)); flex-shrink:0; display:block; }
+
+  .card { position:relative; width:calc(354px * var(--k)); height:calc(136px * var(--k));
+    border-radius:calc(16px * var(--k)); background:#fff;
+    box-shadow:inset 0 0 0 1px #E4E8F0; flex-shrink:0; box-sizing:border-box;
+    transition:height var(--dur) var(--ease); }
+  .card.exp { height:calc(397px * var(--k)); }
+
+  .card .photo { position:absolute; left:calc(12px * var(--k)); top:calc(12px * var(--k));
+    width:calc(112px * var(--k)); height:calc(112px * var(--k)); border-radius:calc(6.22px * var(--k)); cursor:pointer;
+    background:url("imgs/magpie-photo.png") 10.150% 67.044% / 240.143% 161.698% no-repeat;
+    transition:width var(--dur) var(--ease), height var(--dur) var(--ease), border-radius var(--dur) var(--ease); }
+  .card.exp .photo { width:calc(330px * var(--k)); height:calc(330px * var(--k)); border-radius:calc(8px * var(--k)); }
+
+  .card .cross { position:absolute; left:calc(310px * var(--k)); top:calc(12px * var(--k));
+    width:calc(32px * var(--k)); height:calc(32px * var(--k)); border-radius:999px;
+    background:rgba(255,255,255,0); display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:background var(--dur) var(--ease), left var(--dur) var(--ease), top var(--dur) var(--ease); }
+  .card.exp .cross { left:calc(298px * var(--k)); top:calc(24px * var(--k)); background:rgba(255,255,255,.92); }
+  .card .cross svg { width:calc(15px * var(--k)); height:calc(15px * var(--k)); }
+
+  .card .chip { position:absolute; height:calc(31px * var(--k)); display:flex; flex-direction:row;
+    gap:calc(6px * var(--k)); align-items:center; border-radius:999px; background:#fff;
+    box-shadow:inset 0 0 0 1px #E4E8F0; padding:calc(8px * var(--k)) calc(10px * var(--k)); box-sizing:border-box;
+    cursor:pointer; transition:left var(--dur) var(--ease), top var(--dur) var(--ease); }
+  .card .chip:hover { background:#FAFCFE; }
+  .card .chip span { font-size:calc(13px * var(--k)); color:#4C5980; white-space:nowrap; }
+  .card .chip svg { flex-shrink:0; }
+  .card .chip svg:first-child { width:calc(14px * var(--k)); height:calc(14px * var(--k)); }
+  .card .chip svg:last-child  { width:calc(12px * var(--k)); height:calc(12px * var(--k)); }
+  .card .chip-date { left:calc(136px * var(--k)); top:calc(54px * var(--k)); width:calc(154px * var(--k)); }
+  .card .chip-loc  { left:calc(136px * var(--k)); top:calc(93px * var(--k)); width:calc(152px * var(--k)); }
+  .card.exp .chip-date { left:calc(12px  * var(--k)); top:calc(354px * var(--k)); }
+  .card.exp .chip-loc  { left:calc(174px * var(--k)); top:calc(354px * var(--k)); }
+  </style>
+</head>
+<body>
+<!-- Wayfinding (built from the PROTO config by the script below) -->
+<nav class="proto-nav" id="protoNav"></nav>
+
+<div class="shell">
+  <div class="viewport" id="viewport">
+
+    <!-- ▼▼▼  Photo grow — expanding sighting photos  ▼▼▼ -->
+    <section class="screen active" data-screen="1">
+      <div class="statusbar">
+        <span class="time">9:41</span>
+        <span style="display:flex; gap:6px; align-items:center;">
+          <span style="display:flex; gap:2px; align-items:flex-end;">
+            <i style="display:block; width:3px; height:4px;  border-radius:1px; background:#2D3142;"></i>
+            <i style="display:block; width:3px; height:6px;  border-radius:1px; background:#2D3142;"></i>
+            <i style="display:block; width:3px; height:8px;  border-radius:1px; background:#2D3142;"></i>
+            <i style="display:block; width:3px; height:10px; border-radius:1px; background:#2D3142;"></i>
+          </span>
+          <span style="display:block; width:25px; height:12px; border-radius:4px; box-shadow:inset 0 0 0 1px rgba(45,49,66,.45); padding:2px; box-sizing:border-box;">
+            <i style="display:block; width:70%; height:100%; border-radius:2px; background:#2D3142;"></i>
+          </span>
+        </span>
+      </div>
+
+      <div class="pg-head">
+        <svg class="pg-chev" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M 15 4 L 7 12 L 15 20" stroke="#2D3142" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="pg-title">What did you see?</span>
+      </div>
+
+      <div class="body pg-body">
+        <div class="card" id="card">
+          <div class="photo" onclick="togglePhoto()"></div>
+          <div class="cross">
+            <svg width="15" height="15" viewBox="0 0 15.005 15.005"><path d="M 14.674 1.924 C 15.115 1.484 15.115 0.771 14.674 0.335 C 14.234 -0.101 13.521 -0.105 13.085 0.335 L 7.507 5.913 L 1.924 0.33 C 1.484 -0.11 0.771 -0.11 0.335 0.33 C -0.101 0.771 -0.105 1.484 0.335 1.92 L 5.913 7.498 L 0.33 13.08 C -0.11 13.521 -0.11 14.234 0.33 14.67 C 0.771 15.105 1.484 15.11 1.92 14.67 L 7.498 9.091 L 13.08 14.674 C 13.521 15.115 14.234 15.115 14.67 14.674 C 15.105 14.234 15.11 13.521 14.67 13.085 L 9.091 7.507 L 14.674 1.924 Z" fill="#4C5980"/></svg>
+          </div>
+          <div class="chip chip-date">
+            <svg width="14" height="14" viewBox="0 0 21 24" fill="#4C5980"><path d="M 4.5 1.5 L 4.5 3 L 2.25 3 C 1.008 3 0 4.008 0 5.25 L 0 7.5 L 21 7.5 L 21 5.25 C 21 4.008 19.992 3 18.75 3 L 16.5 3 L 16.5 1.5 C 16.5 0.67 15.83 0 15 0 C 14.17 0 13.5 0.67 13.5 1.5 L 13.5 3 L 7.5 3 L 7.5 1.5 C 7.5 0.67 6.83 0 6 0 C 5.17 0 4.5 0.67 4.5 1.5 Z M 21 9 L 0 9 L 0 21.75 C 0 22.992 1.008 24 2.25 24 L 18.75 24 C 19.992 24 21 22.992 21 21.75 L 21 9 Z"/></svg>
+            <span>June 12th 2026</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M 5 9 L 12 16 L 19 9" stroke="#4C5980" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="chip chip-loc">
+            <svg width="14" height="14" viewBox="0 0 384 512" fill="#4C5980"><path d="M215.7 499.2C267 435 384 279.4 384 192 384 86 298 0 192 0S0 86 0 192c0 87.4 117 243 168.3 307.2 12.3 15.3 35.1 15.3 47.4 0z M192 128a64 64 0 1 1 0 128 64 64 0 1 1 0-128z"/></svg>
+            <span>Kings Cross, UK</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M 5 9 L 12 16 L 19 9" stroke="#4C5980" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+        <img src="imgs/likely-matches.png" alt="Likely Matches results and actions">
+      </div>
+    </section>
+    <!-- ▲▲▲ ------------------------------------------------------- ▲▲▲ -->
+
+  </div>
+</div>
+
+<script>
+  /* ══ CONFIG — edit per prototype ════════════════════════════════════ */
+  const PROTO = {
+    indexHref: '../../index.html', // path to the prototypes index ('../index.html' if not nested in a version folder)
+    group: 'PEX-44',              // label shown above the iteration list
+    current: 0,                   // 0-based index of the iteration THIS file represents
+    iterations: [                 // add a 2nd entry to reveal the switcher + description
+      // { label: 'Iteration 1', href: '../v1/index.html' },
+      // { label: 'Iteration 2', href: '../v2/index.html' },
+    ],
+    about: 'Tapping the photo <strong>grows it to full width</strong> and the date &amp; location chips rearrange below it. Tap again to shrink.',
+  };
+  /* ═══════════════════════════════════════════════════════════════════ */
+
+  /* ── Wayfinding: back button always; about panel whenever PROTO.about is set;
+        iteration switcher only once there are 2+ iterations ── */
+  (function buildNav() {
+    const back = '<a class="proto-back" href="' + PROTO.indexHref + '">'
+      + '<svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      + 'All prototypes</a>';
+    let extra = '';
+    if (PROTO.iterations.length >= 2) {
+      const pages = PROTO.iterations.map((it, i) =>
+        '<a class="proto-page' + (i === PROTO.current ? ' active' : '') + '" href="' + it.href + '">' + it.label + '</a>'
+      ).join('');
+      extra += '<div class="proto-pages"><div class="proto-pages-head">' + PROTO.group + '</div>' + pages + '</div>';
+    }
+    if (PROTO.about) {
+      extra += '<div class="proto-about"><div class="proto-about-head">About this version</div>'
+        + '<p class="proto-about-text">' + PROTO.about + '</p>'
+        + '<button class="proto-reset" onclick="location.reload()">'
+        + '<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        + 'Restart prototype</button></div>';
+    }
+    document.getElementById('protoNav').innerHTML = back + extra;
+  })();
+
+  /* ── Status bar (9:41 + signal/wifi/battery) injected into every .statusbar ── */
+  const sbSVG = '<svg width="78" height="14" viewBox="0 0 82 16" fill="black"><path d="M3.7 9H2.5a1 1 0 0 0-1 1v2.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1m5.2-2.5H7.7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1M14.1 4h-1.2a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1m5.2-2.5h-1.2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1"/><path d="M70.5 1c2.05 0 3.08 0 3.88.34a4.3 4.3 0 0 1 2.28 2.28c.34.8.34 1.83.34 3.88s0 3.08-.34 3.88a4.3 4.3 0 0 1-2.28 2.28c-.8.34-1.83.34-3.88.34h-12c-2.05 0-3.08 0-3.88-.34a4.3 4.3 0 0 1-2.28-2.28C52 10.58 52 9.55 52 7.5s0-3.08.34-3.88a4.3 4.3 0 0 1 2.28-2.28C55.42 1 56.45 1 58.5 1z" opacity=".35"/><path d="M54 7c0-1.4 0-2.1.27-2.63a2.5 2.5 0 0 1 1.1-1.1C55.9 3 56.6 3 58 3h13c1.4 0 2.1 0 2.64.27q.72.37 1.09 1.1C75 4.9 75 5.6 75 7v1c0 1.4 0 2.1-.27 2.64a2.5 2.5 0 0 1-1.1 1.09C73.1 12 72.4 12 71 12H58c-1.4 0-2.1 0-2.63-.27a2.5 2.5 0 0 1-1.1-1.1C54 10.1 54 9.4 54 8z"/></svg>';
+  document.querySelectorAll('.statusbar').forEach(sb => { sb.innerHTML = '<span class="time">9:41</span>' + sbSVG; });
+
+  /* ── Screen navigation ── */
+  const screens = [...document.querySelectorAll('.screen')];
+  let cur = 1;
+  function show(n) {
+    cur = Math.max(1, Math.min(screens.length, n));
+    screens.forEach(s => s.classList.toggle('active', +s.dataset.screen === cur));
+    const active = screens.find(s => +s.dataset.screen === cur);
+    const body = active && active.querySelector('.body'); if (body) body.scrollTop = 0;
+  }
+  function next() { show(cur === screens.length ? 1 : cur + 1); }
+  function goTo(n) { show(n); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') next();
+    else if (e.key === 'ArrowLeft') show(cur === 1 ? screens.length : cur - 1);
+  });
+  show(parseInt((location.hash || '').replace('#', '')) || 1);  // open at #N if present
+
+  /* ── PEX-44: tap the photo to grow / shrink it ── */
+  function togglePhoto() { document.getElementById('card').classList.toggle('exp'); }
+
+  /* ── Scale the phone to always fit the viewport ── */
+  const shell = document.querySelector('.shell');
+  const protoNavEl = document.querySelector('.proto-nav');
+  function fitShell() {
+    shell.style.transform = 'none';
+    shell.style.marginBottom = '0px';
+    /* under 920px the nav drops into the flow above the phone — leave room for it */
+    const navH = protoNavEl && getComputedStyle(protoNavEl).position === 'static'
+      ? protoNavEl.offsetHeight + 18 : 0;
+    const W = shell.offsetWidth, H = shell.offsetHeight, margin = 40;
+    const s = Math.min(1, (window.innerHeight - margin - navH) / H, (window.innerWidth - margin) / W);
+    shell.style.transform = 'scale(' + s + ')';
+    /* A transform shrinks what's PAINTED but not the layout box, so a scaled
+       phone would still reserve 822px — enough to push the nav off the top on
+       narrow windows, or raise a scrollbar on short ones. Pull the difference
+       back so the shell occupies exactly the height it now fills. */
+    shell.style.marginBottom = -(H * (1 - s)) + 'px';
+  }
+  window.addEventListener('resize', fitShell);
+  fitShell();
+</script>
+</body>
+</html>

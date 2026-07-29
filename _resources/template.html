@@ -9,15 +9,18 @@
   <!--
     ╔══════════════════════════════════════════════════════════════════╗
     ║  BIRDA PROTOTYPE TEMPLATE                                          ║
-    ║  1. Copy this folder and rename it for your prototype.            ║
-    ║     (Sits one level under birda-prototypes/, like PEX-43/.)       ║
+    ║  1. Copy this file to PROJECT-ID/v1/index.html — each iteration   ║
+    ║     gets its own version folder (e.g. PEX-43/v1/, PEX-43/v2/).    ║
+    ║     Keep the original here in _resources/ as the template.        ║
     ║  2. Edit the PROTO config in the <script> below.                  ║
     ║  3. Replace the placeholder <section class="screen"> blocks with  ║
     ║     your screens (data-screen="1", "2", …).                       ║
     ║                                                                    ║
     ║  • The "All prototypes" button always shows.                      ║
-    ║  • The iteration switcher + description ONLY appear once PROTO     ║
-    ║    .iterations has 2+ entries (i.e. when a 2nd iteration exists).  ║
+    ║  • The "About this version" box shows whenever PROTO.about is set  ║
+    ║    — put the "what to try" note there, not on the page.           ║
+    ║  • The iteration switcher ONLY appears once PROTO.iterations has   ║
+    ║    2+ entries (i.e. when a 2nd iteration exists).                  ║
     ╚══════════════════════════════════════════════════════════════════╝
   -->
   <style>
@@ -28,12 +31,12 @@
   html, body { height:100%; }
   body {
     height:100vh; overflow:hidden; background:#dde1e9;
-    display:flex; align-items:center; justify-content:center;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
     font-family:'Rubik',-apple-system,sans-serif; color:var(--ink);
   }
 
   /* ─── Phone shell (house style) ─── */
-  .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:center center;
+  .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:top center;
     box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.45); }
   .shell::before { content:''; position:absolute; left:-3px; top:106px; width:3px; height:34px; background:#222; border-radius:2px 0 0 2px; box-shadow:0 44px 0 #222,0 88px 0 #222; }
   .shell::after { content:''; position:absolute; right:-3px; top:156px; width:3px; height:72px; background:#222; border-radius:0 2px 2px 0; }
@@ -74,6 +77,8 @@
   .proto-reset { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; font-size:13px; font-weight:500; color:#2D3142; background:#F2F2F7; border:1px solid #E5E5EA; border-radius:8px; padding:9px 10px; cursor:pointer; transition:background .12s; }
   .proto-reset:hover { background:#EBEBF0; }
   .proto-reset svg { width:13px; height:13px; flex-shrink:0; }
+  /* narrow windows: the nav sits above the phone instead of overlapping it */
+  @media (max-width: 920px) { .proto-nav { position:static; width:auto; margin:0 0 20px; align-items:center; } }
   </style>
 </head>
 <body>
@@ -106,18 +111,19 @@
 <script>
   /* ══ CONFIG — edit per prototype ════════════════════════════════════ */
   const PROTO = {
-    indexHref: '../index.html',   // path to the prototypes index ('../../index.html' if nested one level deeper)
+    indexHref: '../../index.html', // path to the prototypes index ('../index.html' if not nested in a version folder)
     group: 'PROJECT-ID',          // label shown above the iteration list
     current: 0,                   // 0-based index of the iteration THIS file represents
     iterations: [                 // add a 2nd entry to reveal the switcher + description
-      // { label: 'Iteration 1', href: '../my-prototype/index.html' },
-      // { label: 'Iteration 2', href: '../my-prototype-v2/index.html' },
+      // { label: 'Iteration 1', href: '../v1/index.html' },
+      // { label: 'Iteration 2', href: '../v2/index.html' },
     ],
     about: 'Describe what changed in <strong>this version</strong> and what to try.',
   };
   /* ═══════════════════════════════════════════════════════════════════ */
 
-  /* ── Wayfinding: back button always; switcher + about only with 2+ iterations ── */
+  /* ── Wayfinding: back button always; about panel whenever PROTO.about is set;
+        iteration switcher only once there are 2+ iterations ── */
   (function buildNav() {
     const back = '<a class="proto-back" href="' + PROTO.indexHref + '">'
       + '<svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -127,8 +133,10 @@
       const pages = PROTO.iterations.map((it, i) =>
         '<a class="proto-page' + (i === PROTO.current ? ' active' : '') + '" href="' + it.href + '">' + it.label + '</a>'
       ).join('');
-      extra = '<div class="proto-pages"><div class="proto-pages-head">' + PROTO.group + '</div>' + pages + '</div>'
-        + '<div class="proto-about"><div class="proto-about-head">About this version</div>'
+      extra += '<div class="proto-pages"><div class="proto-pages-head">' + PROTO.group + '</div>' + pages + '</div>';
+    }
+    if (PROTO.about) {
+      extra += '<div class="proto-about"><div class="proto-about-head">About this version</div>'
         + '<p class="proto-about-text">' + PROTO.about + '</p>'
         + '<button class="proto-reset" onclick="location.reload()">'
         + '<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
@@ -160,11 +168,21 @@
 
   /* ── Scale the phone to always fit the viewport ── */
   const shell = document.querySelector('.shell');
+  const protoNavEl = document.querySelector('.proto-nav');
   function fitShell() {
     shell.style.transform = 'none';
+    shell.style.marginBottom = '0px';
+    /* under 920px the nav drops into the flow above the phone — leave room for it */
+    const navH = protoNavEl && getComputedStyle(protoNavEl).position === 'static'
+      ? protoNavEl.offsetHeight + 18 : 0;
     const W = shell.offsetWidth, H = shell.offsetHeight, margin = 40;
-    const s = Math.min(1, (window.innerHeight - margin) / H, (window.innerWidth - margin) / W);
+    const s = Math.min(1, (window.innerHeight - margin - navH) / H, (window.innerWidth - margin) / W);
     shell.style.transform = 'scale(' + s + ')';
+    /* A transform shrinks what's PAINTED but not the layout box, so a scaled
+       phone would still reserve 822px — enough to push the nav off the top on
+       narrow windows, or raise a scrollbar on short ones. Pull the difference
+       back so the shell occupies exactly the height it now fills. */
+    shell.style.marginBottom = -(H * (1 - s)) + 'px';
   }
   window.addEventListener('resize', fitShell);
   fitShell();

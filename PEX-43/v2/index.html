@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Birda Prototype – PEX-43</title>
+  <title>Birda Prototype – PEX-43 (Iteration 2)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <style>
@@ -29,7 +29,8 @@
 
   /* ─── Page ───────────────────────────────────── */
   body {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     background: #dde1e9;
     display: flex;
     flex-direction: column;
@@ -50,6 +51,7 @@
     box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.45);
     position: relative;
     flex-shrink: 0;
+   transform-origin: top center;
   }
   /* Side buttons */
   .shell::before {
@@ -494,6 +496,138 @@
   .cal-time-lbl { font-size:15px; font-weight:600; color:var(--text); }
   .cal-time-input { border:1.5px solid var(--blue); border-radius:8px; padding:5px 12px; font:inherit; font-size:15px; color:var(--text); text-align:center; width:80px; background:none; }
   .cal-reset { text-align:center; padding:20px 16px; color:var(--blue); font-size:15px; font-weight:500; cursor:pointer; }
+
+  /* ─── Review metadata screen ─────────────────── */
+  .meta-marker {
+    position: absolute; z-index: 4;
+    display: flex; flex-direction: column; align-items: center;
+    transform: translate(-50%, -100%);
+    cursor: pointer;
+  }
+  .meta-marker .pin-svg {
+    width: 28px; height: 38px; display: block; margin-top: 4px;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.28));
+  }
+  .pin-label {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #fff; border-radius: 10px; padding: 4px 9px 4px 8px;
+    box-shadow: 0 1px 5px rgba(0,0,0,.16);
+    font-size: 11px; font-weight: 600; white-space: nowrap; line-height: 1;
+  }
+  .pin-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  /* Map image (overrides the stylised gradient + grid used elsewhere) */
+  .meta-map { background: #aadaff; }
+  .meta-map::after { display: none; }
+  .meta-map-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  /* "From photo" pin: selected photo as the circular head + a pointer beneath */
+  .photo-pin {
+    display: flex; flex-direction: column; align-items: center; margin-top: 4px;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.35));
+  }
+  .photo-pin-circle {
+    width: 46px; height: 46px; border-radius: 50%; overflow: hidden;
+    border: 3px solid var(--blue); background: #fff;
+  }
+  .photo-pin-circle img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-pin-point {
+    width: 0; height: 0; margin-top: -3px;
+    border-left: 7px solid transparent; border-right: 7px solid transparent;
+    border-top: 11px solid var(--blue);
+  }
+  /* Pan layer: holds the map image + both pins so they move together. It is
+     larger than the viewport, leaving room to re-centre on the active pin. */
+  .map-pan {
+    position: absolute; width: 560px; height: 352px; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform .6s cubic-bezier(.4, 0, .2, 1);
+  }
+  #metaMap.loc-off .map-pan { transform: translate(calc(-50% - 73px), calc(-50% + 49px)); }
+  /* Pin colour follows the active location: active = blue, inactive = grey */
+  .pin-label span  { transition: color .4s ease; }
+  .photo-pin-circle, .photo-pin-point { transition: border-color .4s ease; }
+  .pin-svg path    { transition: fill .4s ease; }
+  /* location ON (default) → "From photo" is active */
+  #metaMap .mk-photo .pin-label span   { color: var(--blue); }
+  #metaMap .mk-photo .photo-pin-circle { border-color: var(--blue); }
+  #metaMap .mk-photo .photo-pin-point  { border-top-color: var(--blue); }
+  #metaMap .mk-orig  .pin-label span   { color: #8c94a3; }
+  #metaMap .mk-orig  .pin-svg path     { fill: #8c94a3; }
+  /* location OFF → "Original" is active */
+  #metaMap.loc-off .mk-photo .pin-label span   { color: #8c94a3; }
+  #metaMap.loc-off .mk-photo .photo-pin-circle { border-color: #8c94a3; }
+  #metaMap.loc-off .mk-photo .photo-pin-point  { border-top-color: #8c94a3; }
+  #metaMap.loc-off .mk-orig  .pin-label span   { color: var(--blue); }
+  #metaMap.loc-off .mk-orig  .pin-svg path     { fill: var(--blue); }
+
+  .meta-body { padding: 14px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .meta-title { font-size: 16px; font-weight: 500; color: var(--text); letter-spacing: .2px; }
+  .meta-sub { font-size: 14px; font-weight: 400; color: var(--text-sec); line-height: 18px; }
+  .meta-field {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 14px 0;
+  }
+  .meta-divider { height: 1px; background: var(--divider); }
+  .meta-field-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .meta-icon { width: 24px; height: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .meta-icon svg { width: 22px; height: 22px; fill: none; stroke: var(--text); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .meta-vals { display: flex; flex-direction: column; min-width: 0; }
+  .meta-vlabel { font-size: 14px; color: var(--text-sec); line-height: 18px; margin-bottom: 3px; }
+  /* Two fixed-height slots inside a clipped window, so a value can roll in
+     from above/below without overlapping the label. transform + opacity are
+     animated in JS (Web Animations API); CSS only eases size & colour. */
+  .val-window { position: relative; height: 42px; overflow: hidden; }
+  /* Two in-flow lines (so the window sizes to the text); a ghost copy is added
+     as a third line during the roll. Slot pitch = 21px; transforms shift each
+     line. val-new's natural slot is the top, val-old's is the one below it. */
+  .val-new, .val-old, .val-ghost {
+    display: block; height: 21px; line-height: 21px; white-space: nowrap;
+    transition: font-size .42s ease, color .42s ease, letter-spacing .42s ease;
+  }
+  .val-ghost { transition: none; pointer-events: none; }
+  /* ON (default): photo (val-new) prominent on top, original (val-old) muted below */
+  .meta-field .val-new { font-size: 14px; font-weight: 500; color: var(--text); letter-spacing: .2px; text-decoration: none; transform: translateY(0); }
+  .meta-field .val-old { font-size: 12px; font-weight: 400; color: var(--text-sec); letter-spacing: .3px; text-decoration: line-through; transform: translateY(0); }
+  /* OFF: original prominent on top, photo muted below */
+  .meta-field.off .val-new { font-size: 12px; font-weight: 400; color: var(--text-sec); letter-spacing: .3px; transform: translateY(21px); }
+  .meta-field.off .val-old { font-size: 14px; font-weight: 500; color: var(--text); letter-spacing: .2px; text-decoration: none; transform: translateY(-21px); }
+  /* "New" badge beside the in-focus (photo) value; collapses away when toggled off */
+  .val-new { display: flex; align-items: center; }
+  .badge-new {
+    margin-left: 8px; padding: 0 8px; border-radius: 4px;
+    background: var(--blue-light); color: var(--blue);
+    font-size: 12px; line-height: 18px; letter-spacing: .3px;
+    white-space: nowrap; overflow: hidden; max-width: 60px; opacity: 1;
+    transform: translateX(0);
+    /* snaps in from the left right as the vertical roll lands — near-instant */
+    transition: opacity .09s ease .22s, transform .1s cubic-bezier(.4,0,.2,1) .22s,
+                max-width .1s cubic-bezier(.4,0,.2,1) .22s,
+                margin-left .1s cubic-bezier(.4,0,.2,1) .22s,
+                padding .1s cubic-bezier(.4,0,.2,1) .22s;
+  }
+  .meta-field.off .badge-new {
+    opacity: 0; max-width: 0; margin-left: 0; padding-left: 0; padding-right: 0;
+    transform: translateX(-14px);
+    /* slides off to the left immediately, quicker, BEFORE any vertical movement */
+    transition: opacity .13s ease 0s, transform .15s cubic-bezier(.4,0,.2,1) 0s,
+                max-width .15s cubic-bezier(.4,0,.2,1) 0s,
+                margin-left .15s cubic-bezier(.4,0,.2,1) 0s,
+                padding .15s cubic-bezier(.4,0,.2,1) 0s;
+  }
+  /* strike-through lives on the text only, so the badge is never struck */
+  .meta-field.off .val-new .val-text { text-decoration: line-through; }
+
+  .meta-toggle {
+    width: 46px; height: 28px; border-radius: 14px;
+    background: var(--blue); position: relative; cursor: pointer; flex-shrink: 0;
+    transition: background .2s;
+  }
+  .meta-toggle::after {
+    content: ''; position: absolute; top: 2px; left: 20px;
+    width: 24px; height: 24px; border-radius: 50%; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.18); transition: left .2s;
+  }
+  .meta-toggle.off { background: var(--divider); }
+  .meta-toggle.off::after { left: 2px; }
   /* ── Prototype wayfinding: back to list + iteration switcher (Figma-pages style) ── */
   .proto-nav {
     position: fixed; top: 22px; left: 22px; z-index: 200; width: 190px;
@@ -538,18 +672,18 @@
 <body>
 <!-- Wayfinding -->
 <nav class="proto-nav">
-  <a class="proto-back" href="../index.html">
+  <a class="proto-back" href="../../index.html">
     <svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
     All prototypes
   </a>
   <div class="proto-pages">
     <div class="proto-pages-head">PEX-43</div>
-    <a class="proto-page active" href="../PEX-43/index.html">Iteration 1</a>
-    <a class="proto-page" href="../PEX-43-v2/index.html">Iteration 2</a>
+    <a class="proto-page" href="../v1/index.html">Iteration 1</a>
+    <a class="proto-page active" href="../v2/index.html">Iteration 2</a>
   </div>
   <div class="proto-about">
     <div class="proto-about-head">About this version</div>
-    <p class="proto-about-text">Adding a photo <strong>automatically updates</strong> the sighting’s date, time &amp; location to match it, with an inline banner to undo. Add a photo to a sighting, then try <strong>Reset</strong> in the banner — or tap the date / location rows to edit them manually.</p>
+    <p class="proto-about-text">Adding a photo opens a <strong>dedicated review step</strong> where you choose, per field, whether to use the photo’s date, time &amp; location or keep your current ones. Add a photo to reach it, then try the <strong>toggles</strong> and tap the <strong>map pins</strong>.</p>
     <button class="proto-reset" onclick="location.reload()">
       <svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Restart prototype
@@ -772,7 +906,7 @@
           <div class="row-icon">
             <svg viewBox="0 0 20 20"><path d="M10 2C7.2 2 5 4.2 5 7C5 11 10 18 10 18C10 18 15 11 15 7C15 4.2 12.8 2 10 2Z" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke-width="1.5"/></svg>
           </div>
-          <span class="row-label" id="s2-loc-label">The Needles, England, United Kingdom</span>
+          <span class="row-label" id="s2-loc-label">Horsham, England, United Kingdom</span>
           <span class="row-chevron">›</span>
         </div>
         <div class="row" style="border-bottom:none;">
@@ -908,14 +1042,14 @@
           <div class="tab active">Photos</div>
           <div class="tab">Collections</div>
         </div>
-        <div class="picker-confirm active-btn" onclick="showPhotoAdded()">✓</div>
+        <div class="picker-confirm active-btn" onclick="reviewMetadata()">✓</div>
       </div>
       </div><!-- /top-bar -->
       <div class="scroll-body">
 
       <!-- Photo grid — first cell selected with badge + tint -->
       <div class="photo-grid">
-        <div class="grid-cell" onclick="showPhotoAdded()"><img src="imgs/robin.jpg" alt="Robin"></div>
+        <div class="grid-cell" onclick="reviewMetadata()"><img src="imgs/robin.jpg" alt="Robin"></div>
         <div class="grid-cell"><img src="imgs/woodpigeon.jpg" alt="Woodpigeon"></div>
         <div class="grid-cell"><img src="imgs/carrion-crow.jpg" alt="Carrion Crow"></div>
         <div class="grid-cell"><img src="imgs/blue-tit.jpg" alt="Blue Tit"></div>
@@ -940,6 +1074,103 @@
 
 
     <!-- ════════════════════════════════════════════ -->
+    <!-- SCREEN META · Review metadata (confirm)      -->
+    <!-- Shown after a photo is selected: confirm      -->
+    <!-- whether to update the sighting with the       -->
+    <!-- photo's date/time & location metadata.        -->
+    <!-- ════════════════════════════════════════════ -->
+    <div class="screen" id="smeta">
+      <div class="top-bar">
+        <div class="status">
+          <span>9:41</span>
+          <div class="status-icons">
+            <svg width="17" height="12" viewBox="0 0 17 12" fill="var(--text)"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0.5" width="3" height="11.5" rx="1"/></svg>
+            <svg width="25" height="12" viewBox="0 0 25 12" fill="var(--text)"><rect x="0" y="1" width="21" height="10" rx="2.5" stroke="currentColor" stroke-width="1" fill="none" opacity=".35"/><rect x="22" y="3.5" width="3" height="5" rx="1.5" opacity=".4"/><rect x="1" y="2" width="19" height="8" rx="1.5"/></svg>
+          </div>
+        </div>
+        <div class="nav">
+          <button class="nav-back" onclick="goTo('s4')">
+            <svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg>
+          </button>
+          <div class="nav-title">Review sighting</div>
+          <button class="nav-btn" onclick="skipMetadata()">Skip</button>
+        </div>
+      </div><!-- /top-bar -->
+      <div class="scroll-body">
+
+      <!-- Map with two pins: photo location vs original location -->
+      <div class="map-block meta-map" id="metaMap" style="height:236px;">
+        <div class="map-pan">
+          <img class="meta-map-img" src="imgs/map-far.jpg" alt="Map">
+
+          <!-- From photo — the photo's location -->
+          <div class="meta-marker mk-photo" style="left:50%; top:50%; transform:translate(-50%,-50%);" onclick="selectLocation(true)">
+            <div class="pin-label"><span>From photo</span></div>
+            <div class="photo-pin">
+              <div class="photo-pin-circle"><img data-selected-photo src="imgs/bird-thumb-small.jpg" alt="Selected photo"></div>
+              <div class="photo-pin-point"></div>
+            </div>
+          </div>
+          <!-- Original location -->
+          <div class="meta-marker mk-orig" style="left:63%; top:36%;" onclick="selectLocation(false)">
+            <div class="pin-label"><span>Original</span></div>
+            <svg class="pin-svg" viewBox="0 0 28 38"><path d="M14 0C6.27 0 0 6.27 0 14C0 24.5 14 38 14 38C14 38 28 24.5 28 14C28 6.27 21.73 0 14 0Z" fill="#8c94a3" stroke="#fff" stroke-width="2"/><circle cx="14" cy="13" r="4.5" fill="#fff"/></svg>
+          </div>
+        </div>
+        <div class="mapbox-badge">© Mapbox</div>
+      </div>
+
+      <div class="meta-body">
+        <div class="meta-title">We found new details in your photo</div>
+        <div class="meta-sub">Choose which fields you want to update with this new information, or skip to leave it as-is.</div>
+        <div style="height:6px;"></div>
+
+        <!-- Date & time -->
+        <div class="meta-field" id="meta-date-field">
+          <div class="meta-field-left">
+            <div class="meta-icon">
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><line x1="3" y1="9.5" x2="21" y2="9.5"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
+            </div>
+            <div class="meta-vals">
+              <span class="meta-vlabel">Date &amp; time</span>
+              <div class="val-window">
+                <span class="val-new"><span class="val-text">Jun 2nd, 2026&nbsp;&nbsp;14:35</span><span class="badge-new">New</span></span>
+                <span class="val-old" id="meta-date-old">Jun 5th, 2026&nbsp;&nbsp;15:02</span>
+              </div>
+            </div>
+          </div>
+          <div class="meta-toggle" id="meta-date-toggle" onclick="toggleField(this)"></div>
+        </div>
+
+        <div class="meta-divider"></div>
+
+        <!-- Location -->
+        <div class="meta-field" id="meta-loc-field">
+          <div class="meta-field-left">
+            <div class="meta-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 2C8.7 2 6 4.7 6 8C6 13 12 21 12 21C12 21 18 13 18 8C18 4.7 15.3 2 12 2Z"/><circle cx="12" cy="8" r="2.4"/></svg>
+            </div>
+            <div class="meta-vals">
+              <span class="meta-vlabel">Location</span>
+              <div class="val-window">
+                <span class="val-new"><span class="val-text">The Needles, England</span><span class="badge-new">New</span></span>
+                <span class="val-old">Horsham, England</span>
+              </div>
+            </div>
+          </div>
+          <div class="meta-toggle" id="meta-loc-toggle" onclick="toggleField(this)"></div>
+        </div>
+
+        <div style="height:10px;"></div>
+        <button class="btn-primary" id="meta-apply-btn" style="margin:0;width:100%;" onclick="applyMetadata()">Apply selected</button>
+        <button class="btn-ghost" style="margin-bottom:8px;" onclick="skipMetadata()">Don’t change anything</button>
+      </div>
+
+          </div><!-- /scroll-body -->
+    </div><!-- /smeta -->
+
+
+    <!-- ════════════════════════════════════════════ -->
     <!-- SCREEN 5 · Review Sighting – Photo Added     -->
     <!-- ════════════════════════════════════════════ -->
     <div class="screen" id="s5">
@@ -954,7 +1185,7 @@
           </div>
         </div>
         <div class="nav">
-          <button class="nav-back" onclick="goTo('s2')">
+          <button class="nav-back" onclick="goTo('smeta')">
             <svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg>
           </button>
           <div class="nav-title">Review Sighting</div>
@@ -1016,19 +1247,7 @@
         <input placeholder="Got something interesting to add?">
       </div>
 
-      <div class="sp8"></div>
-
-      <!-- Alert — key feature -->
-      <div class="alert-wrap collapsing" id="s5-alert">
-        <div class="alert">
-          <div class="alert-bar"></div>
-          <div class="alert-body">
-            <p>Date and location updated based on photo</p>
-            <span class="alert-reset" onclick="resetSighting()">Reset</span>
-          </div>
-        </div>
-      </div>
-      <div style="height:16px;"></div>
+      <div class="sp16"></div>
 
       <!-- Sighting section -->
       <div class="section-label">Sighting</div>
@@ -1049,17 +1268,17 @@
           <input class="count-input" value="1" readonly>
         </div>
         <div class="row" id="s5-date-row" onclick="gotoDate('s5')" style="cursor:pointer">
-          <div class="row-icon updated dot-out" id="s5-date-icon">
+          <div class="row-icon" id="s5-date-icon">
             <svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="13" rx="2" stroke-width="1.5"/><line x1="3" y1="8" x2="17" y2="8" stroke-width="1.5"/><line x1="7" y1="2" x2="7" y2="6" stroke-width="1.5"/><line x1="13" y1="2" x2="13" y2="6" stroke-width="1.5"/></svg>
           </div>
           <span class="row-label" id="s5-date-label">Jun 2nd, 2026&nbsp;&nbsp;14:35</span>
           <span class="row-chevron">›</span>
         </div>
         <div class="row" id="s5-loc-row" onclick="gotoLocation('s5')" style="cursor:pointer">
-          <div class="row-icon updated dot-out" id="s5-loc-icon">
+          <div class="row-icon" id="s5-loc-icon">
             <svg viewBox="0 0 20 20"><path d="M10 2C7.2 2 5 4.2 5 7C5 11 10 18 10 18C10 18 15 11 15 7C15 4.2 12.8 2 10 2Z" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke-width="1.5"/></svg>
           </div>
-          <span class="row-label" id="s5-loc-label">Horsham, England, United Kingdom</span>
+          <span class="row-label" id="s5-loc-label">The Needles, England, United Kingdom</span>
           <span class="row-chevron">›</span>
         </div>
         <div class="row" style="border-bottom:none;">
@@ -1101,138 +1320,6 @@
     </div><!-- /s5 -->
 
 
-    <!-- ════════════════════════════════════════════ -->
-    <!-- SCREEN 6 · Review Sighting – Reset           -->
-    <!-- (identical to s5 but: no alert, original     -->
-    <!--  date/location in black, back → s5)          -->
-    <!-- ════════════════════════════════════════════ -->
-    <div class="screen" id="s6">
-
-      <div class="top-bar">
-        <div class="status">
-          <span>12:01</span>
-          <div class="status-icons">
-            <svg width="17" height="12" viewBox="0 0 17 12" fill="var(--text)"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0.5" width="3" height="11.5" rx="1"/></svg>
-            <svg width="25" height="12" viewBox="0 0 25 12" fill="var(--text)"><rect x="0" y="1" width="21" height="10" rx="2.5" stroke="currentColor" stroke-width="1" fill="none" opacity=".35"/><rect x="22" y="3.5" width="3" height="5" rx="1.5" opacity=".4"/><rect x="1" y="2" width="14" height="8" rx="1.5"/></svg>
-          </div>
-        </div>
-        <div class="nav">
-          <button class="nav-back" onclick="goTo('s5')">
-            <svg viewBox="0 0 10 18"><polyline points="9,1 1,9 9,17"/></svg>
-          </button>
-          <div class="nav-title">Review Sighting</div>
-          <button class="nav-btn">Save</button>
-        </div>
-      </div><!-- /top-bar -->
-      <div class="scroll-body">
-      <!-- Hero map -->
-      <div class="map-block" style="height:222px;">
-
-        <svg class="map-roads" viewBox="0 0 375 310" preserveAspectRatio="xMidYMid slice">
-          <path d="M0,100 Q70,85 140,110 T300,105 T375,118"  stroke="white" stroke-width="10" fill="none" opacity=".55"/>
-          <path d="M0,180 Q90,165 180,190 T375,185"           stroke="white" stroke-width="7"  fill="none" opacity=".45"/>
-          <path d="M140,0 Q148,70 138,145 T145,310"           stroke="white" stroke-width="9"  fill="none" opacity=".5"/>
-          <path d="M260,0 Q255,80 265,160 T258,310"           stroke="white" stroke-width="6"  fill="none" opacity=".4"/>
-          <path d="M0,250 Q110,240 220,255 T375,248"          stroke="white" stroke-width="5"  fill="none" opacity=".3"/>
-        </svg>
-
-        <div class="map-pin">
-          <div class="map-pin-avatar">
-            <img data-selected-photo src="imgs/bird-thumb-small.jpg" alt="Selected photo" style="width:100%;height:100%;object-fit:cover;">
-          </div>
-        </div>
-        <div class="mapbox-badge">© Mapbox</div>
-      </div>
-
-      <!-- Photos (photo stays after reset) -->
-      <div class="photos-section">
-        <div class="photos-heading">Photos</div>
-        <div class="photos-row">
-          <div class="photo-thumb">
-            <img data-selected-photo src="imgs/bird-thumb-small.jpg" alt="Selected photo">
-          </div>
-          <div class="photo-add" onclick="goTo('s3')">+</div>
-        </div>
-      </div>
-
-      <div class="sp12"></div>
-
-      <!-- Notes -->
-      <div class="notes-row">
-        <input placeholder="Got something interesting to add?">
-      </div>
-
-      <div class="sp16"></div>
-
-      <!-- Sighting — original date & location restored (no blue, no alert) -->
-      <div class="section-label">Sighting</div>
-      <div class="group">
-        <div class="species-row-inner">
-          <svg class="species-icon" viewBox="0 0 22 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="15" cy="6.5" r="2.2"/>
-            <path d="M16.9 5.6l2.6-.3-2.2 1.8"/>
-            <circle cx="15.7" cy="5.9" r=".45" fill="currentColor" stroke="none"/>
-            <path d="M12.8 8C10.5 8 5 9.8 5 13.5h10.5c2.2 0 2.8-2.2 1.6-3.3L13.5 9"/>
-            <path d="M5 13.5l-2.8-1.2M5 13.5l-2.8 1.2"/>
-            <path d="M8.5 13.5v3M7.5 16.5h2.2M12 13.5v3M11 16.5h2.2"/>
-          </svg>
-          <span class="species-name" data-species-name>Robin</span>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="row" style="padding:4px 16px 10px 50px;">
-          <input class="count-input" value="1" readonly>
-        </div>
-        <div class="row" onclick="gotoDate('s6')" style="cursor:pointer">
-          <div class="row-icon">
-            <svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="13" rx="2" stroke-width="1.5"/><line x1="3" y1="8" x2="17" y2="8" stroke-width="1.5"/><line x1="7" y1="2" x2="7" y2="6" stroke-width="1.5"/><line x1="13" y1="2" x2="13" y2="6" stroke-width="1.5"/></svg>
-          </div>
-          <span class="row-label" id="s6-date-label">Jun 3rd, 2026&nbsp;&nbsp;12:01</span>
-          <span class="row-chevron">›</span>
-        </div><!-- end s6 date row, onclick added on parent -->
-        <div class="row" onclick="gotoLocation('s6')" style="cursor:pointer">
-          <div class="row-icon">
-            <svg viewBox="0 0 20 20"><path d="M10 2C7.2 2 5 4.2 5 7C5 11 10 18 10 18C10 18 15 11 15 7C15 4.2 12.8 2 10 2Z" stroke-width="1.5"/><circle cx="10" cy="7" r="2" stroke-width="1.5"/></svg>
-          </div>
-          <span class="row-label" id="s6-loc-label">The Needles, England, United Kingdom</span>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="row" style="border-bottom:none;">
-          <div class="row-icon">
-            <svg viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.5" stroke-width="1.5"/><path d="M3 18C3 14.7 6.1 12 10 12C13.9 12 17 14.7 17 18" stroke-width="1.5"/></svg>
-          </div>
-          <span class="row-label">Tag people</span>
-          <span class="row-chevron">›</span>
-        </div>
-      </div>
-
-      <div class="sp16"></div>
-
-      <!-- Privacy -->
-      <div class="section-label">Sighting privacy</div>
-      <div class="group">
-        <div class="row">
-          <div class="row-icon">
-            <svg viewBox="0 0 20 20"><path d="M10 4C5 4 1.5 10 1.5 10C1.5 10 5 16 10 16C15 16 18.5 10 18.5 10C18.5 10 15 4 10 4Z" stroke-width="1.5"/><circle cx="10" cy="10" r="2.5" stroke-width="1.5"/><line x1="3" y1="3" x2="17" y2="17" stroke-width="1.5"/></svg>
-          </div>
-          <span class="row-label">Post Sharing</span>
-          <span class="row-value">Everyone</span>
-          <span class="row-chevron">›</span>
-        </div>
-        <div class="row" style="border-bottom:none;">
-          <div class="row-icon">
-            <svg viewBox="0 0 20 20"><rect x="4" y="9" width="12" height="9" rx="2" stroke-width="1.5"/><path d="M7 9V6C7 4.3 8.3 3 10 3C11.7 3 13 4.3 13 6V9" stroke-width="1.5"/></svg>
-          </div>
-          <span class="row-label">Location Privacy</span>
-          <span class="row-value">Everyone</span>
-          <span class="row-chevron">›</span>
-        </div>
-      </div>
-
-      <button class="btn-primary" onclick="goTo('s1')">Save Sighting</button>
-      <button class="btn-ghost">Delete Sighting</button>
-
-          </div><!-- /scroll-body -->
-    </div><!-- /s6 -->
 
     <!-- ════════════════════════════════════════ -->
     <!-- SCREEN 7 · Date Picker                   -->
@@ -1359,12 +1446,12 @@
 document.getElementById('s2-date-label').textContent = formatDate(new Date());
 
 const SCREENS = [
-  { id: 's1', label: 'Species Selection',            hint: 'Tap Robin' },
-  { id: 's2', label: 'Review Sighting',              hint: 'Tap + to add a photo' },
-  { id: 's3', label: 'Photo Selection',              hint: 'Tap any photo' },
-  { id: 's4', label: 'Photo Confirmation',           hint: 'Tap ✓ to confirm' },
-  { id: 's5', label: 'Review Sighting – Photo Added', hint: 'Tap Reset to undo' },
-  { id: 's6', label: 'Review Sighting – Reset',      hint: 'Original date & location restored' },
+  { id: 's1',    label: 'Species Selection',   hint: 'Tap Robin' },
+  { id: 's2',    label: 'Review Sighting',     hint: 'Tap + to add a photo' },
+  { id: 's3',    label: 'Photo Selection',     hint: 'Tap any photo' },
+  { id: 's4',    label: 'Photo Confirmation',  hint: 'Tap ✓ to confirm' },
+  { id: 'smeta', label: 'Review Metadata',     hint: 'Confirm or skip the photo’s details' },
+  { id: 's5',    label: 'Review Sighting',     hint: 'Sighting updated from photo' },
 ];
 const ORDER = SCREENS.map(s => s.id);
 
@@ -1412,7 +1499,7 @@ function gotoLocation(from) {
 
   // Match the map pin to the origin screen:
   // s2 has no photo yet — show the same bird emoji as its own map pin
-  // s5/s6 have a selected photo — show that photo
+  // s5 has a selected photo — show that photo
   const avatar = document.getElementById('s8-pin-avatar');
   if (avatar) {
     if (from === 's2') {
@@ -1570,7 +1657,7 @@ function selectPhoto(n) {
     badge.textContent = '1';
     cells[n].appendChild(badge);
 
-    // Carry the selected image through to the photos section on s5 and s6
+    // Carry the selected image through to the photos section on s5
     const img = cells[n].querySelector('img');
     if (img) {
       document.querySelectorAll('[data-selected-photo]').forEach(el => {
@@ -1582,112 +1669,134 @@ function selectPhoto(n) {
   goTo('s4');
 }
 
-// Milometer/odometer swap: slides old text out upward, new text in from below
-function odoSwap(el, newHTML) {
-  const h = el.getBoundingClientRect().height;
+// ─── Review-metadata screen ──────────────────────
+// Photo metadata vs. the sighting's original values
+const PHOTO_DATE = 'Jun 2nd, 2026  14:35';
+const PHOTO_LOC  = 'The Needles, England, United Kingdom';
+const ORIG_LOC   = 'Horsham, England, United Kingdom';
 
-  const track = document.createElement('div');
-  track.style.cssText = 'transform:translateY(0);transition:transform 0.95s cubic-bezier(0.4,0,0.2,1);';
-
-  const lineOld = document.createElement('div');
-  lineOld.style.height = h + 'px';
-  lineOld.innerHTML = el.innerHTML;
-
-  const lineNew = document.createElement('div');
-  lineNew.style.height = h + 'px';
-  lineNew.innerHTML = newHTML;
-
-  track.appendChild(lineOld);
-  track.appendChild(lineNew);
-
-  el.style.overflow = 'hidden';
-  el.style.height = h + 'px';
-  el.innerHTML = '';
-  el.appendChild(track);
-
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    track.style.transform = `translateY(-${h}px)`;
-  }));
-
-  // After the roll finishes, replace the track with just the new value so
-  // textContent is reliable for date/location pickers reading it back
-  setTimeout(() => {
-    el.style.overflow = '';
-    el.style.height = '';
-    el.innerHTML = newHTML;
-  }, 1050);
+function reviewMetadata() {
+  // Default both toggles ON (apply the photo's values) on each entry
+  ['meta-date-toggle', 'meta-loc-toggle'].forEach(id => {
+    const t = document.getElementById(id);
+    t.classList.remove('off');
+    t.closest('.meta-field').classList.remove('off');
+  });
+  // The struck-through "original" date mirrors the sighting's current date
+  document.getElementById('meta-date-old').textContent =
+    document.getElementById('s2-date-label').textContent;
+  document.getElementById('metaMap').classList.remove('loc-off');   // map centred on photo
+  updateApplyLabel();
+  goTo('smeta');
 }
 
-function showPhotoAdded() {
-  // Reset s5 to pre-animation state before navigating (handles re-entry after reset)
-  const alertWrap = document.getElementById('s5-alert');
-  const dateIcon  = document.getElementById('s5-date-icon');
-  const locIcon   = document.getElementById('s5-loc-icon');
-  alertWrap.style.transition = 'none';
-  alertWrap.classList.add('collapsing');
-  dateIcon.classList.remove('dot-pop');
-  dateIcon.classList.add('dot-out');
-  locIcon.classList.remove('dot-pop');
-  locIcon.classList.add('dot-out');
+// Flip a field's prominence with a unified vertical "roll" of both lines.
+// Turning OFF (roll DOWN): every line shifts down together — the photo value
+// slides from the prominent slot into the muted slot (restyling as it lands), a
+// fading ghost of the original rides out of the bottom, and a fresh copy of the
+// original rolls in from above to take the prominent slot. Turning ON is the
+// mirror (everything rolls UP). The two slots sit in a clipped window so the
+// incoming/outgoing lines appear from outside the frame.
+// Slot transforms (must match the CSS): top = translateY(0), bottom = translateY(21).
+// Primary button reads "Continue" when nothing is selected, else "Apply selected"
+function updateApplyLabel() {
+  const dOff = document.getElementById('meta-date-toggle').classList.contains('off');
+  const lOff = document.getElementById('meta-loc-toggle').classList.contains('off');
+  document.getElementById('meta-apply-btn').textContent = (dOff && lOff) ? 'Continue' : 'Apply selected';
+}
 
+// Tapping a map pin selects that location: flip the toggle only if it isn't
+// already in the requested state (usePhoto = true → "From photo" pin).
+function selectLocation(usePhoto) {
+  const t = document.getElementById('meta-loc-toggle');
+  const usingPhoto = !t.classList.contains('off');
+  if (usePhoto !== usingPhoto) toggleField(t);
+}
+
+function toggleField(toggleEl) {
+  const field  = toggleEl.closest('.meta-field');
+  const win    = field.querySelector('.val-window');
+  const valNew = field.querySelector('.val-new');   // photo value — slides between slots
+  const valOld = field.querySelector('.val-old');   // original value — rolls in from outside
+
+  // Clear any in-flight state so rapid taps stay in sync
+  win.querySelectorAll('.val-ghost').forEach(g => g.remove());
+  valNew.getAnimations().forEach(a => a.cancel());
+  valOld.getAnimations().forEach(a => a.cancel());
+
+  const off = !field.classList.contains('off');     // target state
+  const P = 21, D = 260, EASE = 'cubic-bezier(.33,0,.2,1)';
+
+  // A frozen copy of the original value in its current slot. It rides the roll
+  // out of the window and fades, so the original looks replaced rather than moved.
+  const cs = getComputedStyle(valOld);
+  const ghost = valOld.cloneNode(true);
+  ghost.removeAttribute('id');
+  ghost.classList.add('val-ghost');
+  Object.assign(ghost.style, {
+    fontSize: cs.fontSize, fontWeight: cs.fontWeight, color: cs.color,
+    letterSpacing: cs.letterSpacing, textDecorationLine: cs.textDecorationLine,
+    transition: 'none'
+  });
+  win.appendChild(ghost);
+
+  toggleEl.classList.toggle('off', off);
+  field.classList.toggle('off', off);   // CSS eases size & colour on the two real values
+
+  // The location toggle also pans the map to re-centre on the active pin
+  if (toggleEl.id === 'meta-loc-toggle') {
+    document.getElementById('metaMap').classList.toggle('loc-off', off);
+  }
+  updateApplyLabel();
+
+  // Everything translates by the same amount and direction (down for OFF, up for ON).
+  // Offsets are relative to each line's natural slot: val-new = slot 1 (top),
+  // val-old = slot 2, ghost = slot 3 (appended last).
+  const nFrom = off ?  0      :  P;        // photo: prominent <-> muted slot
+  const nTo   = off ?  P      :  0;
+  const oFrom = off ? -2 * P  :  P;        // real original: just outside the arriving edge
+  const oTo   = off ? -P      :  0;
+  const gFrom = off ? -P      : -2 * P;    // ghost sits in the original's current slot …
+  const gTo   = off ?  0      : -3 * P;    // … then rolls out of the window and fades
+
+  // On turning OFF, hold the vertical roll until the badge has slid away first
+  // (the badge's own exit/enter timing is handled in CSS via transition-delay).
+  const rollDelay = off ? 150 : 0;
+
+  valNew.animate(
+    [ { transform: `translateY(${nFrom}px)` }, { transform: `translateY(${nTo}px)` } ],
+    { duration: D, delay: rollDelay, easing: EASE, fill: 'backwards' });
+
+  valOld.animate(
+    [ { transform: `translateY(${oFrom}px)` }, { transform: `translateY(${oTo}px)` } ],
+    { duration: D, delay: rollDelay, easing: EASE, fill: 'backwards' });
+
+  const g = ghost.animate(
+    [ { transform: `translateY(${gFrom}px)`, opacity: 1 },
+      { transform: `translateY(${gTo}px)`,   opacity: 0 } ],
+    { duration: D, delay: rollDelay, easing: EASE, fill: 'both' });   // hold start during delay, faded-out after
+  const drop = () => ghost.remove();
+  g.onfinish = drop;
+  setTimeout(drop, rollDelay + D + 80);   // fallback in case the finish event is missed
+}
+
+// "Apply selected": each field uses the photo value when its toggle is ON,
+// otherwise keeps the original value.
+function applyMetadata() {
+  const dateOn = !document.getElementById('meta-date-toggle').classList.contains('off');
+  const locOn  = !document.getElementById('meta-loc-toggle').classList.contains('off');
+  const origDate = document.getElementById('s2-date-label').textContent;
+  document.getElementById('s5-date-label').textContent = dateOn ? PHOTO_DATE : origDate;
+  document.getElementById('s5-loc-label').textContent  = locOn  ? PHOTO_LOC  : ORIG_LOC;
   goTo('s5');
-
-  // After screen transition, animate the alert and dots in
-  setTimeout(() => {
-    alertWrap.style.transition = '';
-    alertWrap.classList.remove('collapsing');
-
-    // Small stagger: dots pop in slightly after the alert starts opening
-    setTimeout(() => {
-      dateIcon.classList.remove('dot-out');
-      dateIcon.classList.add('dot-pop');
-      locIcon.classList.remove('dot-out');
-      locIcon.classList.add('dot-pop');
-      setTimeout(() => {
-        dateIcon.classList.remove('dot-pop');
-        locIcon.classList.remove('dot-pop');
-      }, 500);
-    }, 150);
-  }, 200);
 }
 
-function resetSighting() {
-  const dateLabel = document.getElementById('s5-date-label');
-  const locLabel  = document.getElementById('s5-loc-label');
-  const dateIcon  = document.getElementById('s5-date-icon');
-  const locIcon   = document.getElementById('s5-loc-icon');
-
-  // 0. Pan the map to the new location, then lock final position and remove
-  //    the class so the animation doesn't replay if s5 is hidden and re-shown
-  document.getElementById('s5-map').classList.add('panning');
-  setTimeout(() => {
-    const roads = document.getElementById('s5-map-roads');
-    if (roads) roads.style.transform = 'translateX(-50%)';
-    document.getElementById('s5-map').classList.remove('panning');
-  }, 1200);
-
-  // 1. Show loading state in the alert — keep it visible while animating
-  const alertMsg = document.querySelector('#s5-alert .alert-body p');
-  const alertBtn = document.querySelector('#s5-alert .alert-reset');
-  alertMsg.innerHTML = 'Resetting<span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span>';
-  alertBtn.style.display = 'none';
-
-  // 2. Shrink the dots away
-  dateIcon.classList.add('dot-out');
-  locIcon.classList.add('dot-out');
-  setTimeout(() => {
-    dateIcon.classList.remove('updated', 'dot-out');
-    locIcon.classList.remove('updated', 'dot-out');
-  }, 380);
-
-  // 3. Odometer-roll the text to original values (~0.95s)
-  odoSwap(dateLabel, document.getElementById('s2-date-label').textContent);
-  odoSwap(locLabel,  'The Needles, England, United Kingdom');
-
-  // 4. Collapse the alert once the roll has finished
-  setTimeout(() => {
-    document.getElementById('s5-alert').classList.add('collapsing');
-  }, 1100);
+// "Don't change anything" / "Skip": keep the sighting exactly as it was.
+function skipMetadata() {
+  document.getElementById('s5-date-label').textContent =
+    document.getElementById('s2-date-label').textContent;
+  document.getElementById('s5-loc-label').textContent = ORIG_LOC;
+  goTo('s5');
 }
 
 function selectSpecies(name) {
@@ -1725,6 +1834,27 @@ document.addEventListener('keydown', function (e) {
   if (e.key === 'ArrowRight' && i < ORDER.length - 1) goTo(ORDER[i + 1]);
   if (e.key === 'ArrowLeft'  && i > 0)                goTo(ORDER[i - 1]);
 });
+
+/* ─── Scale the phone to always fit the viewport (matches _resources/template.html) ─── */
+const shell = document.querySelector('.shell');
+const protoNavEl = document.querySelector('.proto-nav');
+function fitShell() {
+  shell.style.transform = 'none';
+  shell.style.marginBottom = '0px';
+  /* under 920px the nav drops into the flow above the phone — leave room for it */
+  const navH = protoNavEl && getComputedStyle(protoNavEl).position === 'static'
+    ? protoNavEl.offsetHeight + 18 : 0;
+  const W = shell.offsetWidth, H = shell.offsetHeight, margin = 40;
+  const s = Math.min(1, (window.innerHeight - margin - navH) / H, (window.innerWidth - margin) / W);
+  shell.style.transform = 'scale(' + s + ')';
+  /* A transform shrinks what's PAINTED but not the layout box, so a scaled
+     phone would still reserve 822px — enough to push the nav off the top on
+     narrow windows, or raise a scrollbar on short ones. Pull the difference
+     back so the shell occupies exactly the height it now fills. */
+  shell.style.marginBottom = -(H * (1 - s)) + 'px';
+}
+window.addEventListener('resize', fitShell);
+fitShell();
 </script>
 </body>
 </html>
