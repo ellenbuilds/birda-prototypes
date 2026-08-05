@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Birda Prototype – PEX-44</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <!--
+    ╔══════════════════════════════════════════════════════════════════╗
+    ║  PEX-44 · Collapsing ID header — "What did you see?"               ║
+    ║  Built from _resources/template.html, so the phone shell, the      ║
+    ║  wayfinding nav and the scale-to-fit all come from the house       ║
+    ║  template. The prototype-specific CSS is the "PEX-44: collapsing   ║
+    ║  ID header" block below; scrolling the list adds .collapsed to the ║
+    ║  sticky header, which shrinks the two ID buttons to icons.         ║
+    ║                                                                    ║
+    ║  Ported from the Figma/DC bundle export. Bird photos come from the  ║
+    ║  shared _resources/bird-photos/ folder; the Unidentified Species    ║
+    ║  illustration was lifted out of the export into imgs/ as one SVG.   ║
+    ╚══════════════════════════════════════════════════════════════════╝
+  -->
+  <style>
+  /* ─── Reset & tokens ─── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  button { font: inherit; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  :root { --blue:#1F87FE; --blue-5:#E3F0FF; --ink:#2D3142; --muted:#8890AE; --cloud:#F4F6FA; --line:#E4E8F0; }
+  html, body { height:100%; }
+  body {
+    height:100vh; overflow:hidden; background:#dde1e9;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    font-family:'Rubik',-apple-system,sans-serif; color:var(--ink);
+  }
+
+  /* ─── Phone shell (house style) ─── */
+  .shell { width:393px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:top center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.45); }
+  .shell::before { content:''; position:absolute; left:-3px; top:106px; width:3px; height:34px; background:#222; border-radius:2px 0 0 2px; box-shadow:0 44px 0 #222,0 88px 0 #222; }
+  .shell::after { content:''; position:absolute; right:-3px; top:156px; width:3px; height:72px; background:#222; border-radius:0 2px 2px 0; }
+  .viewport { width:369px; height:798px; border-radius:44px; overflow:hidden; position:relative; background:#fff; }
+
+  /* ─── Screen scaffold ─── */
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; background:#fff; }
+  .screen.active { display:flex; }
+  .body { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .body::-webkit-scrollbar { display:none; }
+  .footer { flex-shrink:0; padding:12px 24px 28px; background:#fff; }
+
+  /* status bar */
+  .statusbar { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:14px 26px 6px; z-index:5; }
+  .statusbar .time { font-size:15px; font-weight:600; }
+  .statusbar svg { display:block; }
+  .statusbar.light .time { color:#fff; } .statusbar.light svg { fill:#fff; }
+
+  /* buttons */
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px; border-radius:4px; font-size:16px; font-weight:600; }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:active { background:#0f6fe0; }
+
+  /* ─── Wayfinding: back to list + (optional) iteration switcher & about ─── */
+  .proto-nav { position:fixed; top:22px; left:22px; z-index:200; width:190px; display:flex; flex-direction:column; gap:12px; font-family:'Rubik',-apple-system,sans-serif; }
+  .proto-back { align-self:flex-start; display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:500; color:#4A4E5A; text-decoration:none; padding:7px 12px 7px 10px; background:#fff; border:1px solid #E5E5EA; border-radius:8px; transition:background .12s; }
+  .proto-back:hover { background:#F7F7FA; }
+  .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+  .proto-pages { background:#fff; border:1px solid #E5E5EA; border-radius:10px; padding:6px; }
+  .proto-pages-head { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#8E8E93; padding:7px 10px 8px; }
+  .proto-page { display:block; font-size:14px; font-weight:500; color:#2D3142; text-decoration:none; padding:8px 10px; border-radius:7px; transition:background .12s; }
+  .proto-page:hover { background:#F2F2F7; }
+  .proto-page.active { background:#E2F0FF; color:#1F87FE; }
+  .proto-about { background:#fff; border:1px solid #E5E5EA; border-radius:10px; padding:13px; display:flex; flex-direction:column; gap:11px; }
+  .proto-about-head { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#8E8E93; }
+  .proto-about-text { font-size:12px; line-height:1.5; color:#6B6F7B; }
+  .proto-about-text strong { font-weight:600; color:#2D3142; }
+  .proto-reset { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; font-size:13px; font-weight:500; color:#2D3142; background:#F2F2F7; border:1px solid #E5E5EA; border-radius:8px; padding:9px 10px; cursor:pointer; transition:background .12s; }
+  .proto-reset:hover { background:#EBEBF0; }
+  .proto-reset svg { width:13px; height:13px; flex-shrink:0; }
+  /* narrow windows: the nav sits above the phone instead of overlapping it */
+  @media (max-width: 920px) { .proto-nav { position:static; width:auto; margin:0 0 20px; align-items:center; } }
+
+  /* ─── PEX-44: collapsing ID header ────────────────────────────────────
+     Ported from the Figma/DC export, which was authored against a 402x874
+     screen (iPhone 16 Pro). The house frame is 369x798, so the whole design
+     is scaled by --k = 798/874 — the same convention v1 uses. Every length
+     is written as `calc(N * var(--k))` where N is the ORIGINAL authored
+     number, so the provenance stays readable and the scale is applied in
+     exactly one place. The 23px side gutters are 24px * --k rounded so the
+     card column lands exactly on the frame width.
+
+     This is a pure LAYOUT scale — no transform, no zoom.
+
+     The collapse is driven by ONE class, .collapsed, on the sticky header.
+     Every animated value is an absolute position or size on an element
+     inside .wd-area, so the two states are just two sets of numbers and the
+     browser tweens between them. The DC original drove the same numbers
+     from its scroll handler; they are kept verbatim as the `N` in each
+     calc() so the two versions can be diffed. */
+  :root { --k:0.913043; --dur:400ms; --ease:cubic-bezier(0.3,0.7,0.2,1); }
+
+  .wd-screen { background:#FAFCFE; }
+
+  /* header bar */
+  .wd-head { height:44px; flex-shrink:0; position:relative; background:#FAFCFE; box-shadow:0 .5px 0 #D4D8E4; display:flex; align-items:center; z-index:20; }
+  .wd-head .wd-title { position:absolute; left:0; right:0; text-align:center; font-size:17px; font-weight:500; color:#2D3142; }
+  .wd-head .wd-back { position:absolute; left:20px; display:flex; }
+  .wd-head .wd-more { position:absolute; right:24px; display:flex; }
+
+  /* sticky ID header — collapses as the list scrolls under it */
+  .wd-sticky { position:sticky; top:0; z-index:10; background:#FAFCFE; flex-shrink:0;
+    padding:calc(24px * var(--k)) 23px calc(16px * var(--k)); }
+  .wd-area { position:relative; height:calc(140px * var(--k)); transition:height var(--dur) var(--ease); }
+  .wd-sticky.collapsed .wd-area { height:calc(88px * var(--k)); }
+
+  /* search pill */
+  .wd-search { position:absolute; left:0; right:0; top:0; height:calc(52px * var(--k));
+    border-radius:9999px; background:#F4F6FA; box-shadow:inset 0 0 0 1px #D4D8E4;
+    display:flex; flex-direction:row; gap:calc(8px * var(--k)); align-items:center;
+    padding:calc(8px * var(--k)) calc(8px * var(--k)) calc(8px * var(--k)) calc(12px * var(--k)); cursor:text; }
+  .wd-search svg { width:calc(16px * var(--k)); height:calc(16px * var(--k)); flex-shrink:0; color:#8790AF; }
+  .wd-search span { flex-grow:1; font-size:calc(16px * var(--k)); line-height:calc(24px * var(--k)); color:#4C5980; white-space:nowrap; overflow:hidden; }
+
+  /* the two gradient-outlined ID buttons */
+  .wd-idbtn { position:absolute; height:calc(36px * var(--k)); width:calc(173px * var(--k));
+    top:calc(64px * var(--k)); border-radius:999px; border:2px solid transparent;
+    background:linear-gradient(#E3F0FF,#E3F0FF) padding-box,
+               linear-gradient(128.66deg, #3FCEE0 0%, #1F87FE 38.89%, #896BE1 70.71%) border-box;
+    display:flex; flex-direction:row; justify-content:center; align-items:center; overflow:hidden;
+    transition:width calc(var(--dur) * .8) cubic-bezier(0.35,0.9,0.3,1) calc(var(--dur) * .12),
+               right var(--dur) var(--ease),
+               top var(--dur) var(--ease); }
+  .wd-idbtn:hover { background:linear-gradient(#D4E7FF,#D4E7FF) padding-box,
+               linear-gradient(128.66deg, #3FCEE0 0%, #1F87FE 38.89%, #896BE1 70.71%) border-box; }
+  .wd-idbtn svg { width:calc(16px * var(--k)); height:calc(16px * var(--k)); flex-shrink:0; }
+  /* The Sound ID glyph sits inside a lot more internal padding than the camera,
+     so it is drawn at its authored 24px to read as the same weight. The button
+     is a fixed size either way, so this only changes the glyph. */
+  .wd-idbtn img { width:calc(24px * var(--k)); height:calc(24px * var(--k)); flex-shrink:0; display:block; }
+  .wd-idbtn span { flex-shrink:0; font-size:calc(14px * var(--k)); font-weight:500; line-height:calc(20px * var(--k));
+    color:#2D3142; white-space:nowrap; overflow:hidden;
+    max-width:calc(90px * var(--k)); opacity:1; margin-left:calc(4px * var(--k));
+    transition:max-width calc(var(--dur) * .7) cubic-bezier(0.35,0.9,0.3,1) calc(var(--dur) * .18),
+               margin-left calc(var(--dur) * .7) cubic-bezier(0.35,0.9,0.3,1) calc(var(--dur) * .18),
+               opacity calc(var(--dur) * .5) ease-out calc(var(--dur) * .25); }
+  .wd-photo { right:calc(181px * var(--k)); }
+  .wd-sound { right:0; }
+
+  /* collapsed: the buttons shrink to their icons and tuck up beside the search pill.
+     The delays swap ends so the label always leaves before the pill narrows,
+     and the pill always widens before the label arrives. */
+  .wd-sticky.collapsed .wd-idbtn { width:calc(36px * var(--k)); top:calc(8px * var(--k));
+    transition:width calc(var(--dur) * .8) cubic-bezier(0.35,0.9,0.3,1),
+               right var(--dur) var(--ease) calc(var(--dur) * .12),
+               top var(--dur) var(--ease) calc(var(--dur) * .12); }
+  .wd-sticky.collapsed .wd-idbtn span { max-width:0; opacity:0; margin-left:0;
+    transition:max-width calc(var(--dur) * .7) cubic-bezier(0.35,0.9,0.3,1),
+               margin-left calc(var(--dur) * .7) cubic-bezier(0.35,0.9,0.3,1),
+               opacity calc(var(--dur) * .5) ease-out; }
+  .wd-sticky.collapsed .wd-photo { right:calc(48px * var(--k)); }
+  .wd-sticky.collapsed .wd-sound { right:calc(8px * var(--k)); }
+
+  /* "Showing birds near: …" row */
+  .wd-loc { position:absolute; left:calc(4px * var(--k)); right:calc(4px * var(--k));
+    top:calc(112px * var(--k)); height:calc(28px * var(--k));
+    display:flex; flex-direction:row; gap:calc(4px * var(--k)); align-items:center;
+    transition:top var(--dur) var(--ease); }
+  .wd-sticky.collapsed .wd-loc { top:calc(60px * var(--k)); }
+  .wd-loc > span { flex-grow:1; font-size:calc(12px * var(--k)); line-height:calc(16px * var(--k)); color:#4C5980; }
+  .wd-chip { height:calc(28px * var(--k)); border-radius:999px; background:#fff;
+    box-shadow:inset 0 0 0 1px #E4E8F0; display:flex; flex-direction:row; gap:calc(6px * var(--k));
+    padding:calc(6px * var(--k)) calc(10px * var(--k)); align-items:center; flex-shrink:0; cursor:pointer; }
+  .wd-chip span { flex-shrink:0; font-size:calc(12px * var(--k)); line-height:calc(16px * var(--k)); color:#4C5980; white-space:nowrap; }
+  .wd-chip svg { flex-shrink:0; color:#6875A1; }
+  .wd-chip svg:first-child { width:calc(14px * var(--k)); height:calc(14px * var(--k)); }
+  .wd-chip svg:last-child  { width:calc(12px * var(--k)); height:calc(12px * var(--k)); }
+
+  /* ─── species list ─── */
+  .wd-list { display:flex; flex-direction:column; gap:calc(12px * var(--k)); padding:0 23px calc(24px * var(--k)); flex-shrink:0; }
+  .card { height:calc(98px * var(--k)); border-radius:calc(4px * var(--k)); background:#fff;
+    box-shadow:inset 0 0 0 1px #E4E8F0; display:flex; flex-direction:row; gap:calc(16px * var(--k));
+    align-items:center; flex-shrink:0; overflow:hidden; cursor:pointer; }
+  .card:hover { background:#FAFCFE; }
+  .card-text { display:flex; flex-direction:column; gap:calc(8px * var(--k));
+    padding:calc(8px * var(--k)) calc(12px * var(--k)) calc(8px * var(--k)) 0;
+    justify-content:center; align-items:flex-start; flex-grow:1; align-self:stretch; }
+  .card-name { align-self:stretch; font-size:calc(14px * var(--k)); font-weight:500; line-height:calc(20px * var(--k)); color:#2D3142; }
+  .card-sci  { align-self:stretch; font-size:calc(14px * var(--k)); font-style:italic; line-height:calc(20px * var(--k)); color:#6875A1; }
+  .card-icon { width:calc(24px * var(--k)); height:calc(24px * var(--k)); flex-shrink:0; color:#2D3142; }
+
+  /* photo cards */
+  .card-photo { width:calc(124px * var(--k)); align-self:stretch; display:flex; flex-direction:column;
+    padding:calc(4px * var(--k)); flex-shrink:0; }
+  .card-photo > div { width:calc(120px * var(--k)); height:calc(90px * var(--k));
+    background-position:center; background-size:cover; background-repeat:no-repeat; background-color:#fff; }
+
+  /* the Unidentified Species card leads the list */
+  .card-unid .card-illus { width:calc(123px * var(--k)); align-self:stretch; display:flex; flex-direction:column;
+    padding:calc(1px * var(--k)); flex-shrink:0; }
+  .card-unid .card-illus img { height:calc(96px * var(--k)); align-self:stretch; flex-shrink:0;
+    border-radius:calc(3px * var(--k)) 0 0 calc(3px * var(--k)); object-fit:cover; }
+  .card-unid .card-text { gap:calc(4px * var(--k)); }
+  .card-unid .card-badge { border-radius:calc(4px * var(--k)); background:#E3F0FF; padding:0 calc(4px * var(--k));
+    flex-shrink:0; font-size:calc(14px * var(--k)); font-weight:500; line-height:calc(20px * var(--k)); color:#1F87FE; white-space:nowrap; }
+  </style>
+</head>
+<body>
+<!-- Wayfinding (built from the PROTO config by the script below) -->
+<nav class="proto-nav" id="protoNav"></nav>
+
+<!-- Icons used more than once, referenced below with <use href="#id"> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="idGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#3FCEE0"/><stop offset="38.89%" stop-color="#1F87FE"/><stop offset="70.71%" stop-color="#896BE1"/>
+  </linearGradient>
+  <!-- dimorphic (male/female) marker on every species row -->
+  <path id="ic-dimorphic" d="M 12.75 1.125 C 12.75 1.748 13.252 2.25 13.875 2.25 L 15.661 2.25 L 13.65 4.261 C 12.202 3.009 10.313 2.25 8.25 2.25 C 3.694 2.25 0 5.944 0 10.5 C 0 14.677 3.103 18.127 7.125 18.675 L 7.125 19.5 L 6 19.5 C 5.377 19.5 4.875 20.002 4.875 20.625 C 4.875 21.248 5.377 21.75 6 21.75 L 7.125 21.75 L 7.125 22.875 C 7.125 23.498 7.627 24 8.25 24 C 8.873 24 9.375 23.498 9.375 22.875 L 9.375 21.75 L 10.5 21.75 C 11.123 21.75 11.625 21.248 11.625 20.625 C 11.625 20.002 11.123 19.5 10.5 19.5 L 9.375 19.5 L 9.375 18.675 C 13.397 18.127 16.5 14.677 16.5 10.5 C 16.5 8.822 15.998 7.256 15.136 5.953 L 17.25 3.839 L 17.25 5.625 C 17.25 6.248 17.752 6.75 18.375 6.75 C 18.998 6.75 19.5 6.248 19.5 5.625 L 19.5 1.125 C 19.5 0.502 18.998 0 18.375 0 L 13.875 0 C 13.252 0 12.75 0.502 12.75 1.125 Z M 8.25 4.5 C 9.841 4.5 11.367 5.132 12.493 6.257 C 13.618 7.383 14.25 8.909 14.25 10.5 C 14.25 12.091 13.618 13.617 12.493 14.743 C 11.367 15.868 9.841 16.5 8.25 16.5 C 6.659 16.5 5.133 15.868 4.007 14.743 C 2.882 13.617 2.25 12.091 2.25 10.5 C 2.25 8.909 2.882 7.383 4.007 6.257 C 5.133 5.132 6.659 4.5 8.25 4.5 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 2 0)"/>
+  <!-- chevron-right, used by the location chip -->
+  <path id="ic-chev-right" d="M 11.563 9.444 C 12.149 10.03 12.149 10.982 11.563 11.568 L 2.563 20.568 C 1.977 21.154 1.025 21.154 0.439 20.568 C -0.146 19.982 -0.146 19.03 0.439 18.444 L 8.38 10.504 L 0.444 2.563 C -0.142 1.977 -0.142 1.025 0.444 0.439 C 1.03 -0.146 1.982 -0.146 2.568 0.439 L 11.568 9.439 L 11.563 9.444 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 5.999 1.496)"/>
+</defs></svg>
+
+<div class="shell">
+  <div class="viewport" id="viewport">
+
+    <!-- ▼▼▼  Collapsing ID header — "What did you see?"  ▼▼▼ -->
+    <section class="screen wd-screen active" data-screen="1">
+      <div class="statusbar"></div>
+
+      <div class="wd-head">
+        <span class="wd-back">
+          <svg width="24" height="24" viewBox="0 0 24 24"><path d="M 0.439 9.444 C -0.146 10.03 -0.146 10.982 0.439 11.568 L 9.439 20.568 C 10.025 21.154 10.977 21.154 11.563 20.568 C 12.149 19.982 12.149 19.03 11.563 18.444 L 3.622 10.504 L 11.558 2.563 C 12.144 1.977 12.144 1.025 11.558 0.439 C 10.972 -0.146 10.021 -0.146 9.435 0.439 L 0.435 9.439 L 0.439 9.444 Z" fill="#2D3142" fill-rule="evenodd" transform="matrix(1 0 0 1 5.999 1.496)"/></svg>
+        </span>
+        <span class="wd-title">What did you see?</span>
+        <span class="wd-more">
+          <svg width="24" height="24" viewBox="0 0 24 24"><path d="M 0 2.625 C 0 1.929 0.277 1.261 0.769 0.769 C 1.261 0.277 1.929 0 2.625 0 C 3.321 0 3.989 0.277 4.481 0.769 C 4.973 1.261 5.25 1.929 5.25 2.625 C 5.25 3.321 4.973 3.989 4.481 4.481 C 3.989 4.973 3.321 5.25 2.625 5.25 C 1.929 5.25 1.261 4.973 0.769 4.481 C 0.277 3.989 0 3.321 0 2.625 Z M 7.5 2.625 C 7.5 1.929 7.777 1.261 8.269 0.769 C 8.761 0.277 9.429 0 10.125 0 C 10.821 0 11.489 0.277 11.981 0.769 C 12.473 1.261 12.75 1.929 12.75 2.625 C 12.75 3.321 12.473 3.989 11.981 4.481 C 11.489 4.973 10.821 5.25 10.125 5.25 C 9.429 5.25 8.761 4.973 8.269 4.481 C 7.777 3.989 7.5 3.321 7.5 2.625 Z M 17.625 0 C 18.321 0 18.989 0.277 19.481 0.769 C 19.973 1.261 20.25 1.929 20.25 2.625 C 20.25 3.321 19.973 3.989 19.481 4.481 C 18.989 4.973 18.321 5.25 17.625 5.25 C 16.929 5.25 16.261 4.973 15.769 4.481 C 15.277 3.989 15 3.321 15 2.625 C 15 1.929 15.277 1.261 15.769 0.769 C 16.261 0.277 16.929 0 17.625 0 Z" fill="#2D3142" fill-rule="evenodd" transform="matrix(1 0 0 1 1.875 9.375)"/></svg>
+        </span>
+      </div>
+
+      <div class="body" id="wdBody">
+
+        <div class="wd-sticky" id="wdSticky">
+          <div class="wd-area">
+
+            <div class="wd-search">
+              <svg viewBox="0 0 24 24"><path d="M 17.248 9.752 C 17.248 7.762 16.458 5.854 15.052 4.447 C 13.645 3.041 11.738 2.25 9.749 2.25 C 7.76 2.25 5.853 3.041 4.446 4.447 C 3.04 5.854 2.25 7.762 2.25 9.752 C 2.25 11.741 3.04 13.649 4.446 15.056 C 5.853 16.463 7.76 17.253 9.749 17.253 C 11.738 17.253 13.645 16.463 15.052 15.056 C 16.458 13.649 17.248 11.741 17.248 9.752 Z M 15.8 17.398 C 14.141 18.716 12.036 19.503 9.749 19.503 C 4.364 19.503 0 15.139 0 9.752 C 0 4.365 4.364 0 9.749 0 C 15.134 0 19.498 4.365 19.498 9.752 C 19.498 12.04 18.711 14.145 17.394 15.804 L 23.67 22.082 C 24.11 22.523 24.11 23.235 23.67 23.671 C 23.229 24.107 22.517 24.112 22.081 23.671 L 15.8 17.398 Z" fill="currentColor" fill-rule="evenodd"/></svg>
+              <span>Describe the bird</span>
+            </div>
+
+            <button class="wd-idbtn wd-photo">
+              <svg viewBox="0 0 24 24"><path fill="url(#idGrad)" d="M 6.989 1.538 L 6.502 3 L 3 3 C 1.345 3 0 4.345 0 6 L 0 18 C 0 19.655 1.345 21 3 21 L 21 21 C 22.655 21 24 19.655 24 18 L 24 6 C 24 4.345 22.655 3 21 3 L 17.498 3 L 17.011 1.538 C 16.706 0.619 15.848 0 14.878 0 L 9.122 0 C 8.152 0 7.294 0.619 6.989 1.538 Z M 12 7.5 C 13.193 7.5 14.338 7.974 15.182 8.818 C 16.026 9.662 16.5 10.807 16.5 12 C 16.5 13.193 16.026 14.338 15.182 15.182 C 14.338 16.026 13.193 16.5 12 16.5 C 10.807 16.5 9.662 16.026 8.818 15.182 C 7.974 14.338 7.5 13.193 7.5 12 C 7.5 10.807 7.974 9.662 8.818 8.818 C 9.662 7.974 10.807 7.5 12 7.5 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 1.500)"/></svg>
+              <span>Photo ID</span>
+            </button>
+
+            <button class="wd-idbtn wd-sound">
+              <img src="imgs/sound-id.svg" alt="">
+              <span>Sound ID</span>
+            </button>
+
+            <div class="wd-loc">
+              <span>Showing birds near:</span>
+              <div class="wd-chip">
+                <svg viewBox="0 0 24 24"><path d="M 19.387 2.067 C 19.617 1.509 19.485 0.867 19.059 0.44 C 18.632 0.013 17.99 -0.118 17.432 0.112 L 0.932 6.862 C 0.267 7.134 -0.108 7.837 0.028 8.54 C 0.164 9.243 0.782 9.749 1.5 9.749 L 9.75 9.749 L 9.75 17.999 C 9.75 18.717 10.256 19.331 10.959 19.471 C 11.662 19.612 12.365 19.232 12.637 18.567 L 19.387 2.067 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 2.251 2.250)"/></svg>
+                <span>Kings Cross, UK</span>
+                <svg viewBox="0 0 24 24"><use href="#ic-chev-right"/></svg>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="wd-list">
+
+          <div class="card card-unid">
+            <div class="card-illus"><img src="imgs/unidentified-species.svg" alt="Unidentified species"></div>
+            <div class="card-text">
+              <span class="card-badge">Unidentified Species</span>
+              <span class="card-sci">I don’t know, ask the community for help</span>
+            </div>
+          </div>
+
+          <!-- Species rows. Photos come from the shared _resources/bird-photos/ folder. -->
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/Common_Wood_Pigeon_2.webp')" role="img" aria-label="Woodpigeon"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">Woodpigeon</span><br>
+                <span class="card-sci">Columba palumbus</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/Carrion_Crow.webp')" role="img" aria-label="Carrion Crow"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">Carrion Crow</span><br>
+                <span class="card-sci">Corvus corone</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/Eurasian_Blue_Tit.webp')" role="img" aria-label="Blue Tit"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">Blue Tit</span><br>
+                <span class="card-sci">Cyanistes caeruleus</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/European_Robin.webp')" role="img" aria-label="Robin"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">Robin</span><br>
+                <span class="card-sci">Erithacus rubecula</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/Common_Blackbird_-_Male.webp')" role="img" aria-label="Blackbird"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">Blackbird</span><br>
+                <span class="card-sci">Turdus merula</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/Eurasian_Magpie.webp')" role="img" aria-label="Magpie"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">Magpie</span><br>
+                <span class="card-sci">Pica pica</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/House_Sparrow_-_Male.webp')" role="img" aria-label="House Sparrow"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">House Sparrow</span><br>
+                <span class="card-sci">Passer domesticus</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/Great_Tit_-_Male.webp')" role="img" aria-label="Great Tit"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">Great Tit</span><br>
+                <span class="card-sci">Parus major</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/Dunnock.webp')" role="img" aria-label="Dunnock"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">Dunnock</span><br>
+                <span class="card-sci">Prunella modularis</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-photo"><div style="background-image:url('../../_resources/bird-photos/Common_Moorhen.webp')" role="img" aria-label="Moorhen"></div></div>
+            <div class="card-text">
+              <div style="align-self:stretch">
+                <span class="card-name">Moorhen</span><br>
+                <span class="card-sci">Gallinula chloropus</span>
+              </div>
+              <svg class="card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+    <!-- ▲▲▲ ------------------------------------------------------- ▲▲▲ -->
+
+  </div>
+</div>
+
+<script>
+  /* ══ CONFIG — edit per prototype ════════════════════════════════════ */
+  const PROTO = {
+    indexHref: '../../index.html', // path to the prototypes index ('../index.html' if not nested in a version folder)
+    group: 'PEX-44',              // label shown above the iteration list
+    current: 1,                   // 0-based index of the iteration THIS file represents
+    iterations: [                 // add a 2nd entry to reveal the switcher + description
+      { label: 'Iteration 1', href: '../v1/index.html' },
+      { label: 'Iteration 2', href: '../v2/index.html' },
+    ],
+    about: 'Scroll the species list. The ID header <strong>collapses as you scroll</strong> — Photo ID and Sound ID shrink to their icons and tuck up beside the search field. Scroll back to the top to expand them again.',
+  };
+  /* ═══════════════════════════════════════════════════════════════════ */
+
+  /* ── Wayfinding: back button always; about panel whenever PROTO.about is set;
+        iteration switcher only once there are 2+ iterations ── */
+  (function buildNav() {
+    const back = '<a class="proto-back" href="' + PROTO.indexHref + '">'
+      + '<svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      + 'All prototypes</a>';
+    let extra = '';
+    if (PROTO.iterations.length >= 2) {
+      const pages = PROTO.iterations.map((it, i) =>
+        '<a class="proto-page' + (i === PROTO.current ? ' active' : '') + '" href="' + it.href + '">' + it.label + '</a>'
+      ).join('');
+      extra += '<div class="proto-pages"><div class="proto-pages-head">' + PROTO.group + '</div>' + pages + '</div>';
+    }
+    if (PROTO.about) {
+      extra += '<div class="proto-about"><div class="proto-about-head">About this version</div>'
+        + '<p class="proto-about-text">' + PROTO.about + '</p>'
+        + '<button class="proto-reset" onclick="location.reload()">'
+        + '<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        + 'Restart prototype</button></div>';
+    }
+    document.getElementById('protoNav').innerHTML = back + extra;
+  })();
+
+  /* ── Status bar (9:41 + signal/wifi/battery) injected into every .statusbar ── */
+  const sbSVG = '<svg width="78" height="14" viewBox="0 0 82 16" fill="black"><path d="M3.7 9H2.5a1 1 0 0 0-1 1v2.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1m5.2-2.5H7.7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1M14.1 4h-1.2a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1m5.2-2.5h-1.2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1"/><path d="M70.5 1c2.05 0 3.08 0 3.88.34a4.3 4.3 0 0 1 2.28 2.28c.34.8.34 1.83.34 3.88s0 3.08-.34 3.88a4.3 4.3 0 0 1-2.28 2.28c-.8.34-1.83.34-3.88.34h-12c-2.05 0-3.08 0-3.88-.34a4.3 4.3 0 0 1-2.28-2.28C52 10.58 52 9.55 52 7.5s0-3.08.34-3.88a4.3 4.3 0 0 1 2.28-2.28C55.42 1 56.45 1 58.5 1z" opacity=".35"/><path d="M54 7c0-1.4 0-2.1.27-2.63a2.5 2.5 0 0 1 1.1-1.1C55.9 3 56.6 3 58 3h13c1.4 0 2.1 0 2.64.27q.72.37 1.09 1.1C75 4.9 75 5.6 75 7v1c0 1.4 0 2.1-.27 2.64a2.5 2.5 0 0 1-1.1 1.09C73.1 12 72.4 12 71 12H58c-1.4 0-2.1 0-2.63-.27a2.5 2.5 0 0 1-1.1-1.1C54 10.1 54 9.4 54 8z"/></svg>';
+  document.querySelectorAll('.statusbar').forEach(sb => { sb.innerHTML = '<span class="time">9:41</span>' + sbSVG; });
+
+  /* ── Screen navigation ── */
+  const screens = [...document.querySelectorAll('.screen')];
+  let cur = 1;
+  function show(n) {
+    cur = Math.max(1, Math.min(screens.length, n));
+    screens.forEach(s => s.classList.toggle('active', +s.dataset.screen === cur));
+    const active = screens.find(s => +s.dataset.screen === cur);
+    const body = active && active.querySelector('.body'); if (body) body.scrollTop = 0;
+  }
+  function next() { show(cur === screens.length ? 1 : cur + 1); }
+  function goTo(n) { show(n); }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') next();
+    else if (e.key === 'ArrowLeft') show(cur === 1 ? screens.length : cur - 1);
+  });
+  show(parseInt((location.hash || '').replace('#', '')) || 1);  // open at #N if present
+
+  /* ── PEX-44: collapse the ID header once the list starts scrolling ──
+     Asymmetric thresholds (collapse past 40px, expand only back at 4px) —
+     collapsing removes ~47px of sticky height, which itself moves the scroll
+     position, so a single threshold would sit on the boundary and flap. */
+  (function collapseOnScroll() {
+    const body = document.getElementById('wdBody');
+    const sticky = document.getElementById('wdSticky');
+    body.addEventListener('scroll', () => {
+      const y = body.scrollTop;
+      if (y > 40) sticky.classList.add('collapsed');
+      else if (y < 4) sticky.classList.remove('collapsed');
+    }, { passive: true });
+  })();
+
+  /* ── Scale the phone to always fit the viewport ── */
+  const shell = document.querySelector('.shell');
+  const protoNavEl = document.querySelector('.proto-nav');
+  function fitShell() {
+    shell.style.transform = 'none';
+    shell.style.marginBottom = '0px';
+    /* under 920px the nav drops into the flow above the phone — leave room for it */
+    const navH = protoNavEl && getComputedStyle(protoNavEl).position === 'static'
+      ? protoNavEl.offsetHeight + 18 : 0;
+    const W = shell.offsetWidth, H = shell.offsetHeight, margin = 40;
+    const s = Math.min(1, (window.innerHeight - margin - navH) / H, (window.innerWidth - margin) / W);
+    shell.style.transform = 'scale(' + s + ')';
+    /* A transform shrinks what's PAINTED but not the layout box, so a scaled
+       phone would still reserve 822px — enough to push the nav off the top on
+       narrow windows, or raise a scrollbar on short ones. Pull the difference
+       back so the shell occupies exactly the height it now fills. */
+    shell.style.marginBottom = -(H * (1 - s)) + 'px';
+  }
+  window.addEventListener('resize', fitShell);
+  fitShell();
+</script>
+</body>
+</html>
