@@ -8,11 +8,29 @@
   <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
   <!--
     ╔══════════════════════════════════════════════════════════════════╗
-    ║  PEX-44 · Photo grow — expanding sighting photos                  ║
-    ║  Built from _resources/template.html, so the phone shell, the      ║
-    ║  wayfinding nav and the scale-to-fit all come from the house       ║
-    ║  template. The prototype-specific CSS is the "PEX-44: photo grow"  ║
-    ║  block below; tapping the photo toggles .exp on the card.          ║
+    ║  PEX-44 · Search box + photo grow                                  ║
+    ║  Built from _resources/template.html, so the phone shell, the       ║
+    ║  wayfinding nav and the scale-to-fit all come from the house        ║
+    ║  template.                                                          ║
+    ║                                                                     ║
+    ║  Screen 1 — "What did you see?" with the search BOX: one bordered    ║
+    ║    card holding the search field, the two ID buttons and the location ║
+    ║    chip, pinned above the list. Three states on one screen, switched  ║
+    ║    by data-sb (see the CSS block): idle / focus / results / photo,    ║
+    ║    from Figma 2269-12527, 2277-12659, 2277-12627 · 2277-12681 and     ║
+    ║    2287-35555 · 2287-35599. A photo is an INPUT in the search box,    ║
+    ║    not a screen of its own — the crop stage returns here.             ║
+    ║    The location chip opens the map sheet (2277-12796 / 12820).        ║
+    ║  Screens 2–5 — camera, confirmation, photo library, cropping.        ║
+    ║    Screenshot placeholders (2277-12851 / 12855 / 12862 / 12857) with  ║
+    ║    hotspots over the controls, reached from the Photo ID menu         ║
+    ║    (2277-12712). Take photo runs 2 → 3 → 5; Choose photo runs 4 → 5,  ║
+    ║    and Use Photo on 5 hands back to screen 1 in its photo state.      ║
+    ║                                                                     ║
+    ║  Screen 1 shares its species list with v2; the difference between    ║
+    ║  the two routes is the top of the screen — v1 puts search, ID       ║
+    ║  buttons and location inside one card, v2 lays them out loose and    ║
+    ║  collapses them on scroll.                                          ║
     ╚══════════════════════════════════════════════════════════════════╝
   -->
   <style>
@@ -35,7 +53,11 @@
   .viewport { width:369px; height:798px; border-radius:44px; overflow:hidden; position:relative; background:#fff; }
 
   /* ─── Screen scaffold ─── */
-  .screen { position:absolute; inset:0; display:none; flex-direction:column; background:#fff; }
+  /* overflow:hidden matters: anything parked off-screen with translateY(100%)
+     — the keyboard, the location sheet — otherwise counts as scrollable
+     overflow inside .viewport, and focusing a field makes the browser scroll
+     that phantom area into view, carrying the parked element with it. */
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; background:#fff; overflow:hidden; }
   .screen.active { display:flex; }
   .body { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .body::-webkit-scrollbar { display:none; }
@@ -72,110 +94,1021 @@
   /* narrow windows: the nav sits above the phone instead of overlapping it */
   @media (max-width: 920px) { .proto-nav { position:static; width:auto; margin:0 0 20px; align-items:center; } }
 
-  /* ─── PEX-44: photo grow ───────────────────────────────────────────────
-     Ported from the Figma/DC export, which was authored against a 402x874
-     screen (iPhone 16 Pro). The house frame is 369x798, so the whole card
-     design is scaled by --k = 798/874. Every length below is written as
-     `calc(N * var(--k))` where N is the ORIGINAL authored number, so the
-     provenance stays readable and the scale is applied in exactly one place.
+  /* ─── Shared scale ─────────────────────────────────────────────────────
+     Both screens were authored against a 402x874 screen (iPhone 16 Pro).
+     The house frame is 369x798, so every design length is written as
+     `calc(N * var(--k))` where N is the ORIGINAL authored number and
+     --k = 798/874. The provenance stays readable and the scale lives in
+     exactly one place. This is a pure LAYOUT scale — no transform, no zoom.
+     The 23px side gutters are 24px * --k rounded so the card column lands
+     exactly on the frame width. */
+  :root { --k:0.913043; --dur:400ms; --ease:cubic-bezier(0.4,0,0.2,1); }
 
-     This is a pure LAYOUT scale — no transform, no zoom. The design keeps its
-     proportions, the screen fills the frame like every other prototype, and
-     the CTA in the image below still sits above the fold as it did originally.
+  /* ─── Shared 44px nav header (both screens use it) ─── */
+  .scr-head { height:44px; flex-shrink:0; position:relative; background:#FAFCFE; box-shadow:0 .5px 0 #D4D8E4; display:flex; align-items:center; z-index:20; }
+  .scr-head .scr-title { position:absolute; left:0; right:0; text-align:center; font-size:17px; font-weight:500; color:#2D3142; }
+  .scr-head .scr-back { position:absolute; left:20px; display:flex; cursor:pointer; }
 
-     The photo's background-size/position are percentages, so its crop holds
-     as the photo grows. */
-  :root { --dur:400ms; --ease:cubic-bezier(0.4,0,0.2,1); --k:0.913043; }
+  /* ─── PEX-44 screen 1: search box ──────────────────────────────────────
+     Figma node 2269-12527. Everything that v2 scatters across the top of
+     the screen — search field, Photo/Sound ID, location — lives inside ONE
+     bordered card here, so the block is a plain flow layout rather than the
+     absolutely-positioned, animatable one v2 needs. */
+  .sb-screen { background:#FAFCFE; }
 
-  .pg-head { height:44px; flex-shrink:0; position:relative; background:#FAFCFE; box-shadow:0 .5px 0 #D4D8E4; display:flex; align-items:center; }
-  .pg-head .pg-title { position:absolute; left:0; right:0; text-align:center; font-size:17px; font-weight:500; color:#2D3142; }
-  .pg-head .pg-chev { position:absolute; left:20px; }
-  .pg-body { display:flex; flex-direction:column; gap:calc(24px * var(--k)); padding:12px 23px; }
-  .pg-body > img { width:calc(354px * var(--k)); flex-shrink:0; display:block; }
+  /* The box is pinned to the top of the scroller. It sits in its own opaque
+     wrapper rather than being sticky itself, so the gutters and the gap above
+     and below it stay filled with the base background as the list slides
+     under — a bare sticky card would let rows show through those margins. */
+  .sb-sticky { position:sticky; top:0; z-index:10; flex-shrink:0; background:#FAFCFE;
+    padding:calc(16px * var(--k)) 23px calc(16px * var(--k)); }
 
-  .card { position:relative; width:calc(354px * var(--k)); height:calc(136px * var(--k));
-    border-radius:calc(16px * var(--k)); background:#fff;
-    box-shadow:inset 0 0 0 1px #E4E8F0; flex-shrink:0; box-sizing:border-box;
-    transition:height var(--dur) var(--ease); }
-  .card.exp { height:calc(397px * var(--k)); }
+  .sb-box { background:#fff; box-shadow:inset 0 0 0 1px #E4E8F0; border-radius:calc(16px * var(--k));
+    display:flex; flex-direction:column; gap:calc(24px * var(--k)); flex-shrink:0;
+    padding:calc(24px * var(--k)) calc(12px * var(--k)) calc(12px * var(--k)); }
 
-  .card .photo { position:absolute; left:calc(12px * var(--k)); top:calc(12px * var(--k));
-    width:calc(112px * var(--k)); height:calc(112px * var(--k)); border-radius:calc(6.22px * var(--k)); cursor:pointer;
-    background:url("imgs/magpie-photo.png") 10.150% 67.044% / 240.143% 161.698% no-repeat;
-    transition:width var(--dur) var(--ease), height var(--dur) var(--ease), border-radius var(--dur) var(--ease); }
-  .card.exp .photo { width:calc(330px * var(--k)); height:calc(330px * var(--k)); border-radius:calc(8px * var(--k)); }
+  /* search field — a bare row inside the card, no pill of its own */
+  .sb-input { display:flex; flex-direction:row; gap:calc(8px * var(--k)); align-items:center;
+    padding:0 calc(4px * var(--k)); cursor:text; }
+  .sb-input > svg { width:calc(16px * var(--k)); height:calc(16px * var(--k)); flex-shrink:0; color:#8790AF; }
+  /* A real <input>, so the caret and typing are the browser's — the fake iOS
+     keyboard below just posts characters into it. The design leaves this text
+     on `leading: normal` and the row has no padding of its own, so the field's
+     own line box is what sets the row height (~19px at 16px Rubik). Pinning a
+     line-height here would make the whole card taller than the design. */
+  .sb-input input { flex:1 0 0; min-width:0; border:none; background:none; outline:none; padding:0;
+    font-family:inherit; font-size:calc(16px * var(--k)); line-height:normal; color:#2D3142;
+    caret-color:#1F87FE; }
+  .sb-input input::placeholder { color:#6875A1; opacity:1; }
+  /* clear (✕) — only present once something has been typed */
+  .sb-clear { display:none; flex-shrink:0; width:calc(16px * var(--k)); height:calc(16px * var(--k));
+    align-items:center; justify-content:center; color:#6875A1; }
+  /* the glyph is inset 18.74% inside its 16px slot, so it draws at ~10px */
+  .sb-clear svg { width:calc(10px * var(--k)); height:calc(10px * var(--k)); }
+  .sb-screen[data-sb="results"] .sb-clear { display:flex; }
 
-  .card .cross { position:absolute; left:calc(310px * var(--k)); top:calc(12px * var(--k));
-    width:calc(32px * var(--k)); height:calc(32px * var(--k)); border-radius:999px;
-    background:rgba(255,255,255,0); display:flex; align-items:center; justify-content:center; cursor:pointer;
-    transition:background var(--dur) var(--ease), left var(--dur) var(--ease), top var(--dur) var(--ease); }
-  .card.exp .cross { left:calc(298px * var(--k)); top:calc(24px * var(--k)); background:rgba(255,255,255,.92); }
-  .card .cross svg { width:calc(15px * var(--k)); height:calc(15px * var(--k)); }
+  /* ID buttons on the left, location chip on the right */
+  .sb-controls { display:flex; flex-direction:row; align-items:center; justify-content:space-between; }
+  .sb-idbtns { display:flex; flex-direction:row; gap:calc(8px * var(--k)); align-items:center; }
+  /* Three stacked layers rather than a border-box gradient:
+       button background  the fill, edge to edge
+       ::before           the gradient, filling the whole pill
+       ::after            the fill again, inset 2px, knocking the middle out
+                          of the gradient and leaving a 2px ring
+     Doing it this way means the ring is REMOVED for the photo state (::before
+     fades to nothing) instead of being covered over. Covering can't work: an
+     absolutely positioned child is sized against the padding box, so a cover
+     sits exactly on the border-box edge and antialiasing along the curve leaks
+     a hairline of gradient. All three layers are plain colours or opacity, so
+     they all fade. */
+  .sb-idbtn { width:calc(36px * var(--k)); height:calc(36px * var(--k)); border-radius:999px;
+    flex-shrink:0; position:relative; overflow:visible;
+    display:flex; align-items:center; justify-content:center;
+    background:#E3F0FF; transition:background-color var(--swap) ease; }
+  .sb-idbtn::before { content:''; position:absolute; inset:0; border-radius:999px;
+    background:linear-gradient(128.66deg, #3FCEE0 0%, #1F87FE 38.89%, #896BE1 70.71%);
+    transition:opacity var(--swap) ease; }
+  /* Each button holds the glyph twice — gradient and flat grey, stacked — so
+     the two can crossfade. A single glyph could not: `fill` interpolates
+     between colours, but not between a colour and a gradient paint server,
+     and the same is true of the button's own gradient ring, hence ::after
+     below. The pair is centred absolutely so they sit exactly on top of each
+     other whatever their size. */
+  .sb-idbtn svg { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    z-index:1; width:calc(16px * var(--k)); height:calc(16px * var(--k));
+    transition:opacity var(--swap) ease; }
+  /* The Sound ID glyph sits inside a lot more internal padding than the
+     camera, so it is drawn at its authored 24px to read as the same weight. */
+  .sb-idbtn .sb-sound { width:calc(24px * var(--k)); height:calc(24px * var(--k)); }
+  .sb-idbtn .sb-g-off { opacity:0; }
+  /* the interior, which turns the gradient behind it into a 2px ring */
+  .sb-idbtn::after { content:''; position:absolute; inset:2px; border-radius:999px;
+    background:#E3F0FF; transition:background-color var(--swap) ease; }
 
-  .card .chip { position:absolute; height:calc(31px * var(--k)); display:flex; flex-direction:row;
-    gap:calc(6px * var(--k)); align-items:center; border-radius:999px; background:#fff;
-    box-shadow:inset 0 0 0 1px #E4E8F0; padding:calc(8px * var(--k)) calc(10px * var(--k)); box-sizing:border-box;
-    cursor:pointer; transition:left var(--dur) var(--ease), top var(--dur) var(--ease); }
-  .card .chip:hover { background:#FAFCFE; }
-  .card .chip span { font-size:calc(13px * var(--k)); color:#4C5980; white-space:nowrap; }
-  .card .chip svg { flex-shrink:0; }
-  .card .chip svg:first-child { width:calc(14px * var(--k)); height:calc(14px * var(--k)); }
-  .card .chip svg:last-child  { width:calc(12px * var(--k)); height:calc(12px * var(--k)); }
-  .card .chip-date { left:calc(136px * var(--k)); top:calc(54px * var(--k)); width:calc(154px * var(--k)); }
-  .card .chip-loc  { left:calc(136px * var(--k)); top:calc(93px * var(--k)); width:calc(152px * var(--k)); }
-  .card.exp .chip-date { left:calc(12px  * var(--k)); top:calc(354px * var(--k)); }
-  .card.exp .chip-loc  { left:calc(174px * var(--k)); top:calc(354px * var(--k)); }
+  /* No height in the design — the 8px vertical padding plus the label's own
+     line box give it ~31px, so it sits shorter than the 36px ID buttons
+     beside it. Don't pin it to 36 to match them. */
+  .sb-chip { border-radius:999px; background:#fff;
+    box-shadow:inset 0 0 0 1px #E4E8F0; display:flex; flex-direction:row; gap:calc(6px * var(--k));
+    padding:calc(8px * var(--k)) calc(10px * var(--k)); align-items:center; flex-shrink:0; cursor:pointer; }
+  /* A place set from the picker can be long ("Trafalgar, Horsham, England"),
+     so the label truncates rather than pushing the chip into the ID buttons.
+     170px is what is left of the 330px card interior once the two 36px buttons,
+     the chip's own padding, icon and chevron are taken out. */
+  .sb-chip span { flex-shrink:1; min-width:0; max-width:calc(170px * var(--k));
+    font-size:calc(13px * var(--k)); line-height:normal; color:#555D7D;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sb-chip svg { flex-shrink:0; color:#6875A1; }
+  .sb-chip svg:first-child { width:calc(14px * var(--k)); height:calc(14px * var(--k)); }
+  .sb-chip svg:last-child  { width:calc(12px * var(--k)); height:calc(12px * var(--k)); }
+
+  /* ─── PEX-44 screen 1 · the three states of the text search ────────────
+     One screen, switched by data-sb on the <section>:
+       idle     the nearby species list — how the screen first loads
+       focus    caret in the field, example descriptions  (Figma 2277-12659)
+       results  a description entered, ranked matches     (Figma 2277-12627)
+     The keyboard is a separate .kb-up flag rather than a fourth state, so
+     "results with the keyboard dismissed" (Figma 2277-12681) is just
+     data-sb="results" without .kb-up. Only one of the three blocks below is
+     ever displayed; they all share .sb-list / .sb-card, so a result row and a
+     nearby row are the same card with a percentage added. */
+  .sb-nearby, .sb-examples, .sb-results, .sb-photo-results { display:none; flex-direction:column;
+    flex-shrink:0; padding:0 23px calc(24px * var(--k)); }
+  .sb-screen[data-sb="idle"]    .sb-nearby        { display:flex; }
+  .sb-screen[data-sb="focus"]   .sb-examples      { display:flex; }
+  .sb-screen[data-sb="results"] .sb-results       { display:flex; }
+  .sb-screen[data-sb="photo"]   .sb-photo-results { display:flex; }
+
+  /* example descriptions. This block is a pasted screenshot in Figma, so the
+     numbers below were measured off that raster: 38px rows (8/10 padding on a
+     20px line box + the 1px border), 8px gaps, 4px radius, and label, border
+     and row text all on the muted tone. A real border, not the house inset
+     shadow, because these rows have no fixed height — the border has to
+     occupy the 2px the measurement accounts for. */
+  .sb-examples { gap:calc(8px * var(--k)); }
+  .sb-ex-head { font-size:calc(13px * var(--k)); font-weight:500; line-height:normal; color:var(--muted); }
+  .sb-ex { text-align:left; font-family:inherit; font-size:calc(14px * var(--k));
+    line-height:calc(20px * var(--k)); color:var(--muted);
+    padding:calc(8px * var(--k)) calc(10px * var(--k)); border:1px solid var(--muted);
+    border-radius:calc(4px * var(--k)); background:#FAFCFE; cursor:pointer; }
+
+  /* ─── the photo, added to the search box as another kind of input ───────
+     Figma 2287-35555 (thumbnail) and 2287-35599 (expanded). This is a STATE
+     of the search box, not a screen of its own: the photo takes the text
+     field's place inside the same card, so returning from the crop stage
+     reads as an input being filled in rather than a navigation.
+
+     In this state the card's padding evens out to 12 all round and its gap
+     tightens to 16 (the text state runs 24/12 with a 24 gap), and the two ID
+     buttons drop their gradient ring for a flat fill — a photo is already
+     attached, so they read as inactive. */
+  .sb-screen[data-sb="photo"] .sb-input { display:none; }
+  .sb-screen[data-sb="photo"] .sb-box { padding:calc(12px * var(--k)); gap:calc(16px * var(--k)); }
+  /* A photo is attached, so the buttons read as inactive: the flat fill fades
+     up over the gradient ring while the grey glyph crossfades with the
+     coloured one. Both glyphs come from the same defs, so they can't drift
+     apart in colour. */
+  .sb-screen[data-sb="photo"] .sb-idbtn,
+  .sb-screen[data-sb="photo"] .sb-idbtn::after   { background-color:#EEF3F9; }
+  .sb-screen[data-sb="photo"] .sb-idbtn::before  { opacity:0; }
+  .sb-screen[data-sb="photo"] .sb-idbtn .sb-g-on  { opacity:0; }
+  .sb-screen[data-sb="photo"] .sb-idbtn .sb-g-off { opacity:1; }
+
+  /* With a photo attached the box scrolls away with the results instead of
+     staying pinned: the enlarged photo can fill most of the frame, so a
+     sticky card would leave almost nothing of the list visible. */
+  .sb-screen[data-sb="photo"] .sb-sticky { position:static; }
+
+  /* ── removing the photo ──
+     Two phases, driven by .sb-swap from JS. Phase one collapses the photo
+     block and fades the matches out; phase two switches the state while
+     everything is invisible and fades the nearby list back in. The state
+     blocks toggle `display`, which can't be transitioned, so the fade has to
+     bracket the swap rather than run through it. */
+  :root { --swap:300ms; }
+  .sb-photo, .sb-nearby, .sb-examples, .sb-results, .sb-photo-results {
+    transition:opacity calc(var(--swap) * .7) ease; }
+  .sb-screen.sb-swap .sb-photo, .sb-screen.sb-swap .sb-photo-results { opacity:0; }
+  /* The floor holds the card at its idle height while the photo collapses out
+     of it, which leaves slack above the controls — anchor them to the bottom
+     so they stay where they are about to end up instead of riding up and
+     dropping back.
+
+     This has to stay on until the card's padding and gap have finished
+     animating too, not just until the state flips. Both states pad the bottom
+     by the same 12px and the floor fixes the height, so with the anchor held
+     the controls sit at exactly one distance from the card's bottom edge for
+     the whole sequence — releasing it at the flip is what made them jump. */
+  .sb-screen.sb-swap .sb-box { justify-content:flex-end; }
+  .sb-screen.sb-fade .sb-nearby { opacity:0; }
+  /* the card's own shape differs between states, so tween it too */
+  .sb-box { transition:padding var(--swap) var(--ease), row-gap var(--swap) var(--ease); }
+
+  /* No gap on the column: the enlarged photo animates its own height, and a
+     flex gap would leave 8px of dead space while it is collapsed. */
+  .sb-photo { display:none; flex-direction:column; align-self:stretch; overflow:hidden;
+    transition:max-height var(--swap) var(--ease), opacity calc(var(--swap) * .7) ease; }
+  .sb-screen[data-sb="photo"] .sb-photo { display:flex; }
+  .sb-photo-row { display:flex; flex-direction:row; align-items:center;
+    gap:calc(12px * var(--k)); align-self:stretch; cursor:pointer; }
+  .sb-photo-thumb, .sb-photo-big { background-image:url("imgs/photo-bird.jpg");
+    background-repeat:no-repeat; border-radius:calc(8px * var(--k)); }
+  /* thumbnail: the Figma crop, framed on the bird */
+  .sb-photo-thumb { width:calc(56px * var(--k)); height:calc(56px * var(--k)); flex-shrink:0;
+    background-position:10.150% 67.044%; background-size:240.143% 161.698%; }
+  .sb-photo-copy { display:flex; flex-direction:column; justify-content:center; flex:1 0 0; min-width:0; }
+  .sb-photo-title { font-size:calc(16px * var(--k)); font-weight:500;
+    line-height:calc(24px * var(--k)); color:#2D3142; }
+  .sb-photo-sub { font-size:calc(12px * var(--k)); line-height:calc(16px * var(--k)); color:#4C5980; }
+  .sb-photo-clear { flex-shrink:0; width:calc(24px * var(--k)); height:calc(24px * var(--k));
+    display:flex; align-items:center; justify-content:center; color:#6875A1; cursor:pointer; }
+  .sb-photo-clear svg { width:calc(15px * var(--k)); height:calc(15px * var(--k)); }
+  /* Enlarged: sized from the box's WIDTH only — 240.143% wide with the height
+     left to the image's own ratio. Width never changes while the height
+     animates, so the image holds one scale throughout: the box opening reveals
+     more of the photo rather than zooming it, and nothing can squash it.
+
+     At full height the box is square, and a square box makes 240.143% wide
+     resolve to the same picture the thumbnail's 240.143% x 161.698% does — so
+     the enlarged crop lands on the thumbnail's framing. The vertical offset is
+     the fixed pixel equivalent of the thumbnail's 67.044%, computed against
+     the final 330px box; a percentage would resolve against the box's live
+     height and slide the photo as it grew. */
+  .sb-photo-big { align-self:stretch; height:0; margin-top:0; overflow:hidden;
+    background-size:240.143% auto;
+    background-position:10.150% calc(-135.9px * var(--k));
+    transition:height var(--dur) var(--ease), margin-top var(--dur) var(--ease); }
+  .sb-screen[data-photo="expanded"] .sb-photo-big { height:calc(330px * var(--k));
+    margin-top:calc(8px * var(--k)); }
+
+  /* ranked results: two titled groups, each holding a plain .sb-list */
+  .sb-results, .sb-photo-results { gap:calc(24px * var(--k)); }
+  .sb-group { display:flex; flex-direction:column; gap:calc(8px * var(--k)); }
+  .sb-group-head { font-size:calc(18px * var(--k)); font-weight:500; line-height:calc(26px * var(--k)); color:#2D3142; }
+
+  /* ─── species list (shared design with v2) ─── */
+  .sb-list { display:flex; flex-direction:column; gap:calc(12px * var(--k)); flex-shrink:0; }
+  .sb-card { height:calc(98px * var(--k)); border-radius:calc(4px * var(--k)); background:#fff;
+    box-shadow:inset 0 0 0 1px #E4E8F0; display:flex; flex-direction:row; gap:calc(16px * var(--k));
+    align-items:center; flex-shrink:0; overflow:hidden; cursor:pointer; }
+  .sb-card-text { display:flex; flex-direction:column; gap:calc(8px * var(--k));
+    padding:calc(8px * var(--k)) calc(12px * var(--k)) calc(8px * var(--k)) 0;
+    justify-content:center; align-items:flex-start; flex-grow:1; align-self:stretch; }
+  .sb-card-name { align-self:stretch; font-size:calc(14px * var(--k)); font-weight:500; line-height:calc(20px * var(--k)); color:#2D3142; }
+  .sb-card-sci  { align-self:stretch; font-size:calc(14px * var(--k)); font-style:italic; line-height:calc(20px * var(--k)); color:#6875A1; }
+  .sb-card-icon { width:calc(24px * var(--k)); height:calc(24px * var(--k)); flex-shrink:0; color:#2D3142; }
+  /* The dimorphic marker sits in a full-width row so a result card can put its
+     match percentage on the opposite end. Without a percentage the row holds
+     just the marker, which is why a nearby card and a result card are the
+     same markup. */
+  .sb-card-actions { display:flex; flex-direction:row; align-items:center; justify-content:space-between;
+    align-self:stretch; }
+  .sb-card-pct { flex-shrink:0; font-size:calc(16px * var(--k)); font-weight:500;
+    line-height:calc(24px * var(--k)); color:#2D3142; white-space:nowrap; }
+
+  .sb-card-photo { width:calc(124px * var(--k)); align-self:stretch; display:flex; flex-direction:column;
+    padding:calc(4px * var(--k)); flex-shrink:0; }
+  .sb-card-photo > div { width:calc(120px * var(--k)); height:calc(90px * var(--k));
+    background-position:center; background-size:cover; background-repeat:no-repeat; background-color:#fff; }
+
+  /* the Unidentified Species card leads the list */
+  .sb-card-unid .sb-card-illus { width:calc(123px * var(--k)); align-self:stretch; display:flex; flex-direction:column;
+    padding:calc(1px * var(--k)); flex-shrink:0; }
+  .sb-card-unid .sb-card-illus img { height:calc(96px * var(--k)); align-self:stretch; flex-shrink:0;
+    border-radius:calc(3px * var(--k)) 0 0 calc(3px * var(--k)); object-fit:cover; }
+  .sb-card-unid .sb-card-text { gap:calc(4px * var(--k)); }
+  .sb-card-unid .sb-card-badge { border-radius:calc(4px * var(--k)); background:#E3F0FF; padding:0 calc(4px * var(--k));
+    flex-shrink:0; font-size:calc(14px * var(--k)); font-weight:500; line-height:calc(20px * var(--k)); color:#1F87FE; white-space:nowrap; }
+
+  /* ─── iOS keyboard ─────────────────────────────────────────────────────
+     Rebuilt from the Figma keyboard component's own measurements (45px keys,
+     6px gaps, 11px rows, 8.5px radius, the 70px emoji/mic footer). It slides
+     in and out on .kb-up rather than being mounted and unmounted, so the
+     transition is free. Shift / delete / return use the system glyphs ⇧ ⌫ ↵
+     because the Figma component draws them as SF Symbols, which have no
+     exportable asset — everything else here is real geometry.
+     Total height is 317px authored: 12 + (12 + 4*45 + 3*11) + 70 + 10. */
+  .kb { position:absolute; left:0; right:0; bottom:0; z-index:30; background:#E6E9ED;
+    border-radius:calc(27px * var(--k)) calc(27px * var(--k)) 0 0;
+    padding:calc(12px * var(--k)) 0 calc(10px * var(--k));
+    transform:translateY(100%); transition:transform var(--dur) var(--ease); }
+  .sb-screen.kb-up .kb { transform:translateY(0); }
+  /* leave room to scroll the list clear of the keyboard while it is up */
+  .sb-screen.kb-up .body { padding-bottom:calc(317px * var(--k)); }
+
+  .kb-keys { display:flex; flex-direction:column; gap:calc(11px * var(--k));
+    padding:calc(12px * var(--k)) calc(8.5px * var(--k)) 0; }
+  .kb-row { display:flex; flex-direction:row; gap:calc(6px * var(--k)); align-items:center; }
+  .kb-row.kb-row2 { padding:0 calc(20px * var(--k)); }
+  .kb-row.kb-row3 { gap:calc(14.25px * var(--k)); }
+  .kb-row3 .kb-mid { display:flex; flex-direction:row; flex:1 0 0; min-width:0; gap:calc(6px * var(--k)); }
+  .kb-key { flex:1 0 0; min-width:0; height:calc(45px * var(--k)); border-radius:calc(8.5px * var(--k));
+    background:#fff; box-shadow:0 1px 0 rgba(0,0,0,.28); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-family:-apple-system,'SF Compact Display','Helvetica Neue',sans-serif;
+    font-size:calc(25px * var(--k)); line-height:1; color:#3C3C43; }
+  .kb-key:active { background:#DEE2E8; }
+  .kb-key.kb-shift, .kb-key.kb-del { flex:0 0 calc(45px * var(--k)); font-size:calc(20px * var(--k)); }
+  .kb-key.kb-abc { flex:0 0 calc(91.667px * var(--k)); font-size:calc(16px * var(--k)); }
+  .kb-key.kb-ret { flex:0 0 calc(92px * var(--k)); font-size:calc(19px * var(--k)); background:#0088FF; color:#fff; }
+  .kb-key.kb-ret:active { background:#0072d6; }
+  .kb-foot { height:calc(70px * var(--k)); display:flex; flex-direction:row; align-items:flex-start;
+    justify-content:space-between;
+    padding:calc(27px * var(--k)) calc(39px * var(--k)) calc(15px * var(--k)) calc(36px * var(--k)); }
+  .kb-foot img { display:block; }
+  .kb-foot .kb-emoji { width:calc(26.92px * var(--k));  height:calc(26.92px * var(--k)); }
+  .kb-foot .kb-mic   { width:calc(18.866px * var(--k)); height:calc(28.213px * var(--k)); }
+
+  /* ─── PEX-44 · iOS menu on the Photo ID button (Figma 2277-12712) ──────
+     Anchored inside .sb-sticky so it tracks the card rather than the frame:
+     the design puts it 127px down the content, which lands 4px above the
+     card's bottom edge, overlapping it. Above the card in z-order, and the
+     backdrop-filter is what blurs the list showing through.
+
+     The 32px radius the export reports comes from a *sheet* variable the
+     designer reused; the rendered menu is nearer 14px, which is also what iOS
+     uses, so that is what this follows.
+
+     The `top` here is only the pre-measurement fallback (the design's position
+     in the 402x874 frame); openMenu() replaces it with the measured one. */
+  .sb-menu { position:absolute; left:23px; top:calc(232px * var(--k)); z-index:30;
+    width:calc(250px * var(--k)); padding:calc(10px * var(--k)) calc(16px * var(--k));
+    border-radius:calc(14px * var(--k)); background:rgba(245,245,245,.8);
+    -webkit-backdrop-filter:blur(20px) saturate(180%);
+    backdrop-filter:blur(20px) saturate(180%);
+    box-shadow:0 calc(8px * var(--k)) calc(40px * var(--k)) rgba(0,0,0,.12);
+    transform-origin:top left; opacity:0; transform:scale(.92);
+    transition:opacity 150ms ease-out, transform 150ms cubic-bezier(.2,.9,.3,1);
+    pointer-events:none; }
+  .sb-screen[data-menu="open"] .sb-menu { opacity:1; transform:scale(1); pointer-events:auto; }
+  /* catches the tap that dismisses the menu */
+  .sb-menu-catch { position:absolute; inset:0; z-index:25; display:none; }
+  .sb-screen[data-menu="open"] .sb-menu-catch { display:block; }
+
+  .sb-menu-title { padding:calc(4px * var(--k)) calc(8px * var(--k)) calc(10px * var(--k));
+    font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;
+    font-size:calc(13px * var(--k)); font-weight:510; line-height:calc(15px * var(--k));
+    letter-spacing:-.08px; color:#BFBFBF; }
+  .sb-menu-item { display:flex; flex-direction:row; align-items:center; gap:calc(8px * var(--k));
+    width:100%; text-align:left; border-radius:calc(6px * var(--k));
+    padding:calc(10px * var(--k)) calc(8px * var(--k)) calc(10px * var(--k)) calc(6px * var(--k));
+    font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;
+    font-size:calc(17px * var(--k)); line-height:calc(20px * var(--k));
+    letter-spacing:-.43px; color:#2D3142; cursor:pointer; }
+  .sb-menu-item:active { background:rgba(0,0,0,.06); }
+  /* The exported glyphs are 16x14 and 14.4x11.2, not square, so they need
+     object-fit inside the design's 16px slot — forcing them to fill it
+     stretches them vertically. */
+  .sb-menu-item img { width:calc(16px * var(--k)); height:calc(16px * var(--k));
+    object-fit:contain; flex-shrink:0; display:block; }
+
+  /* ─── PEX-44 · screenshot placeholder screens (camera / confirm / crop) ──
+     The rasters are 402x872 against a 369x798 frame — the same aspect to
+     within half a percent, so object-fit:cover loses nothing worth keeping.
+     .hot marks a control on the screenshot; outline it to see the targets. */
+  .shot-screen { background:#000; }
+  .shot { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .hot { position:absolute; z-index:2; background:transparent; cursor:pointer; }
+
+  /* ─── PEX-44 · location picker ─────────────────────────────────────────
+     A modal sheet over whichever screen is showing (Figma 2277-12796), with a
+     second state for searching a place (2277-12820, itself a screenshot in the
+     file, so rebuilt here). Geometry from the design: the sheet sits 62px down
+     with a second card peeking 10px above it, both with 38px top corners.
+
+     The avatar pin never moves — it is laid out by the flex column and the MAP
+     is what translates underneath it, so the pin always marks the middle of
+     the sheet. .lp-content sits over the map, so it has pointer-events:none
+     and hands them back only to the controls; otherwise it would swallow every
+     drag aimed at the map. */
+  .lp { position:absolute; inset:0; z-index:100; overflow:hidden; visibility:hidden; transition:visibility 0s var(--dur); }
+  .lp.open { visibility:visible; transition:visibility 0s; }
+  .lp-backdrop { position:absolute; inset:0; background:#000; opacity:0;
+    transition:opacity var(--dur) var(--ease); }
+  .lp.open .lp-backdrop { opacity:1; }
+  .lp .statusbar { position:absolute; top:0; left:0; right:0; z-index:5; }
+
+  /* the dimmed card peeking out behind the sheet: white under a 10% black wash */
+  .lp-page { position:absolute; top:calc(62px * var(--k)); left:calc(16px * var(--k));
+    right:calc(16px * var(--k)); bottom:0; background:#E5E5E5;
+    border-radius:calc(38px * var(--k)) calc(38px * var(--k)) 0 0;
+    transform:translateY(100%); transition:transform var(--dur) var(--ease); }
+  .lp-sheet { position:absolute; top:calc(72px * var(--k)); left:0; right:0; bottom:0;
+    background:#fff; overflow:hidden;
+    border-radius:calc(38px * var(--k)) calc(38px * var(--k)) 0 0;
+    box-shadow:0 calc(15px * var(--k)) calc(75px * var(--k)) rgba(0,0,0,.18);
+    transform:translateY(100%); transition:transform var(--dur) var(--ease); }
+  .lp.open .lp-page, .lp.open .lp-sheet { transform:translateY(0); }
+
+  /* the map. Displayed at the authored 1698px so the Figma framing carries
+     over; the source raster is square, so it is not squashed as the design
+     does. .anim is added only for programmatic moves — never while dragging. */
+  .lp-map { position:absolute; inset:0; overflow:hidden; background:#E9EEE3;
+    cursor:grab; touch-action:none; }
+  .lp-map:active { cursor:grabbing; }
+  .lp-map img { position:absolute; left:0; top:0; width:calc(1698px * var(--k));
+    height:calc(1698px * var(--k)); display:block; user-select:none; -webkit-user-drag:none; }
+  .lp-map.anim img { transition:transform var(--dur) var(--ease); }
+
+  /* above the search view too — the grabber shows in both states */
+  .lp-grabber { position:absolute; top:0; left:0; right:0; height:calc(16px * var(--k));
+    z-index:5; display:flex; align-items:flex-end; justify-content:center;
+    padding-bottom:calc(11px * var(--k)); pointer-events:none; }
+  .lp-grabber i { display:block; width:calc(36px * var(--k)); height:calc(5px * var(--k));
+    border-radius:100px; background:#CCC; }
+
+  .lp-content { position:absolute; inset:0; z-index:2; display:flex; flex-direction:column;
+    align-items:center; justify-content:space-between;
+    padding:calc(24px * var(--k)) calc(24px * var(--k)) calc(32px * var(--k));
+    pointer-events:none; }
+  .lp[data-lp="search"] .lp-content { display:none; }
+
+  .lp-controls { display:flex; flex-direction:row; gap:calc(8px * var(--k)); align-items:center;
+    align-self:stretch; pointer-events:auto; }
+  /* 12px padding around a 24px icon */
+  .lp-round { width:calc(48px * var(--k)); height:calc(48px * var(--k)); border-radius:999px;
+    background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; }
+  .lp-round svg { display:block; }
+  .lp-close svg { width:calc(15px * var(--k)); height:calc(15px * var(--k)); color:#2D3142; }
+  .lp-back svg  { width:calc(24px * var(--k)); height:calc(24px * var(--k)); }
+  .lp-back { background:#F2F4F8; }
+
+  .lp-bar { flex:1 0 0; min-width:0; display:flex; flex-direction:row; align-items:center;
+    gap:calc(8px * var(--k)); background:#fff; border-radius:999px;
+    padding:calc(12px * var(--k)) calc(16px * var(--k)); cursor:text; }
+  .lp-bar > svg { width:calc(16px * var(--k)); height:calc(16px * var(--k)); flex-shrink:0; color:#8790AF; }
+  .lp-bar-label { flex:1 0 0; min-width:0; font-size:calc(16px * var(--k));
+    line-height:calc(24px * var(--k)); color:#6875A1; white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; }
+  /* the label carries the pinned place once the map has been moved */
+  .lp[data-loc="moved"] .lp-bar-label { color:#2D3142; }
+  /* arrow: blue while the pin is on the current location, grey once moved */
+  .lp-locate { flex-shrink:0; width:calc(16px * var(--k)); height:calc(16px * var(--k));
+    display:flex; align-items:center; justify-content:center; color:#1F87FE; cursor:pointer; }
+  .lp-locate svg { width:100%; height:100%; }
+  .lp[data-loc="moved"] .lp-locate { color:var(--muted); }
+
+  .lp-pin { width:calc(56px * var(--k)); display:flex; flex-direction:column; align-items:center; }
+  .lp-avatar { width:calc(56px * var(--k)); height:calc(56px * var(--k)); border-radius:999px;
+    border:2px solid #fff; background:#fff; object-fit:cover; display:block;
+    margin-bottom:calc(-10px * var(--k)); position:relative; z-index:2; }
+  /* a 12px square rotated 45° in a 12*√2 box, so it tucks under the avatar and
+     its bottom corner becomes the pin's tip */
+  .lp-point { width:calc(16.971px * var(--k)); height:calc(16.971px * var(--k)); position:relative;
+    z-index:1; display:flex; align-items:center; justify-content:center; }
+  .lp-point i { display:block; width:calc(12px * var(--k)); height:calc(12px * var(--k));
+    background:#fff; border-radius:1px; transform:rotate(-45deg); }
+
+  .lp-set { align-self:stretch; display:flex; align-items:center; justify-content:center;
+    background:#1F87FE; border-radius:calc(4px * var(--k));
+    padding:calc(16px * var(--k)) calc(24px * var(--k));
+    font-family:inherit; font-size:calc(16px * var(--k)); font-weight:500;
+    line-height:calc(16px * var(--k)); letter-spacing:.2px; color:#fff;
+    pointer-events:auto; cursor:pointer; }
+  .lp-set:active { background:#0f6fe0; }
+
+  /* ── search a place (Figma 2277-12820) ── */
+  .lp-searchview { position:absolute; inset:0; z-index:4; background:#fff; display:none;
+    flex-direction:column;
+    padding:calc(24px * var(--k)) calc(24px * var(--k)) 0; }
+  .lp[data-lp="search"] .lp-searchview { display:flex; }
+  .lp-searchview .lp-bar { background:#F4F6FA; }
+  .lp-searchview .lp-bar input { flex:1 0 0; min-width:0; border:none; background:none; outline:none;
+    padding:0; font-family:inherit; font-size:calc(16px * var(--k)); line-height:calc(24px * var(--k));
+    color:#2D3142; caret-color:#1F87FE; }
+  .lp-searchview .lp-bar input::placeholder { color:#6875A1; opacity:1; }
+  .lp-results { display:flex; flex-direction:column; padding-top:calc(16px * var(--k));
+    overflow-y:auto; scrollbar-width:none; }
+  .lp-results::-webkit-scrollbar { display:none; }
+  .lp-row { display:flex; flex-direction:row; align-items:center; gap:calc(16px * var(--k));
+    padding:calc(12px * var(--k)) 0; text-align:left; cursor:pointer; flex-shrink:0; }
+  .lp-row > svg { width:calc(20px * var(--k)); height:calc(20px * var(--k)); flex-shrink:0; color:#1F87FE; }
+  .lp-row.lp-row-place > svg { color:var(--muted); }
+  .lp-row-copy { display:flex; flex-direction:column; min-width:0; }
+  .lp-row-title { font-size:calc(16px * var(--k)); font-weight:500; line-height:calc(24px * var(--k)); color:#2D3142; }
+  .lp-row-sub { font-size:calc(16px * var(--k)); line-height:calc(24px * var(--k)); color:#6875A1; }
+  .lp-empty { padding:calc(12px * var(--k)) 0; font-size:calc(16px * var(--k));
+    line-height:calc(24px * var(--k)); color:#6875A1; }
+
   </style>
 </head>
 <body>
 <!-- Wayfinding (built from the PROTO config by the script below) -->
 <nav class="proto-nav" id="protoNav"></nav>
 
+<!-- Icons used more than once, referenced below with <use href="#id"> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="idGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#3FCEE0"/><stop offset="38.89%" stop-color="#1F87FE"/><stop offset="70.71%" stop-color="#896BE1"/>
+  </linearGradient>
+  <!-- back chevron in the 44px header -->
+  <path id="ic-chev-left" d="M 15 4 L 7 12 L 15 20" stroke="#2D3142" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- chevron-down, used by every location / date chip -->
+  <path id="ic-chev-down" d="M 5 9 L 12 16 L 19 9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Camera glyph, like #ic-sound carrying no fill of its own so the
+       referencing <svg> decides whether it is the gradient or the flat grey. -->
+  <path id="ic-camera" d="M 6.989 1.538 L 6.502 3 L 3 3 C 1.345 3 0 4.345 0 6 L 0 18 C 0 19.655 1.345 21 3 21 L 21 21 C 22.655 21 24 19.655 24 18 L 24 6 C 24 4.345 22.655 3 21 3 L 17.498 3 L 17.011 1.538 C 16.706 0.619 15.848 0 14.878 0 L 9.122 0 C 8.152 0 7.294 0.619 6.989 1.538 Z M 12 7.5 C 13.193 7.5 14.338 7.974 15.182 8.818 C 16.026 9.662 16.5 10.807 16.5 12 C 16.5 13.193 16.026 14.338 15.182 15.182 C 14.338 16.026 13.193 16.5 12 16.5 C 10.807 16.5 9.662 16.026 8.818 15.182 C 7.974 14.338 7.5 13.193 7.5 12 C 7.5 10.807 7.974 9.662 8.818 8.818 C 9.662 7.974 10.807 7.5 12 7.5 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 1.500)"/>
+  <!-- Sound ID glyph. Deliberately carries NO fill: it inherits from the
+       <svg> that references it, so the same rule can paint it and the camera
+       glyph the same colour when a photo is attached. -->
+  <linearGradient id="soundGrad" x1="0" y1="3.7627" x2="11.55" y2="19.8424" gradientUnits="userSpaceOnUse">
+    <stop stop-color="#3FCEE0"/><stop offset="0.55" stop-color="#1F87FE"/><stop offset="1" stop-color="#896BE1"/>
+  </linearGradient>
+  <path id="ic-sound" d="M11 5C12.4843 5 13.7153 6.0779 13.9561 7.49023L15.7559 8.57227C15.9059 8.66289 16 8.825 16 9C16 9.17497 15.909 9.33712 15.7559 9.42773L14 10.4844V11C14 13.9342 12.197 16.4466 9.63477 17.4873L10.9121 19.9004C11.1057 20.266 10.9652 20.7184 10.5996 20.9121C10.234 21.1057 9.78161 20.9652 9.58789 20.5996L8.15918 17.9033C7.78113 17.9689 7.39367 18 7 18H6.90625L7.91211 19.9004C8.1057 20.266 7.96517 20.7184 7.59961 20.9121C7.23402 21.1057 6.78161 20.9652 6.58789 20.5996L5.06836 17.7285C2.14038 16.8909 3.61857e-05 14.1968 0 11V10.8877C0 10.3971 0.39707 10 0.887695 10H7C7.5531 10 7.99996 9.55309 8 9V8C8 6.34375 9.34375 5 11 5ZM20.1865 4.08594C20.4921 3.71132 21.0413 3.65351 21.416 3.95898V3.96289C22.9878 5.24364 23.9961 7.19707 23.9961 9.38379C23.9961 11.5705 22.9879 13.5249 21.416 14.8057C21.0413 15.1073 20.4884 15.0524 20.1865 14.6777C19.8847 14.3031 19.9391 13.7539 20.3135 13.4482C21.496 12.484 22.25 11.0209 22.25 9.37988C22.2499 7.73904 21.4959 6.27691 20.3135 5.31641C19.9388 5.01076 19.8809 4.46068 20.1865 4.08594ZM17.9854 6.79688C18.291 6.42214 18.8401 6.3643 19.2148 6.66992C19.997 7.31024 20.5028 8.28485 20.5029 9.37988C20.5029 10.4751 19.9971 11.4507 19.2148 12.0947C18.8401 12.3965 18.2873 12.3415 17.9854 11.9668C17.6836 11.5921 17.7377 11.0429 18.1123 10.7373C18.5053 10.4135 18.7568 9.92566 18.7568 9.37988C18.7567 8.83424 18.5052 8.34649 18.1123 8.02637C17.7378 7.72068 17.6798 7.17153 17.9854 6.79688ZM11 8C10.8011 8 10.6104 8.07907 10.4697 8.21973C10.3291 8.36037 10.25 8.55111 10.25 8.75C10.25 8.94888 10.3291 9.13964 10.4697 9.28027C10.6104 9.4209 10.8011 9.5 11 9.5C11.1989 9.5 11.3896 9.4209 11.5303 9.28027C11.6709 9.13964 11.75 8.94888 11.75 8.75C11.75 8.55111 11.6709 8.36037 11.5303 8.21973C11.3896 8.07907 11.1989 8 11 8Z"/>
+  <!-- magnifying glass, used by both search fields -->
+  <path id="ic-search" d="M 17.248 9.752 C 17.248 7.762 16.458 5.854 15.052 4.447 C 13.645 3.041 11.738 2.25 9.749 2.25 C 7.76 2.25 5.853 3.041 4.446 4.447 C 3.04 5.854 2.25 7.762 2.25 9.752 C 2.25 11.741 3.04 13.649 4.446 15.056 C 5.853 16.463 7.76 17.253 9.749 17.253 C 11.738 17.253 13.645 16.463 15.052 15.056 C 16.458 13.649 17.248 11.741 17.248 9.752 Z M 15.8 17.398 C 14.141 18.716 12.036 19.503 9.749 19.503 C 4.364 19.503 0 15.139 0 9.752 C 0 4.365 4.364 0 9.749 0 C 15.134 0 19.498 4.365 19.498 9.752 C 19.498 12.04 18.711 14.145 17.394 15.804 L 23.67 22.082 C 24.11 22.523 24.11 23.235 23.67 23.671 C 23.229 24.107 22.517 24.112 22.081 23.671 L 15.8 17.398 Z" fill="currentColor" fill-rule="evenodd"/>
+  <!-- Location glyphs, both normalised into a 24x24 box so a chip can swap
+       between them by changing one href. The ARROW means "wherever you are
+       now" and is the default; the PIN means a place that was pinned down
+       deliberately — set by hand, or read off a photo's metadata. Screen 2's
+       chip is a sighting location from a photo, so it uses the pin. -->
+  <path id="ic-loc-arrow" d="M 19.387 2.067 C 19.617 1.509 19.485 0.867 19.059 0.44 C 18.632 0.013 17.99 -0.118 17.432 0.112 L 0.932 6.862 C 0.267 7.134 -0.108 7.837 0.028 8.54 C 0.164 9.243 0.782 9.749 1.5 9.749 L 9.75 9.749 L 9.75 17.999 C 9.75 18.717 10.256 19.331 10.959 19.471 C 11.662 19.612 12.365 19.232 12.637 18.567 L 19.387 2.067 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 2.251 2.250)"/>
+  <path id="ic-loc-pin" d="M215.7 499.2C267 435 384 279.4 384 192 384 86 298 0 192 0S0 86 0 192c0 87.4 117 243 168.3 307.2 12.3 15.3 35.1 15.3 47.4 0z M192 128a64 64 0 1 1 0 128 64 64 0 1 1 0-128z" fill="currentColor" transform="translate(3 0) scale(0.046875)"/>
+  <!-- ✕ — clears the search field, and dismisses the photo on screen 2 -->
+  <path id="ic-xmark" d="M 14.674 1.924 C 15.115 1.484 15.115 0.771 14.674 0.335 C 14.234 -0.101 13.521 -0.105 13.085 0.335 L 7.507 5.913 L 1.924 0.33 C 1.484 -0.11 0.771 -0.11 0.335 0.33 C -0.101 0.771 -0.105 1.484 0.335 1.92 L 5.913 7.498 L 0.33 13.08 C -0.11 13.521 -0.11 14.234 0.33 14.67 C 0.771 15.105 1.484 15.11 1.92 14.67 L 7.498 9.091 L 13.08 14.674 C 13.521 15.115 14.234 15.115 14.67 14.674 C 15.105 14.234 15.11 13.521 14.67 13.085 L 9.091 7.507 L 14.674 1.924 Z" fill="currentColor"/>
+  <!-- dimorphic (male/female) marker on every species row -->
+  <path id="ic-dimorphic" d="M 12.75 1.125 C 12.75 1.748 13.252 2.25 13.875 2.25 L 15.661 2.25 L 13.65 4.261 C 12.202 3.009 10.313 2.25 8.25 2.25 C 3.694 2.25 0 5.944 0 10.5 C 0 14.677 3.103 18.127 7.125 18.675 L 7.125 19.5 L 6 19.5 C 5.377 19.5 4.875 20.002 4.875 20.625 C 4.875 21.248 5.377 21.75 6 21.75 L 7.125 21.75 L 7.125 22.875 C 7.125 23.498 7.627 24 8.25 24 C 8.873 24 9.375 23.498 9.375 22.875 L 9.375 21.75 L 10.5 21.75 C 11.123 21.75 11.625 21.248 11.625 20.625 C 11.625 20.002 11.123 19.5 10.5 19.5 L 9.375 19.5 L 9.375 18.675 C 13.397 18.127 16.5 14.677 16.5 10.5 C 16.5 8.822 15.998 7.256 15.136 5.953 L 17.25 3.839 L 17.25 5.625 C 17.25 6.248 17.752 6.75 18.375 6.75 C 18.998 6.75 19.5 6.248 19.5 5.625 L 19.5 1.125 C 19.5 0.502 18.998 0 18.375 0 L 13.875 0 C 13.252 0 12.75 0.502 12.75 1.125 Z M 8.25 4.5 C 9.841 4.5 11.367 5.132 12.493 6.257 C 13.618 7.383 14.25 8.909 14.25 10.5 C 14.25 12.091 13.618 13.617 12.493 14.743 C 11.367 15.868 9.841 16.5 8.25 16.5 C 6.659 16.5 5.133 15.868 4.007 14.743 C 2.882 13.617 2.25 12.091 2.25 10.5 C 2.25 8.909 2.882 7.383 4.007 6.257 C 5.133 5.132 6.659 4.5 8.25 4.5 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 2 0)"/>
+</defs></svg>
+
 <div class="shell">
   <div class="viewport" id="viewport">
 
-    <!-- ▼▼▼  Photo grow — expanding sighting photos  ▼▼▼ -->
-    <section class="screen active" data-screen="1">
-      <div class="statusbar">
-        <span class="time">9:41</span>
-        <span style="display:flex; gap:6px; align-items:center;">
-          <span style="display:flex; gap:2px; align-items:flex-end;">
-            <i style="display:block; width:3px; height:4px;  border-radius:1px; background:#2D3142;"></i>
-            <i style="display:block; width:3px; height:6px;  border-radius:1px; background:#2D3142;"></i>
-            <i style="display:block; width:3px; height:8px;  border-radius:1px; background:#2D3142;"></i>
-            <i style="display:block; width:3px; height:10px; border-radius:1px; background:#2D3142;"></i>
-          </span>
-          <span style="display:block; width:25px; height:12px; border-radius:4px; box-shadow:inset 0 0 0 1px rgba(45,49,66,.45); padding:2px; box-sizing:border-box;">
-            <i style="display:block; width:70%; height:100%; border-radius:2px; background:#2D3142;"></i>
-          </span>
+    <!-- ▼▼▼  Screen 1 · Search box — "What did you see?"  ▼▼▼ -->
+    <section class="screen sb-screen active" data-screen="1" data-sb="idle" id="sbScreen">
+      <div class="statusbar"></div>
+
+      <div class="scr-head">
+        <span class="scr-back">
+          <svg width="24" height="24" viewBox="0 0 24 24"><use href="#ic-chev-left"/></svg>
         </span>
+        <span class="scr-title">What did you see?</span>
       </div>
 
-      <div class="pg-head">
-        <svg class="pg-chev" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M 15 4 L 7 12 L 15 20" stroke="#2D3142" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="pg-title">What did you see?</span>
+      <!-- dismisses the photo menu on a tap anywhere else -->
+      <div class="sb-menu-catch" id="sbMenuCatch"></div>
+
+      <!-- iOS menu for the Photo ID button (Figma 2277-12712).
+           A SIBLING of the catcher above, not a child of .sb-sticky: the sticky
+           is a stacking context (position:sticky + z-index), so a menu inside
+           it can never rise above the catcher no matter how high its z-index.
+           Its top is set on open from the sticky's position, keeping the
+           design's anchor without depending on the status bar's height. -->
+      <div class="sb-menu" id="sbMenu" role="menu" aria-hidden="true">
+        <div class="sb-menu-title">Identify from photo</div>
+        <button class="sb-menu-item" role="menuitem" onclick="photoFrom=2; goTo(2)">
+          <img src="imgs/ic-menu-camera.svg" alt=""><span>Take photo</span>
+        </button>
+        <button class="sb-menu-item" role="menuitem" onclick="photoFrom=4; goTo(4)">
+          <img src="imgs/ic-menu-images.svg" alt=""><span>Choose photo</span>
+        </button>
       </div>
 
-      <div class="body pg-body">
-        <div class="card" id="card">
-          <div class="photo" onclick="togglePhoto()"></div>
-          <div class="cross">
-            <svg width="15" height="15" viewBox="0 0 15.005 15.005"><path d="M 14.674 1.924 C 15.115 1.484 15.115 0.771 14.674 0.335 C 14.234 -0.101 13.521 -0.105 13.085 0.335 L 7.507 5.913 L 1.924 0.33 C 1.484 -0.11 0.771 -0.11 0.335 0.33 C -0.101 0.771 -0.105 1.484 0.335 1.92 L 5.913 7.498 L 0.33 13.08 C -0.11 13.521 -0.11 14.234 0.33 14.67 C 0.771 15.105 1.484 15.11 1.92 14.67 L 7.498 9.091 L 13.08 14.674 C 13.521 15.115 14.234 15.115 14.67 14.674 C 15.105 14.234 15.11 13.521 14.67 13.085 L 9.091 7.507 L 14.674 1.924 Z" fill="#4C5980"/></svg>
+      <div class="body">
+
+        <!-- the search BOX: field, ID buttons and location in one card,
+             pinned to the top of the scroller -->
+        <div class="sb-sticky">
+          <div class="sb-box">
+            <div class="sb-input">
+              <svg viewBox="0 0 24 24"><use href="#ic-search"/></svg>
+              <input id="sbInput" type="text" placeholder="Search by bird name or description"
+                     autocomplete="off" autocapitalize="off" spellcheck="false">
+              <button class="sb-clear" id="sbClear" aria-label="Clear search">
+                <svg viewBox="0 0 15.005 15.005"><use href="#ic-xmark"/></svg>
+              </button>
+            </div>
+
+            <!-- the photo, standing in for the text field once one is attached -->
+            <div class="sb-photo">
+              <div class="sb-photo-row" id="sbPhotoRow">
+                <span class="sb-photo-thumb"></span>
+                <span class="sb-photo-copy">
+                  <span class="sb-photo-title">Identifying from photo</span>
+                  <span class="sb-photo-sub" id="sbPhotoHint">Tap to enlarge</span>
+                </span>
+                <button class="sb-photo-clear" id="sbPhotoClear" aria-label="Remove photo">
+                  <svg viewBox="0 0 15.005 15.005"><use href="#ic-xmark"/></svg>
+                </button>
+              </div>
+              <div class="sb-photo-big"></div>
+            </div>
+
+            <div class="sb-controls">
+              <div class="sb-idbtns">
+                <button class="sb-idbtn" id="sbPhotoBtn" aria-label="Photo ID">
+                  <svg class="sb-g-on"  viewBox="0 0 24 24" fill="url(#idGrad)"><use href="#ic-camera"/></svg>
+                  <svg class="sb-g-off" viewBox="0 0 24 24" fill="#8790AF"><use href="#ic-camera"/></svg>
+                </button>
+                <button class="sb-idbtn" aria-label="Sound ID">
+                  <svg class="sb-sound sb-g-on"  viewBox="0 0 24 24" fill="url(#soundGrad)"><use href="#ic-sound"/></svg>
+                  <svg class="sb-sound sb-g-off" viewBox="0 0 24 24" fill="#8790AF"><use href="#ic-sound"/></svg>
+                </button>
+              </div>
+
+              <div class="sb-chip" id="sbChip">
+                <!-- arrow = current location; the picker swaps in #ic-loc-pin
+                     once a place has been set by hand -->
+                <svg viewBox="0 0 24 24"><use href="#ic-loc-arrow" id="sbChipIcon"/></svg>
+                <span id="sbChipLabel">Kings Cross, UK</span>
+                <svg viewBox="0 0 24 24"><use href="#ic-chev-down"/></svg>
+              </div>
+            </div>
           </div>
-          <div class="chip chip-date">
-            <svg width="14" height="14" viewBox="0 0 21 24" fill="#4C5980"><path d="M 4.5 1.5 L 4.5 3 L 2.25 3 C 1.008 3 0 4.008 0 5.25 L 0 7.5 L 21 7.5 L 21 5.25 C 21 4.008 19.992 3 18.75 3 L 16.5 3 L 16.5 1.5 C 16.5 0.67 15.83 0 15 0 C 14.17 0 13.5 0.67 13.5 1.5 L 13.5 3 L 7.5 3 L 7.5 1.5 C 7.5 0.67 6.83 0 6 0 C 5.17 0 4.5 0.67 4.5 1.5 Z M 21 9 L 0 9 L 0 21.75 C 0 22.992 1.008 24 2.25 24 L 18.75 24 C 19.992 24 21 22.992 21 21.75 L 21 9 Z"/></svg>
-            <span>June 12th 2026</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M 5 9 L 12 16 L 19 9" stroke="#4C5980" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+        </div>
+
+        <!-- ── data-sb="focus": type your own description, or take one of these ── -->
+        <div class="sb-examples">
+          <div class="sb-ex-head">Example bird descriptions</div>
+          <button class="sb-ex">A small brown bird with a red chest</button>
+          <button class="sb-ex">Duck wading with green head and yellow beak</button>
+          <button class="sb-ex">Small blue grey bird climbing a tree</button>
+          <button class="sb-ex">Yellow bill with big feet in the sea</button>
+        </div>
+
+        <!-- ── data-sb="results": the same cards as below, plus a percentage ── -->
+        <div class="sb-results">
+          <div class="sb-group">
+            <div class="sb-group-head">Likely Matches</div>
+            <div class="sb-list">
+              <div class="sb-card">
+                <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Eurasian_Magpie.webp')" role="img" aria-label="Magpie"></div></div>
+                <div class="sb-card-text">
+                  <div style="align-self:stretch">
+                    <span class="sb-card-name">Magpie</span><br>
+                    <span class="sb-card-sci">Pica pica</span>
+                  </div>
+                  <div class="sb-card-actions">
+                    <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+                    <span class="sb-card-pct">60%</span>
+                  </div>
+                </div>
+              </div>
+              <div class="sb-card">
+                <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Carrion_Crow.webp')" role="img" aria-label="Carrion Crow"></div></div>
+                <div class="sb-card-text">
+                  <div style="align-self:stretch">
+                    <span class="sb-card-name">Carrion Crow</span><br>
+                    <span class="sb-card-sci">Corvus corone</span>
+                  </div>
+                  <div class="sb-card-actions">
+                    <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+                    <span class="sb-card-pct">30%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="chip chip-loc">
-            <svg width="14" height="14" viewBox="0 0 384 512" fill="#4C5980"><path d="M215.7 499.2C267 435 384 279.4 384 192 384 86 298 0 192 0S0 86 0 192c0 87.4 117 243 168.3 307.2 12.3 15.3 35.1 15.3 47.4 0z M192 128a64 64 0 1 1 0 128 64 64 0 1 1 0-128z"/></svg>
-            <span>Kings Cross, UK</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M 5 9 L 12 16 L 19 9" stroke="#4C5980" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+          <div class="sb-group">
+            <div class="sb-group-head">Less Likely Nearby</div>
+            <div class="sb-list">
+              <div class="sb-card">
+                <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Common_Blackbird_-_Male.webp')" role="img" aria-label="Blackbird"></div></div>
+                <div class="sb-card-text">
+                  <div style="align-self:stretch">
+                    <span class="sb-card-name">Blackbird</span><br>
+                    <span class="sb-card-sci">Turdus merula</span>
+                  </div>
+                  <div class="sb-card-actions">
+                    <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+                    <span class="sb-card-pct">15%</span>
+                  </div>
+                </div>
+              </div>
+              <div class="sb-card sb-card-unid">
+                <div class="sb-card-illus"><img src="imgs/unidentified-species.svg" alt="Unidentified species"></div>
+                <div class="sb-card-text">
+                  <span class="sb-card-badge">Unidentified Species</span>
+                  <span class="sb-card-sci">I don’t know, ask the community for help</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <img src="imgs/likely-matches.png" alt="Likely Matches results and actions">
+
+        <!-- ── data-sb="photo": what the photo matched (Figma 2287-35555).
+             Same card format as everywhere else; the Unidentified option sits
+             in its own block below the two groups here, rather than inside
+             "Less Likely Nearby" as it does for a text search. ── -->
+        <div class="sb-photo-results">
+          <div class="sb-group">
+            <div class="sb-group-head">Likely Matches</div>
+            <div class="sb-list">
+              <div class="sb-card">
+                <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Eurasian_Magpie.webp')" role="img" aria-label="Magpie"></div></div>
+                <div class="sb-card-text">
+                  <div style="align-self:stretch">
+                    <span class="sb-card-name">Magpie</span><br>
+                    <span class="sb-card-sci">Pica pica</span>
+                  </div>
+                  <div class="sb-card-actions">
+                    <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+                    <span class="sb-card-pct">60%</span>
+                  </div>
+                </div>
+              </div>
+              <div class="sb-card">
+                <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Carrion_Crow.webp')" role="img" aria-label="Carrion Crow"></div></div>
+                <div class="sb-card-text">
+                  <div style="align-self:stretch">
+                    <span class="sb-card-name">Carrion Crow</span><br>
+                    <span class="sb-card-sci">Corvus corone</span>
+                  </div>
+                  <div class="sb-card-actions">
+                    <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+                    <span class="sb-card-pct">30%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-group">
+            <div class="sb-group-head">Less Likely Nearby</div>
+            <div class="sb-list">
+              <div class="sb-card">
+                <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Common_Blackbird_-_Male.webp')" role="img" aria-label="Blackbird"></div></div>
+                <div class="sb-card-text">
+                  <div style="align-self:stretch">
+                    <span class="sb-card-name">Blackbird</span><br>
+                    <span class="sb-card-sci">Turdus merula</span>
+                  </div>
+                  <div class="sb-card-actions">
+                    <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+                    <span class="sb-card-pct">15%</span>
+                  </div>
+                </div>
+              </div>
+              <div class="sb-card">
+                <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Eurasian_Blue_Tit.webp')" role="img" aria-label="Blue Tit"></div></div>
+                <div class="sb-card-text">
+                  <div style="align-self:stretch">
+                    <span class="sb-card-name">Blue Tit</span><br>
+                    <span class="sb-card-sci">Cyanistes caeruleus</span>
+                  </div>
+                  <div class="sb-card-actions">
+                    <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+                    <span class="sb-card-pct">10%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-list">
+            <div class="sb-card sb-card-unid">
+              <div class="sb-card-illus"><img src="imgs/unidentified-species.svg" alt="Unidentified species"></div>
+              <div class="sb-card-text">
+                <span class="sb-card-badge">Unidentified Species</span>
+                <span class="sb-card-sci">I don’t know, ask the community for help</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── data-sb="idle": birds recorded nearby.
+             Photos come from the shared _resources/bird-photos/ folder. ── -->
+        <div class="sb-nearby">
+        <div class="sb-list">
+
+          <div class="sb-card sb-card-unid">
+            <div class="sb-card-illus"><img src="imgs/unidentified-species.svg" alt="Unidentified species"></div>
+            <div class="sb-card-text">
+              <span class="sb-card-badge">Unidentified Species</span>
+              <span class="sb-card-sci">I don’t know, ask the community for help</span>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Common_Wood_Pigeon_2.webp')" role="img" aria-label="Woodpigeon"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">Woodpigeon</span><br>
+                <span class="sb-card-sci">Columba palumbus</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Carrion_Crow.webp')" role="img" aria-label="Carrion Crow"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">Carrion Crow</span><br>
+                <span class="sb-card-sci">Corvus corone</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/European_Robin.webp')" role="img" aria-label="Robin"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">Robin</span><br>
+                <span class="sb-card-sci">Erithacus rubecula</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Eurasian_Magpie.webp')" role="img" aria-label="Magpie"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">Magpie</span><br>
+                <span class="sb-card-sci">Pica pica</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Common_Blackbird_-_Male.webp')" role="img" aria-label="Blackbird"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">Blackbird</span><br>
+                <span class="sb-card-sci">Turdus merula</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Eurasian_Blue_Tit.webp')" role="img" aria-label="Blue Tit"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">Blue Tit</span><br>
+                <span class="sb-card-sci">Cyanistes caeruleus</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/House_Sparrow_-_Male.webp')" role="img" aria-label="House Sparrow"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">House Sparrow</span><br>
+                <span class="sb-card-sci">Passer domesticus</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Great_Tit_-_Male.webp')" role="img" aria-label="Great Tit"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">Great Tit</span><br>
+                <span class="sb-card-sci">Parus major</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Dunnock.webp')" role="img" aria-label="Dunnock"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">Dunnock</span><br>
+                <span class="sb-card-sci">Prunella modularis</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="sb-card">
+            <div class="sb-card-photo"><div style="background-image:url('../../_resources/bird-photos/Common_Moorhen.webp')" role="img" aria-label="Moorhen"></div></div>
+            <div class="sb-card-text">
+              <div style="align-self:stretch">
+                <span class="sb-card-name">Moorhen</span><br>
+                <span class="sb-card-sci">Gallinula chloropus</span>
+              </div>
+              <div class="sb-card-actions">
+                <svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        </div>
+      </div>
+
+      <!-- iOS keyboard — slides up while the field has focus -->
+      <div class="kb" id="sbKeyboard" aria-hidden="true">
+        <div class="kb-keys">
+          <div class="kb-row">
+            <button class="kb-key" data-key="q">q</button><button class="kb-key" data-key="w">w</button><button class="kb-key" data-key="e">e</button><button class="kb-key" data-key="r">r</button><button class="kb-key" data-key="t">t</button><button class="kb-key" data-key="y">y</button><button class="kb-key" data-key="u">u</button><button class="kb-key" data-key="i">i</button><button class="kb-key" data-key="o">o</button><button class="kb-key" data-key="p">p</button>
+          </div>
+          <div class="kb-row kb-row2">
+            <button class="kb-key" data-key="a">a</button><button class="kb-key" data-key="s">s</button><button class="kb-key" data-key="d">d</button><button class="kb-key" data-key="f">f</button><button class="kb-key" data-key="g">g</button><button class="kb-key" data-key="h">h</button><button class="kb-key" data-key="j">j</button><button class="kb-key" data-key="k">k</button><button class="kb-key" data-key="l">l</button>
+          </div>
+          <div class="kb-row kb-row3">
+            <button class="kb-key kb-shift">⇧</button>
+            <span class="kb-mid">
+              <button class="kb-key" data-key="z">z</button><button class="kb-key" data-key="x">x</button><button class="kb-key" data-key="c">c</button><button class="kb-key" data-key="v">v</button><button class="kb-key" data-key="b">b</button><button class="kb-key" data-key="n">n</button><button class="kb-key" data-key="m">m</button>
+            </span>
+            <button class="kb-key kb-del" data-key="del">⌫</button>
+          </div>
+          <div class="kb-row">
+            <button class="kb-key kb-abc">ABC</button>
+            <button class="kb-key kb-space" data-key=" "></button>
+            <button class="kb-key kb-ret" data-key="ret">↵</button>
+          </div>
+        </div>
+        <div class="kb-foot">
+          <img class="kb-emoji" src="imgs/kb-emoji.svg" alt="">
+          <img class="kb-mic" src="imgs/kb-mic.svg" alt="">
+        </div>
       </div>
     </section>
+    <!-- ▲▲▲ ------------------------------------------------------- ▲▲▲ -->
+
+    <!-- ▼▼▼  Screens 2–4 · Camera → confirm → crop  ▼▼▼
+         Placeholders: each is the screenshot from the Figma file
+         (2277-12851 / 12855 / 12857) with invisible hotspots over the controls
+         that matter, so the flow steps forward and back without pretending the
+         camera or the crop handles actually work. The screenshots carry their
+         own status bars, which is why these three don't get the house one. -->
+    <section class="screen shot-screen" data-screen="2">
+      <img class="shot" src="imgs/photo-cam.jpg" alt="Camera viewfinder">
+      <button class="hot" style="left:40.5%; top:77%;   width:19%; height:9%"   onclick="goTo(3)" aria-label="Take photo"></button>
+      <button class="hot" style="left:7%;    top:89.5%; width:15%; height:7.5%" onclick="goTo(1)" aria-label="Cancel"></button>
+    </section>
+
+    <section class="screen shot-screen" data-screen="3">
+      <img class="shot" src="imgs/photo-conf.jpg" alt="Use this photo?">
+      <button class="hot" style="left:1%;  top:87.5%; width:24%; height:7.5%" onclick="goTo(2)" aria-label="Retake"></button>
+      <button class="hot" style="left:73%; top:87.5%; width:26%; height:7.5%" onclick="goTo(5)" aria-label="Use photo"></button>
+    </section>
+
+    <!-- Choose photo lands here instead of the camera; both branches then
+         converge on the crop stage (Figma 2277-12862). Any thumbnail in the
+         grid advances — the picker itself isn't interactive. -->
+    <section class="screen shot-screen" data-screen="4">
+      <img class="shot" src="imgs/photo-lib.jpg" alt="Photo library">
+      <button class="hot" style="left:3%; top:6%;  width:14%; height:8%"  onclick="goTo(1)" aria-label="Close library"></button>
+      <button class="hot" style="left:0;  top:15%; width:100%; height:74%" onclick="goTo(5)" aria-label="Choose this photo"></button>
+    </section>
+
+    <section class="screen shot-screen" data-screen="5">
+      <img class="shot" src="imgs/photo-crop.jpg" alt="Crop the photo">
+      <button class="hot" style="left:1%;  top:89.5%; width:30%; height:7%" onclick="changePhoto()" aria-label="Change photo"></button>
+      <button class="hot" style="left:71%; top:89.5%; width:28%; height:7%" onclick="attachPhoto()" aria-label="Use photo"></button>
+    </section>
+    <!-- ▲▲▲ ------------------------------------------------------- ▲▲▲ -->
+
+    <!-- ▼▼▼  Location picker — modal sheet, opened by the location chip  ▼▼▼ -->
+    <div class="lp" id="lp" data-lp="map" data-loc="current" aria-hidden="true">
+      <div class="lp-backdrop"></div>
+      <div class="statusbar light"></div>
+      <div class="lp-page"></div>
+
+      <div class="lp-sheet">
+        <!-- the map pans; the pin above it does not -->
+        <div class="lp-map" id="lpMap">
+          <img src="imgs/map.jpg" alt="Map" id="lpMapImg" draggable="false">
+        </div>
+
+        <div class="lp-grabber"><i></i></div>
+
+        <div class="lp-content">
+          <div class="lp-controls">
+            <button class="lp-round lp-close" id="lpClose" aria-label="Close without changing location">
+              <svg viewBox="0 0 15.005 15.005"><use href="#ic-xmark"/></svg>
+            </button>
+            <div class="lp-bar" id="lpBar">
+              <svg viewBox="0 0 24 24"><use href="#ic-search"/></svg>
+              <span class="lp-bar-label" id="lpBarLabel">Search</span>
+              <button class="lp-locate" id="lpLocate" aria-label="Use current location">
+                <svg viewBox="0 0 24 24"><use href="#ic-loc-arrow"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="lp-pin">
+            <img class="lp-avatar" src="imgs/avatar.jpg" alt="">
+            <span class="lp-point"><i></i></span>
+          </div>
+
+          <button class="lp-set" id="lpSet">Set location</button>
+        </div>
+
+        <!-- second state: find a place by name -->
+        <div class="lp-searchview">
+          <div class="lp-controls">
+            <button class="lp-round lp-back" id="lpBack" aria-label="Back to map">
+              <svg viewBox="0 0 24 24"><use href="#ic-chev-left"/></svg>
+            </button>
+            <div class="lp-bar">
+              <svg viewBox="0 0 24 24"><use href="#ic-search"/></svg>
+              <input id="lpInput" type="text" placeholder="Search" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+          <div class="lp-results" id="lpResults"></div>
+        </div>
+      </div>
+    </div>
     <!-- ▲▲▲ ------------------------------------------------------- ▲▲▲ -->
 
   </div>
@@ -188,10 +1121,10 @@
     group: 'PEX-44',              // label shown above the iteration list
     current: 0,                   // 0-based index of the iteration THIS file represents
     iterations: [                 // add a 2nd entry to reveal the switcher + description
-      { label: 'Iteration 1', href: '../v1/index.html' },
-      { label: 'Iteration 2', href: '../v2/index.html' },
+      { label: 'Route 1', href: '../v1/index.html' },
+      { label: 'Route 2', href: '../v2/index.html' },
     ],
-    about: 'Tapping the photo <strong>grows it to full width</strong> and the date &amp; location chips rearrange below it. Tap again to shrink.',
+    about: 'Everything sits in <strong>one contained search box</strong> — search, both ID buttons and location. A photo joins it as <strong>another input inside the box</strong>, not a screen of its own.',
   };
   /* ═══════════════════════════════════════════════════════════════════ */
 
@@ -239,8 +1172,377 @@
   });
   show(parseInt((location.hash || '').replace('#', '')) || 1);  // open at #N if present
 
-  /* ── PEX-44: tap the photo to grow / shrink it ── */
-  function togglePhoto() { document.getElementById('card').classList.toggle('exp'); }
+  /* ── PEX-44 screen 1: the text search ────────────────────────────────
+     The state is derived, never assigned by hand: whether the field holds
+     text and whether it has focus give exactly the four combinations the
+     Figma frames show, so every handler just changes one of those two facts
+     and calls render().
+
+       text? focus?
+        no    no    → idle     nearby species list, keyboard down
+        no    yes   → focus    example descriptions, keyboard up
+        yes   yes   → results  ranked matches, keyboard up
+        yes   no    → results  ranked matches, keyboard down
+
+     An attached photo outranks all four: it takes the text field's place in
+     the card, so the state is 'photo' whatever the field is doing.
+
+     The fake keyboard and the example rows call preventDefault on mousedown
+     so tapping them never takes focus off the field — otherwise the field
+     would blur, the keyboard would drop, and it would take a second tap to
+     get back. */
+  (function textSearch() {
+    const screen = document.getElementById('sbScreen');
+    const input  = document.getElementById('sbInput');
+    const clear  = document.getElementById('sbClear');
+    const kb      = document.getElementById('sbKeyboard');
+    let focused = false, photo = false;
+
+    /* The card must never dip below its idle height — while the photo collapses
+       it briefly holds nothing but the controls row, which is shorter than the
+       search field it is about to be replaced by, so it would sag and then
+       snap back. The floor is measured from the real idle card rather than
+       hard-coded, and only once webfonts have landed: the search row's height
+       comes from the font's own line box, so measuring earlier would pin it to
+       the fallback font's metrics. */
+    (function pinBoxFloor() {
+      const box = document.querySelector('.sb-box');
+      const pin = () => { box.style.minHeight = box.offsetHeight + 'px'; };
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(pin);
+      else window.addEventListener('load', pin);
+    })();
+
+    function render() {
+      const typed = input.value.trim().length > 0;
+      screen.dataset.sb = photo ? 'photo' : (typed ? 'results' : (focused ? 'focus' : 'idle'));
+      screen.classList.toggle('kb-up', focused && !photo);
+    }
+
+    /* Called by "Use photo" on the crop screen. It returns to screen 1 rather
+       than opening a new one — the photo is an input being filled in. */
+    window.attachPhoto = function () {
+      photo = true;
+      screen.classList.remove('sb-swap');   /* in case a removal was still settling */
+      input.value = '';
+      screen.dataset.photo = 'thumb';
+      document.getElementById('sbPhotoHint').textContent = 'Tap to enlarge';
+      goTo(1);
+      render();
+    };
+    /* tap the row to enlarge / collapse the photo in place */
+    document.getElementById('sbPhotoRow').addEventListener('click', e => {
+      if (e.target.closest('#sbPhotoClear')) return;
+      const open = screen.dataset.photo !== 'expanded';
+      screen.dataset.photo = open ? 'expanded' : 'thumb';
+      document.getElementById('sbPhotoHint').textContent = open ? 'Tap to collapse' : 'Tap to enlarge';
+    });
+    /* Removing the photo animates back to idle rather than cutting.
+       Both halves need a forced style flush (reading offsetHeight) between the
+       start and end values: set both in one frame and the browser coalesces
+       them into a jump with no transition at all. max-height also has to be
+       pinned to a real number — you cannot transition from `none` — and
+       released afterwards so the next photo isn't clamped to zero. */
+    const SWAP = 300;
+    document.getElementById('sbPhotoClear').addEventListener('click', () => {
+      const block = document.querySelector('.sb-photo');
+      screen.dataset.photo = 'thumb';                  /* collapse the enlarged photo */
+      block.style.maxHeight = block.scrollHeight + 'px';
+      void block.offsetHeight;                         /* flush: 0 now has a start value */
+      screen.classList.add('sb-swap');                 /* fade out + collapse */
+      block.style.maxHeight = '0px';
+
+      setTimeout(() => {
+        photo = false;
+        block.style.maxHeight = '';
+        render();                                      /* idle content takes its place */
+        /* keep the bottom anchor for the second half, while the card's padding
+           and gap tween to the idle geometry */
+        setTimeout(() => screen.classList.remove('sb-swap'), SWAP);
+        /* Fade the incoming block up. This one needs a real painted frame, not
+           just a reflow: the block is arriving from display:none, which leaves
+           it with no before-change style for a transition to start from. */
+        const shown = [...document.querySelectorAll('.sb-nearby, .sb-examples, .sb-results')]
+          .find(el => getComputedStyle(el).display !== 'none');
+        if (!shown) return;
+        shown.style.opacity = '0';
+        requestAnimationFrame(() => requestAnimationFrame(() => { shown.style.opacity = '1'; }));
+        /* On a timer, not inside the frame callbacks: rAF never fires in a
+           backgrounded tab, and this is what guarantees the list can't be left
+           sitting at opacity 0 with nothing visible. */
+        setTimeout(() => { shown.style.opacity = ''; }, SWAP + 60);
+      }, SWAP);
+    });
+    input.addEventListener('focus', () => { focused = true;  render(); });
+    input.addEventListener('blur',  () => { focused = false; render(); });
+    input.addEventListener('input', render);
+    /* Enter dismisses the keyboard but keeps the results — Figma 2277-12681 */
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+
+    /* an example description fills the field, exactly as typing it would */
+    document.querySelectorAll('.sb-ex').forEach(ex => {
+      ex.addEventListener('mousedown', e => e.preventDefault());
+      ex.addEventListener('click', () => { input.value = ex.textContent.trim(); input.focus({ preventScroll: true }); render(); });
+    });
+
+    /* ✕ is a full reset, not just an erase: it drops focus too, so the screen
+       returns to the nearby list rather than sitting on the example
+       descriptions — those are what an EMPTY, FOCUSED field shows, which is
+       the state you'd be handing back if the field kept focus here. */
+    clear.addEventListener('mousedown', e => e.preventDefault());
+    clear.addEventListener('click', () => { input.value = ''; input.blur(); render(); });
+
+    /* the on-screen keys post into the real field */
+    kb.addEventListener('mousedown', e => e.preventDefault());
+    kb.addEventListener('click', e => {
+      const key = e.target.closest('.kb-key'); if (!key) return;
+      const k = key.dataset.key;
+      if (k === 'del')      input.value = input.value.slice(0, -1);
+      else if (k === 'ret') { input.blur(); return; }
+      else if (k)           input.value += k;
+      render();
+    });
+
+    /* Tapping anywhere else on the screen dismisses the keyboard — but NOT the
+       controls that are part of searching. An example row has to be on this
+       list: blurring on its mousedown would empty the field, drop the screen
+       back to `idle`, and hide the row itself before the mouseup landed, so
+       the click never arrived and the row appeared dead. */
+    const KEEPS_FOCUS = '.sb-box, .kb, .sb-ex';
+    screen.addEventListener('mousedown', e => {
+      if (focused && !e.target.closest(KEEPS_FOCUS)) input.blur();
+    });
+  })();
+
+  /* ── PEX-44: the Photo ID menu ───────────────────────────────────────
+     Take photo → camera (2); Choose photo → library (4). Both branches meet at
+     the crop stage, so "Change photo" there returns to whichever one you came
+     through — that is what photoFrom records. Both items close the menu on the
+     way out, so coming back to screen 1 later doesn't find it still open. */
+  let photoFrom = 2;
+  function changePhoto() { goTo(photoFrom); }
+
+  (function photoMenu() {
+    const screen = document.getElementById('sbScreen');
+    const menu   = document.getElementById('sbMenu');
+    const sticky = document.getElementById('wdSticky') || document.querySelector('.sb-sticky');
+    const shell  = document.querySelector('.shell');
+
+    /* The design puts the menu 127px down the content, i.e. 127px below the
+       sticky's top edge. Measured rather than hard-coded, because the house
+       status bar is shorter than the 62px one the design draws. */
+    function place() {
+      const z = shell.getBoundingClientRect().width / shell.offsetWidth;
+      const s = sticky.getBoundingClientRect(), p = screen.getBoundingClientRect();
+      menu.style.top = ((s.top - p.top) / z + 127 * 0.913043) + 'px';
+    }
+    const setOpen = on => {
+      if (on) place();
+      screen.dataset.menu = on ? 'open' : 'closed';
+      menu.setAttribute('aria-hidden', on ? 'false' : 'true');
+    };
+    document.getElementById('sbPhotoBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      setOpen(screen.dataset.menu !== 'open');
+    });
+    document.getElementById('sbMenuCatch').addEventListener('click', () => setOpen(false));
+    document.querySelectorAll('.sb-menu-item').forEach(i => i.addEventListener('click', () => setOpen(false)));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') setOpen(false); });
+    window.addEventListener('resize', () => { if (screen.dataset.menu === 'open') place(); });
+  })();
+
+  /* ── PEX-44: location picker ─────────────────────────────────────────
+     The pin is fixed and the map moves, so "where am I?" is a single sum:
+     the map point under the pin's tip = pin position − the map's translation.
+     Everything else falls out of that one number.
+
+       · panning changes the translation, so the label re-reads as the nearest
+         known place and the arrow greys the moment it leaves the current spot
+       · the arrow, and picking from the search list, animate the translation to
+         a place's coordinates instead of setting it directly
+       · ✕ restores the translation captured when the sheet opened, so closing
+         genuinely changes nothing
+       · Set location copies the sheet's label and pin/arrow state onto the chip
+
+     Places are held as offsets in AUTHORED px from the current location rather
+     than absolute map coordinates, so the set can be re-aimed at a different
+     map by editing one framing constant. */
+  (function locationPicker() {
+    const K = 0.913043;                    /* keep in step with --k */
+    const DESIGN_TX = -664, DESIGN_TY = -590;  /* the design's map framing */
+
+    const CURRENT = 'Kings Cross, UK';
+    const PLACES = [                       /* dx / dy: authored px from current */
+      { name: 'Minsmere, Suffolk, England',  dx: -260, dy: -300 },
+      { name: 'Dunwich Heath, Suffolk',      dx:  320, dy: -420 },
+      { name: 'Sizewell Beach, Suffolk',     dx:  620, dy: -120 },
+      { name: 'Leiston, Suffolk, England',   dx:  480, dy:  260 },
+      { name: 'Trafalgar, Horsham, England', dx: -420, dy:  380 },
+    ];
+
+    const lp    = document.getElementById('lp');
+    const map   = document.getElementById('lpMap');
+    const img   = document.getElementById('lpMapImg');
+    const pin   = document.querySelector('.lp-point');
+    const label = document.getElementById('lpBarLabel');
+    const input = document.getElementById('lpInput');
+    const list  = document.getElementById('lpResults');
+    const chipLabel = document.getElementById('sbChipLabel');
+    const chipIcon  = document.getElementById('sbChipIcon');
+    const shell = document.querySelector('.shell');
+
+    /* the phone is scaled to fit the window, so screen deltas need dividing
+       by that zoom before they are used as layout pixels */
+    const zoom = () => shell.getBoundingClientRect().width / shell.offsetWidth;
+
+    let tx = DESIGN_TX * K, ty = DESIGN_TY * K;   /* current map translation */
+    let opened = null;                            /* translation when the sheet opened */
+    let committed = { name: CURRENT, pinned: false };
+
+    const draw = () => { img.style.transform = 'translate3d(' + tx + 'px,' + ty + 'px,0)'; };
+
+    /* the pin's tip, in the map layer's own coordinates */
+    function pinPoint() {
+      const z = zoom(), m = map.getBoundingClientRect(), p = pin.getBoundingClientRect();
+      return { x: (p.left + p.width / 2 - m.left) / z, y: (p.bottom - m.top) / z };
+    }
+    /* where the current location sits on the map — fixed by the design framing */
+    function currentXY() {
+      const p = pinPoint();
+      return { x: p.x - DESIGN_TX * K, y: p.y - DESIGN_TY * K };
+    }
+    function placeXY(pl) {
+      const c = currentXY();
+      return { x: c.x + pl.dx * K, y: c.y + pl.dy * K };
+    }
+    /* keep the map covering the sheet no matter how far it is dragged */
+    function clamp() {
+      const w = img.offsetWidth, h = img.offsetHeight;
+      tx = Math.min(0, Math.max(map.clientWidth  - w, tx));
+      ty = Math.min(0, Math.max(map.clientHeight - h, ty));
+    }
+
+    function render() {
+      const p = pinPoint(), here = { x: p.x - tx, y: p.y - ty }, c = currentXY();
+      const atCurrent = Math.hypot(here.x - c.x, here.y - c.y) < 2;
+      lp.dataset.loc = atCurrent ? 'current' : 'moved';
+      if (atCurrent) { label.textContent = 'Search'; return; }
+      /* nearest known place wins the label */
+      let best = null, bestD = Infinity;
+      PLACES.concat([{ name: CURRENT, dx: 0, dy: 0 }]).forEach(pl => {
+        const q = placeXY(pl), d = Math.hypot(here.x - q.x, here.y - q.y);
+        if (d < bestD) { bestD = d; best = pl; }
+      });
+      label.textContent = best.name;
+    }
+
+    function moveTo(pl, animate) {
+      const q = placeXY(pl), p = pinPoint();
+      tx = p.x - q.x; ty = p.y - q.y;
+      clamp();
+      if (animate) { map.classList.add('anim'); setTimeout(() => map.classList.remove('anim'), 420); }
+      draw(); render();
+    }
+
+    /* ── open / close ── */
+    function open() {
+      document.getElementById('sbInput').blur();     /* drop the phone keyboard first */
+      lp.dataset.lp = 'map';
+      lp.classList.add('open');
+      lp.setAttribute('aria-hidden', 'false');
+      opened = { tx: tx, ty: ty };
+      requestAnimationFrame(() => { clamp(); draw(); render(); });
+    }
+    function close() {
+      lp.classList.remove('open');
+      lp.setAttribute('aria-hidden', 'true');
+    }
+    document.getElementById('sbChip').addEventListener('click', open);
+
+    document.getElementById('lpClose').addEventListener('click', () => {
+      tx = opened.tx; ty = opened.ty; draw(); render();   /* discard the move */
+      close();
+    });
+
+    document.getElementById('lpSet').addEventListener('click', () => {
+      const atCurrent = lp.dataset.loc === 'current';
+      committed = { name: atCurrent ? CURRENT : label.textContent, pinned: !atCurrent };
+      chipLabel.textContent = committed.name;
+      chipLabel.title = committed.name;                  /* full name on hover, since it truncates */
+      chipIcon.setAttribute('href', committed.pinned ? '#ic-loc-pin' : '#ic-loc-arrow');
+      close();
+    });
+
+    /* the arrow returns to the current location and goes blue again */
+    document.getElementById('lpLocate').addEventListener('click', e => {
+      e.stopPropagation();                               /* not a tap on the search bar */
+      moveTo({ name: CURRENT, dx: 0, dy: 0 }, true);
+    });
+
+    /* ── search a place ── */
+    document.getElementById('lpBar').addEventListener('click', () => {
+      lp.dataset.lp = 'search';
+      input.value = '';
+      buildList();
+      input.focus({ preventScroll: true });
+    });
+    document.getElementById('lpBack').addEventListener('click', () => { lp.dataset.lp = 'map'; });
+
+    function buildList() {
+      const q = input.value.trim().toLowerCase();
+      list.innerHTML = '';
+      /* current location always leads, as in the design */
+      if (!q || CURRENT.toLowerCase().includes(q) || 'current location'.includes(q)) {
+        list.appendChild(row('Current Location', CURRENT, null));
+      }
+      const hits = PLACES.filter(pl => pl.name.toLowerCase().includes(q));
+      hits.forEach(pl => list.appendChild(row(pl.name.split(',')[0], pl.name, pl)));
+      if (!list.children.length) {
+        const e = document.createElement('p');
+        e.className = 'lp-empty';
+        e.textContent = 'No places match “' + input.value.trim() + '”';
+        list.appendChild(e);
+      }
+    }
+    function row(title, sub, pl) {
+      const b = document.createElement('button');
+      b.className = 'lp-row' + (pl ? ' lp-row-place' : '');
+      b.innerHTML = '<svg viewBox="0 0 24 24"><use href="' + (pl ? '#ic-loc-pin' : '#ic-loc-arrow') + '"/></svg>'
+        + '<span class="lp-row-copy"><span class="lp-row-title"></span><span class="lp-row-sub"></span></span>';
+      b.querySelector('.lp-row-title').textContent = title;
+      b.querySelector('.lp-row-sub').textContent = sub;
+      b.addEventListener('click', () => {
+        lp.dataset.lp = 'map';
+        moveTo(pl || { name: CURRENT, dx: 0, dy: 0 }, false);
+      });
+      return b;
+    }
+    input.addEventListener('input', buildList);
+
+    /* ── panning ── */
+    let drag = null;
+    const pt = e => e.touches ? e.touches[0] : e;
+    function down(e) {
+      map.classList.remove('anim');
+      drag = { x: pt(e).clientX, y: pt(e).clientY, tx: tx, ty: ty };
+    }
+    function move(e) {
+      if (!drag) return;
+      const z = zoom();
+      tx = drag.tx + (pt(e).clientX - drag.x) / z;
+      ty = drag.ty + (pt(e).clientY - drag.y) / z;
+      clamp(); draw(); render();
+      e.preventDefault();
+    }
+    const up = () => { drag = null; };
+    map.addEventListener('mousedown', down);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    map.addEventListener('touchstart', down, { passive: true });
+    map.addEventListener('touchmove', move, { passive: false });
+    map.addEventListener('touchend', up);
+
+    draw();
+  })();
 
   /* ── Scale the phone to always fit the viewport ── */
   const shell = document.querySelector('.shell');
