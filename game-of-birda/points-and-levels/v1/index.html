@@ -1744,13 +1744,17 @@ function saveSighting() {
    front is showing there are just two tilts — right, then left — held wide and
    unhurried, then it settles. Extremes get ease-in-out so the card decelerates
    into each turn and accelerates back through centre. */
-const SPIN_MS = 1020;
-const SPIN_FACEON = 420;           /* the flip lands here: burst, and the pop settles */
+const SPIN_MS = 1580;
+const SPIN_FACEON = 420;           /* the burst, and where the pop settles */
 const SPIN_KEYS = [
   [0,    -180, 'cubic-bezier(.5,.1,.7,.7)'],     /* unhurried start, accelerating through the flip */
-  [420,    30, 'ease-in-out'],                   /* front is showing, tilted well right */
-  [700,   -20, 'cubic-bezier(.3,.85,.4,1)'],     /* a wide, slow tilt left… */
-  [1020,    0, null],                            /* …then settles centre */
+  /* The flip carries its speed, so it needs to start easing off well before the
+     extreme or it slams into the tilt and stops dead. This stop isn't another
+     tilt — it's the same move to +32°, shaped so the last stretch decelerates. */
+  [380,    18, 'cubic-bezier(.2,.7,.3,1)'],
+  [500,    32, 'ease-in-out'],                   /* drifts into the right tilt */
+  [980,   -24, 'cubic-bezier(.4,.55,.35,1)'],    /* a wide, languid tilt left… */
+  [1580,    0, null],                            /* …then a long settle to centre */
 ];
 const SWAY_MS = 6400, SWAY_DEG = 6;
 let swayAnim = null;
