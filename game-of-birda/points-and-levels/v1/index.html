@@ -1739,15 +1739,23 @@ function saveSighting() {
    rotation slow to a crawl exactly where nothing is drawn, so the card seems to
    vanish and then pop back. One accelerating sweep carries it from face-down
    through the flip to its overshoot instead.
-   [offset, rotateY, easing for the move away from this stop] */
-const SPIN_MS = 850;
+   [absolute ms, rotateY, easing for the move away from this stop]
+   Times are absolute ms so the beats are readable; offsets are derived. Once the
+   front is showing the card rocks back and forth with a decaying spring — each
+   swing about two-thirds of the last — rather than one there-and-back, which
+   reads as stiff. Extremes get ease-in-out so the card decelerates into each
+   turn and accelerates back through centre. */
+const SPIN_MS = 1040;
+const SPIN_FACEON = 420;           /* the flip lands here: burst, and the pop settles */
 const SPIN_KEYS = [
-  [0,      -180, 'cubic-bezier(.5,.1,.7,.7)'],     /* unhurried start, accelerating through the flip */
-  [0.494,    22, 'ease-in-out'],                   /* overshot; swing left, a little slower */
-  [0.729,   -12, 'cubic-bezier(.25,.85,.35,1)'],   /* ease into centre */
-  [1,         0, null],
+  [0,    -180, 'cubic-bezier(.5,.1,.7,.7)'],   /* unhurried start, accelerating through the flip */
+  [420,    22, 'ease-in-out'],                 /* front is showing, overshot right */
+  [595,   -16, 'ease-in-out'],                 /* …and it rocks: left… */
+  [740,    10, 'ease-in-out'],                 /* …right… */
+  [860,    -6, 'ease-in-out'],                 /* …left… */
+  [960,     3, 'cubic-bezier(.3,.8,.4,1)'],    /* …right, then settles */
+  [1040,    0, null],
 ];
-const SPIN_CONFETTI = 0.494;       /* as the flip lands the card face-on */
 const SWAY_MS = 6400, SWAY_DEG = 6;
 let swayAnim = null;
 
@@ -1761,17 +1769,17 @@ function spinCard(host, delay) {
 
   /* rotateY lives on the inner element so it gets the perspective from .tcard */
   const spin = inner.animate(SPIN_KEYS.map(k => {
-    const f = { transform: 'rotateY(' + k[1] + 'deg)', offset: k[0] };
+    const f = { transform: 'rotateY(' + k[1] + 'deg)', offset: k[0] / SPIN_MS };
     if (k[2]) f.easing = k[2];
     return f;
   }), opts);
   /* a pop on the way in that has settled by the time the card is face-on, so only
-     the rotation moves through the tail. Scale is on the outer element so it
+     the rotation moves through the rocking. Scale is on the outer element so it
      can't clash with rotateY. */
   const pop = card.animate([
     { scale: 1.16, opacity: 0, easing: TURN },
     { scale: 1.13, opacity: 1, offset: 0.10, easing: TURN },
-    { scale: 1, offset: SPIN_CONFETTI },
+    { scale: 1, offset: SPIN_FACEON / SPIN_MS },
     { scale: 1 },
   ], opts);
 
@@ -1868,7 +1876,7 @@ function onEnter(n, d) {
       /* called now, not on a timer: the animation owns the delay so the card is
          held out of sight until it drops */
       spinCard(document.getElementById('firstCard'), d);
-      T(d + SPIN_MS * SPIN_CONFETTI, () => runPop('fx2'));
+      T(d + SPIN_FACEON, () => runPop('fx2'));
     } else paintPop(armPop('fx2'), SEEK);
   }
   if (n === 3) { if (SEEK === null) T(80, runLevelUp); else { armLevelUp(); paintLevelUp(SEEK); } }
@@ -1900,7 +1908,7 @@ function onEnter(n, d) {
   if (n === 10) {
     if (SEEK === null) {
       spinCard(document.getElementById('newCard'), d);
-      T(d + SPIN_MS * SPIN_CONFETTI, () => runPop('fx10'));
+      T(d + SPIN_FACEON, () => runPop('fx10'));
     } else paintPop(armPop('fx10'), SEEK);
   }
   if (n === 11) { if (SEEK === null) T(80, runUpgrade); else { armUpgrade(); paintUpgrade(SEEK); } }
