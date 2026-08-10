@@ -1741,20 +1741,16 @@ function saveSighting() {
    through the flip to its overshoot instead.
    [absolute ms, rotateY, easing for the move away from this stop]
    Times are absolute ms so the beats are readable; offsets are derived. Once the
-   front is showing the card rocks back and forth with a decaying spring — each
-   swing about two-thirds of the last — rather than one there-and-back, which
-   reads as stiff. Extremes get ease-in-out so the card decelerates into each
-   turn and accelerates back through centre. */
-const SPIN_MS = 1040;
+   front is showing there are just two tilts — right, then left — held wide and
+   unhurried, then it settles. Extremes get ease-in-out so the card decelerates
+   into each turn and accelerates back through centre. */
+const SPIN_MS = 1020;
 const SPIN_FACEON = 420;           /* the flip lands here: burst, and the pop settles */
 const SPIN_KEYS = [
-  [0,    -180, 'cubic-bezier(.5,.1,.7,.7)'],   /* unhurried start, accelerating through the flip */
-  [420,    22, 'ease-in-out'],                 /* front is showing, overshot right */
-  [595,   -16, 'ease-in-out'],                 /* …and it rocks: left… */
-  [740,    10, 'ease-in-out'],                 /* …right… */
-  [860,    -6, 'ease-in-out'],                 /* …left… */
-  [960,     3, 'cubic-bezier(.3,.8,.4,1)'],    /* …right, then settles */
-  [1040,    0, null],
+  [0,    -180, 'cubic-bezier(.5,.1,.7,.7)'],     /* unhurried start, accelerating through the flip */
+  [420,    30, 'ease-in-out'],                   /* front is showing, tilted well right */
+  [700,   -20, 'cubic-bezier(.3,.85,.4,1)'],     /* a wide, slow tilt left… */
+  [1020,    0, null],                            /* …then settles centre */
 ];
 const SWAY_MS = 6400, SWAY_DEG = 6;
 let swayAnim = null;
