@@ -162,6 +162,12 @@
     display:flex; flex-direction:column; gap:20px; padding:1px; align-items:center; }
   .tface.back { transform:rotateY(180deg); }
   .tpaper { position:absolute; inset:1px; border-radius:7px; background:var(--paper); }
+  /* the card's reverse, sitting on the back of the flip */
+  .cardback { position:absolute; inset:0; border-radius:8px; overflow:hidden;
+    background:url('imgs/cards/card-back.png') center / cover no-repeat;
+    box-shadow:0 28px 52px rgba(20,22,24,.25);
+    backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    transform:rotateY(180deg); }
   .tsticker { position:relative; height:225px; flex-shrink:0; align-self:stretch; }
   .tsticker .art { position:absolute; left:46px; top:28px; width:202px; height:202px;
     display:flex; align-items:center; justify-content:center; }
@@ -822,13 +828,14 @@
        ══════════════════════════════════════════════════════════════════ -->
   <section class="screen" data-screen="10">
     <div class="statusbar"></div>
-    <div class="body" style="padding:16px 40px 0; position:relative;">
-      <h1 class="h1">New card found</h1>
-      <p class="sub" style="margin-top:8px;">Your flock keeps growing!</p>
-      <div style="display:flex; justify-content:center; margin-top:34px;">
-        <div id="newCard"></div>
+    <!-- same spacing as screen 2 — copy at 94, 48px to the card (Figma 1568:16227) -->
+    <div class="body" style="padding:32px 40px 0; display:flex; flex-direction:column; gap:48px; align-items:center; position:relative;">
+      <div style="align-self:stretch;">
+        <h1 class="h1">New card found</h1>
+        <p class="sub" style="margin-top:8px;">Your flock keeps growing!</p>
       </div>
-      <div class="popfx" id="fx10"></div>
+      <div id="newCard"></div>
+      <div class="popfx" id="fx10" style="top:350px;"></div>
     </div>
     <div class="footer">
       <button class="btn btn-primary" onclick="goTo(11)">Add card to my collection</button>
@@ -1011,10 +1018,12 @@ function faceHTML(tier, key, opts) {
     + '</div>';
 }
 
-/* a single static card, used on the two celebration screens */
-function cardHTML(key, logged, photos, tier, next) {
+/* a single card, used on the two celebration screens; `back` adds the reverse so
+   the card can be spun round to reveal its front */
+function cardHTML(key, logged, photos, tier, next, back) {
   return '<div class="tcard"><div class="tcard-in">'
     + faceHTML(tier.toLowerCase(), key, { logged:logged, photos:photos, tier:tier, next:next, fill:16 })
+    + (back ? '<div class="cardback"></div>' : '')
     + '</div></div>';
 }
 
@@ -1325,7 +1334,7 @@ function chooseDeckBird() {
 function buildOnboardingCards() {
   const b = BIRDS[S.starter];
   const firstCard = document.getElementById('firstCard');
-  firstCard.innerHTML = cardHTML(S.starter, 1, 0, 'Bronze', 'Silver (1/5)');
+  firstCard.innerHTML = cardHTML(S.starter, 1, 0, 'Bronze', 'Silver (1/5)', true);
   fitCardNames(firstCard);
   document.getElementById('firstCardNote').innerHTML =
     'Log a ' + b.name.toLowerCase() + ' whenever you see one to upgrade your card. Only 4 more to go until silver!';
@@ -1706,7 +1715,7 @@ function buildLoggedScreens() {
   document.getElementById('rsPinGlyph').style.display = known ? 'none' : '';
   if (known) document.getElementById('rsPin').src = photoOf(S.logged);
   const newCard = document.getElementById('newCard');
-  newCard.innerHTML = cardHTML(loggedCardKey(), 1, 0, 'Bronze', 'Silver (1/5)');
+  newCard.innerHTML = cardHTML(loggedCardKey(), 1, 0, 'Bronze', 'Silver (1/5)', true);
   fitCardNames(newCard);
   /* screen 11's card is rebuilt by armUpgrade() so the flip always starts clean */
 }
@@ -1720,45 +1729,76 @@ function saveSighting() {
   if (isNewCard) goTo(10); else goToMap('relog');
 }
 
-/* ══ THE CARD LANDING ═══════════════════════════════════════════════════
-   Dropped flat, seen from above: it starts large and tilted, as if nearer the
-   camera, then settles onto the surface with a bounce. The shadow starts big and
-   soft and tightens as it lands, which is what sells the height. */
-const DROP_MS = 840;
-const DROP_IMPACT = 0.44;          /* where it first meets the surface */
-/* `delay` is handed to WAAPI rather than a timer, with fill:'backwards', so the
-   first keyframe applies from the moment the card is built — otherwise it sits
-   visible at its resting size until the animation starts. */
-function dropCard(host, delay) {
-  const card = host && host.querySelector('.tcard');
-  if (!card || !card.animate) return;
-  const opts = { duration: DROP_MS, delay: delay || 0, fill: 'backwards', easing: 'linear' };
-  const FALL   = 'cubic-bezier(.45,0,.75,.6)';    /* accelerating, like a fall */
-  const UP     = 'cubic-bezier(.2,.8,.3,1)';      /* springing back off the surface */
-  const SETTLE = 'cubic-bezier(.25,.9,.35,1)';
-  card.animate([
-    { scale: 1.34,  rotate: '-5deg',    translate: '0 -34px', opacity: 0, easing: 'cubic-bezier(.3,0,.6,1)' },
-    { scale: 1.26,  rotate: '-7deg',    translate: '0 -26px', opacity: 1, offset: 0.07, easing: FALL },
-    { scale: 0.88,  rotate: '6deg',     translate: '0 0',                 offset: DROP_IMPACT, easing: UP },
-    { scale: 1.09,  rotate: '-3deg',    translate: '0 -10px',             offset: 0.59, easing: FALL },
-    { scale: 0.96,  rotate: '1.6deg',   translate: '0 0',                 offset: 0.73, easing: UP },
-    { scale: 1.025, rotate: '-0.5deg',  translate: '0 -3px',              offset: 0.86, easing: SETTLE },
-    { scale: 1,     rotate: '0deg',     translate: '0 0' },
+/* ══ THE CARD REVEAL ════════════════════════════════════════════════════
+   The card arrives face-down, spins round to its front, overshoots and bounces
+   back, then keeps a slow left-right sway so it stays alive on the screen.
+   The delay is handed to WAAPI with fill:'backwards' rather than run off a timer,
+   so the first keyframe holds the card out of sight until it spins in. */
+/* The card is edge-on — and so invisible — at −90°, which it must cross at its
+   fastest. Crucially there is NO keyframe there: a stop at −90° makes the
+   rotation slow to a crawl exactly where nothing is drawn, so the card seems to
+   vanish and then pop back. One accelerating sweep carries it from face-down
+   through the flip to its overshoot instead.
+   [offset, rotateY, easing for the move away from this stop] */
+const SPIN_MS = 850;
+const SPIN_KEYS = [
+  [0,      -180, 'cubic-bezier(.5,.1,.7,.7)'],     /* unhurried start, accelerating through the flip */
+  [0.494,    22, 'ease-in-out'],                   /* overshot; swing left, a little slower */
+  [0.729,   -12, 'cubic-bezier(.25,.85,.35,1)'],   /* ease into centre */
+  [1,         0, null],
+];
+const SPIN_CONFETTI = 0.494;       /* as the flip lands the card face-on */
+const SWAY_MS = 6400, SWAY_DEG = 6;
+let swayAnim = null;
+
+function spinCard(host, delay) {
+  const card  = host && host.querySelector('.tcard');
+  const inner = host && host.querySelector('.tcard-in');
+  if (!card || !inner || !inner.animate) return;
+  const d = delay || 0;
+  const TURN = SPIN_KEYS[0][2];
+  const opts = { duration: SPIN_MS, delay: d, fill: 'backwards' };
+
+  /* rotateY lives on the inner element so it gets the perspective from .tcard */
+  const spin = inner.animate(SPIN_KEYS.map(k => {
+    const f = { transform: 'rotateY(' + k[1] + 'deg)', offset: k[0] };
+    if (k[2]) f.easing = k[2];
+    return f;
+  }), opts);
+  /* a pop on the way in that has settled by the time the card is face-on, so only
+     the rotation moves through the tail. Scale is on the outer element so it
+     can't clash with rotateY. */
+  const pop = card.animate([
+    { scale: 1.16, opacity: 0, easing: TURN },
+    { scale: 1.13, opacity: 1, offset: 0.10, easing: TURN },
+    { scale: 1, offset: SPIN_CONFETTI },
+    { scale: 1 },
   ], opts);
-  /* the shadow reacts to each bounce — tight on impact, loose off the surface */
-  const face = card.querySelector('.tface');
-  const shadow = face && face.animate([
-    { boxShadow: '0 104px 140px rgba(20,22,24,0.34)', easing: FALL },
-    { boxShadow: '0 18px 34px rgba(20,22,24,0.32)',  offset: DROP_IMPACT, easing: UP },
-    { boxShadow: '0 46px 74px rgba(20,22,24,0.26)',  offset: 0.59, easing: FALL },
-    { boxShadow: '0 22px 40px rgba(20,22,24,0.28)',  offset: 0.73, easing: SETTLE },
-    { boxShadow: '0 28px 52px rgba(20,22,24,0.25)' },
-  ], opts);
-  /* the reveal rides on the animation, so make sure the card can't be left hidden
-     if it never runs — cancelling once it's over drops back to the CSS resting state */
+
+  /* hand over to the idle sway, and make sure the card can't be left hidden or
+     mid-spin if the animation never runs */
   setTimeout(() => {
-    [card.getAnimations()[0], shadow].forEach(a => { if (a) try { a.cancel(); } catch (e) {} });
-  }, (delay || 0) + DROP_MS + 80);
+    [spin, pop].forEach(a => { try { a.cancel(); } catch (e) {} });
+    startSway(inner);
+  }, d + SPIN_MS + 20);
+}
+
+/* a gentle, endless left-right turn; keyframed 0 → −6 → 0 → +6 → 0 so the loop
+   joins without a jump. Skipped when the reader asks for reduced motion. */
+function startSway(inner) {
+  stopSway();
+  if (!inner || !inner.animate) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  swayAnim = inner.animate([
+    { transform: 'rotateY(0deg)' },
+    { transform: 'rotateY(' + -SWAY_DEG + 'deg)', offset: 0.25 },
+    { transform: 'rotateY(0deg)', offset: 0.5 },
+    { transform: 'rotateY(' + SWAY_DEG + 'deg)', offset: 0.75 },
+    { transform: 'rotateY(0deg)' },
+  ], { duration: SWAY_MS, iterations: Infinity, easing: 'ease-in-out' });
+}
+function stopSway() {
+  if (swayAnim) { try { swayAnim.cancel(); } catch (e) {} swayAnim = null; }
 }
 
 /* ══ NAVIGATION ═════════════════════════════════════════════════════════ */
@@ -1773,6 +1813,7 @@ function pushTo(n) {
   const to   = screens.find(s => +s.dataset.screen === n);
   if (pushing || !from || !to || !to.animate) { goTo(n); return; }
   pushing = true;
+  stopSway();
   clearScreenAnims();
   tClear();
   cancelAnimationFrame(LU.raf); cancelAnimationFrame(UP.raf);
@@ -1808,6 +1849,7 @@ function clearScreenAnims() {
 function show(n) {
   cur = Math.max(1, Math.min(screens.length, n));
   pushing = false;
+  stopSway();
   clearScreenAnims();
   tClear();
   cancelAnimationFrame(LU.raf);
@@ -1825,9 +1867,8 @@ function onEnter(n, d) {
     if (SEEK === null) {
       /* called now, not on a timer: the animation owns the delay so the card is
          held out of sight until it drops */
-      dropCard(document.getElementById('firstCard'), d);
-      /* the burst goes off on impact, not on arrival */
-      T(d + DROP_MS * DROP_IMPACT, () => runPop('fx2'));
+      spinCard(document.getElementById('firstCard'), d);
+      T(d + SPIN_MS * SPIN_CONFETTI, () => runPop('fx2'));
     } else paintPop(armPop('fx2'), SEEK);
   }
   if (n === 3) { if (SEEK === null) T(80, runLevelUp); else { armLevelUp(); paintLevelUp(SEEK); } }
@@ -1856,7 +1897,12 @@ function onEnter(n, d) {
   if (n === 6) buildGoalSheet();
   if (n === 8) buildPicker();
   if (n === 9 || n === 10 || n === 11) buildLoggedScreens();
-  if (n === 10) { if (SEEK === null) T(140, () => runPop('fx10')); else paintPop(armPop('fx10'), SEEK); }
+  if (n === 10) {
+    if (SEEK === null) {
+      spinCard(document.getElementById('newCard'), d);
+      T(d + SPIN_MS * SPIN_CONFETTI, () => runPop('fx10'));
+    } else paintPop(armPop('fx10'), SEEK);
+  }
   if (n === 11) { if (SEEK === null) T(80, runUpgrade); else { armUpgrade(); paintUpgrade(SEEK); } }
 }
 function next() { show(cur === screens.length ? 1 : cur + 1); }
