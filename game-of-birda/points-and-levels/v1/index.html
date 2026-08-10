@@ -35,7 +35,7 @@
     /* XP green */
     --green:#158370; --green-2:#188673; --green-pale:#A5E0D6; --green-bg:#F1FEFB;
     /* ink */
-    --ink:#2D3142; --ink-2:#4C5980; --ink-3:#5C6486;
+    --ink:#2D3142; --ink-2:#4C5980; --ink-3:#5C6486; --ink-4:#636E90;
     --line:#E4E8F0; --strong:#C4C7D7; --node:#D4E0EF; --rail:#B2C6DE;
     --base:#FAFCFE;
     /* bronze card */
@@ -50,6 +50,11 @@
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     font-family:'Rubik',-apple-system,sans-serif; color:var(--ink);
     letter-spacing:.2px;
+    /* macOS Chrome/Safari default to subpixel antialiasing, which renders text
+       noticeably heavier than Figma. Grayscale antialiasing is what Figma uses,
+       so Medium reads as Medium rather than creeping towards SemiBold. */
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
   }
 
   /* ─── Phone shell (house style, sized to the 402×874 Figma frame) ───── */
@@ -64,15 +69,18 @@
   .screen.active { display:flex; }
   .body { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .body::-webkit-scrollbar { display:none; }
-  .footer { flex-shrink:0; padding:12px 24px 34px; }
+  /* button block as the Figma frames have it: 40px sides, 32px clear of the bottom */
+  .footer { flex-shrink:0; padding:0 40px 32px; }
 
   /* status bar */
-  .statusbar { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:16px 28px 6px; z-index:12; position:relative; }
+  /* 62px is the status bar height on the Figma frames and in the animation demos,
+     so content below it starts where the designs put it */
+  .statusbar { flex-shrink:0; height:62px; display:flex; align-items:center; justify-content:space-between; padding:0 28px; z-index:12; position:relative; }
   .statusbar .time { font-size:15px; font-weight:600; }
   .statusbar svg { display:block; }
 
   /* ─── Buttons ───────────────────────────────────────────────────────── */
-  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px 24px; border-radius:4px; font-size:16px; font-weight:500; }
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; height:48px; padding:16px 24px; border-radius:4px; font-size:16px; font-weight:500; }
   .btn-primary { background:var(--blue); color:#fff; }
   .btn-primary:active { background:#0f6fe0; }
   .btn-secondary { background:#fff; color:var(--blue); box-shadow:inset 0 0 0 1.5px var(--blue); }
@@ -88,7 +96,8 @@
   .chunky svg { width:20px; height:20px; flex-shrink:0; }
 
   /* ─── Type helpers ──────────────────────────────────────────────────── */
-  .h1 { font-size:24px; font-weight:600; line-height:32px; text-align:center; }
+  /* Medium, not SemiBold — the weight used across the Figma frames */
+  .h1 { font-size:24px; font-weight:500; line-height:32px; text-align:center; }
   .sub { font-size:16px; font-weight:400; line-height:24px; color:var(--ink); text-align:center; }
   .xpword { color:var(--green); font-weight:500; white-space:nowrap; }
   .feather { width:1em; height:1em; vertical-align:-.1em; fill:var(--green); }
@@ -96,11 +105,15 @@
   /* ═══════════════════════════════════════════════════════════════════════
      STARTER CARD (onboarding swipe deck)
      ═════════════════════════════════════════════════════════════════════ */
-  .deck { position:relative; height:426px; margin:0 auto; width:302px; }
+  /* card and internals are the measurements of the "starter card" instance on
+     Figma 489:5608 — 296x413, name at 24, photo 224x169 at 85, footer at 365 */
+  .deck { position:relative; height:413px; margin:0 auto; width:296px; }
   .deck-card {
-    position:absolute; inset:0; background:#fff; border-radius:12px;
-    box-shadow:0 2px 4px rgba(20,22,24,.10), 0 14px 30px rgba(20,22,24,.13);
-    padding:20px 20px 16px; display:flex; flex-direction:column;
+    position:absolute; inset:0; border-radius:8px;
+    background:linear-gradient(153.485deg, rgb(252,252,252) 14.613%, rgb(250,250,250) 98.785%);
+    /* the 1px white edge as an inset ring, so it costs no layout */
+    box-shadow:inset 0 0 0 1px #fff, 0 28px 52px rgba(20,22,24,.25);
+    padding:24px 16px 0; display:flex; flex-direction:column;
     /* the pile is animated with the individual transform properties, so translate
        and rotate can carry the different easing curves the Figma timeline uses */
     will-change:translate, rotate; touch-action:none; user-select:none;
@@ -112,20 +125,28 @@
   .deck-card img { -webkit-user-drag:none; user-drag:none; pointer-events:none; }
   /* a slot past the end of the deck — kept in the DOM so it can be reused */
   .deck-card.empty { opacity:0; pointer-events:none; }
-  .dc-name { font-size:18px; font-weight:500; }
-  .dc-latin { font-size:14px; font-style:italic; color:var(--ink-2); margin-top:1px; }
-  .dc-photo { flex:1; margin:14px 0 12px; display:flex; align-items:center; justify-content:center; min-height:0; }
-  .dc-photo img { max-width:100%; max-height:190px; object-fit:contain; }
-  .dc-photo .glyph { width:96px; height:96px; opacity:.22; }
-  .dc-desc { font-size:13px; line-height:19px; color:var(--ink-2); }
-  .dc-foot { display:flex; align-items:center; justify-content:space-between; margin-top:14px; min-height:24px; }
-  .dc-foot .near { font-size:13px; color:var(--ink-2); }
-  .rarity { font-size:12px; font-weight:500; line-height:1.35; color:#fff; background:var(--common); border-radius:4px; padding:3px 8px; }
+  .dc-name { font-size:20px; font-weight:500; line-height:24px; color:var(--ink-2); }
+  .dc-latin { font-size:14px; font-style:italic; line-height:17px; color:var(--ink-2); margin-top:4px; }
+  .dc-photo { height:169px; margin-top:16px; display:flex; align-items:center; justify-content:center; }
+  .dc-photo img { max-width:224px; max-height:169px; }
+  /* shared placeholder icon; it carries its own #D6D9E0 fill */
+  .dc-photo .glyph { width:112px; height:112px; }
+  /* height is left to the copy — the longer descriptions run to four lines */
+  .dc-desc { margin-top:16px; font-size:14px; line-height:19px; color:var(--ink-4); }
+  /* min-height keeps the divider on 365 even on the "Not sure?" card, whose
+     footer has no content */
+  .dc-foot { min-height:48px; margin:auto -16px 0; padding:14px 16px; border-top:1px solid var(--line);
+    display:flex; align-items:center; gap:8px; flex-shrink:0; box-sizing:border-box; }
+  .dc-foot .near { flex:1; font-size:14px; color:var(--ink-4); }
+  /* a pill on the starter card, a rounded rect on the map's target cards */
+  .rarity { font-size:12px; font-weight:500; line-height:12px; color:#fff; background:var(--common);
+    border-radius:4px; padding:4px 8px; }
+  .dc-foot .rarity { border-radius:999px; }
   .rarity.uncommon { background:var(--uncommon); }
   /* 6 static dots on a 16px pitch with one blue dot that slides between them */
-  .dots { position:relative; display:flex; justify-content:center; margin-top:58px; height:7px; }
-  .dots i { width:7px; height:7px; margin:0 4.5px; border-radius:99px; background:var(--strong); opacity:.55; }
-  .dots .sel { position:absolute; left:0; top:0; width:7px; height:7px; border-radius:99px; background:var(--blue); }
+  .dots { position:relative; display:flex; justify-content:center; margin-top:78px; height:8px; }
+  .dots i { width:8px; height:8px; margin:0 4px; border-radius:99px; background:var(--strong); opacity:.55; }
+  .dots .sel { position:absolute; left:0; top:0; width:8px; height:8px; border-radius:99px; background:var(--blue); }
 
   /* ═══════════════════════════════════════════════════════════════════════
      COLLECTION CARD (bronze) — the thing you level up
@@ -474,10 +495,10 @@
        ══════════════════════════════════════════════════════════════════ -->
   <section class="screen" data-screen="1">
     <div class="statusbar"></div>
-    <div class="body" style="padding:24px 40px 0;">
+    <div class="body" style="padding:32px 40px 0;">
       <h1 class="h1" id="deckTitle">Your collection starts with one bird</h1>
-      <p class="sub" style="margin-top:8px;" id="deckSub">Swipe through and choose a bird you&rsquo;ve spotted before.</p>
-      <div class="deck" id="deck" style="margin-top:32px;"></div>
+      <p class="sub" style="margin-top:4px;" id="deckSub">Swipe through and choose a bird you&rsquo;ve spotted before.</p>
+      <div class="deck" id="deck" style="margin-top:34px;"></div>
       <div class="dots" id="deckDots"></div>
     </div>
     <div class="footer">
@@ -490,13 +511,13 @@
        ══════════════════════════════════════════════════════════════════ -->
   <section class="screen" data-screen="2">
     <div class="statusbar"></div>
-    <div class="body" style="padding:16px 40px 0; position:relative;">
-      <h1 class="h1">Look who just landed<br>in your card collection</h1>
-      <div style="display:flex; justify-content:center; margin-top:26px;">
-        <div id="firstCard"></div>
-      </div>
-      <p class="sub" style="margin-top:26px;" id="firstCardNote"></p>
-      <div class="popfx" id="fx2"></div>
+    <!-- copy sits where screen 1's does (94), then 48px to the card and 48px to
+         the note — the gaps on Figma 609:10916 -->
+    <div class="body" style="padding:32px 40px 0; display:flex; flex-direction:column; gap:48px; align-items:center; position:relative;">
+      <h1 class="h1" style="align-self:stretch;">Look who just landed<br>in your card collection</h1>
+      <div id="firstCard"></div>
+      <p class="sub" style="align-self:stretch;" id="firstCardNote"></p>
+      <div class="popfx" id="fx2" style="top:350px;"></div>
     </div>
     <div class="footer">
       <button class="btn btn-primary" onclick="goTo(3)">Add card to my collection</button>
@@ -738,7 +759,10 @@
     </div>
     <div class="body">
       <div class="mapband">
-        <div class="pin"><img id="rsPin" src="" alt=""></div>
+        <div class="pin">
+          <img id="rsPin" src="" alt="">
+          <svg id="rsPinGlyph" viewBox="0 0 24 24" style="display:none; width:30px; height:30px; fill:#8890AE;"><use href="#crowPath"/></svg>
+        </div>
         <div class="credit">© Mapbox</div>
       </div>
 
@@ -823,7 +847,7 @@
       </div>
       <div id="upgradeCard"></div>
     </div>
-    <div class="footer" style="padding:0 40px 32px;">
+    <div class="footer">
       <button class="btn btn-primary" onclick="goToMap('logged')">Keep birding</button>
     </div>
   </section>
@@ -855,25 +879,29 @@ const PROTO = {
 /* imgs/birds/*.png are the shared _resources/bird-photos cutouts with their
    white studio background keyed out, so they can sit on the peach card. */
 const PHOTOS = 'imgs/birds/';
+const PLACEHOLDER = '../../../_resources/ui-elements/bird-placeholder.svg';
 const BIRDS = {
-  dunnock:      { name:'Dunnock',       latin:'Prunella modularis',  img:'dunnock.png',      rarity:'Common',   desc:'Small robin-sized bird with a grey head and streaky brown back, seen in gardens and hedgerows.' },
-  robin:        { name:'Robin',         latin:'Erithacus rubecula',  img:'robin.png',        rarity:'Common',   desc:'Unmistakable orange-red breast, upright stance and a thin dark bill. Bold around gardeners.' },
-  bluetit:      { name:'Blue Tit',      latin:'Cyanistes caeruleus', img:'bluetit.png',      rarity:'Uncommon', desc:'Tiny, acrobatic and bright — blue cap and wings, yellow underparts, white cheeks.' },
-  blackbird:    { name:'Blackbird',     latin:'Turdus merula',       img:'blackbird.png',    rarity:'Common',   desc:'Glossy black with a bright orange bill and eye-ring. Females are a warm streaky brown.' },
-  housesparrow: { name:'House sparrow', latin:'Passer domesticus',   img:'housesparrow.png', rarity:'Common',   desc:'Chunky, chattering and sociable. Males have a grey crown and black bib.' },
-  woodpigeon:   { name:'Woodpigeon',    latin:'Columba palumbus',    img:'woodpigeon.png',   rarity:'Common',   desc:'Large and heavy with a white neck patch. Its clattering take-off gives it away.' },
-  greattit:     { name:'Great Tit',     latin:'Parus major',         img:'greattit.png',     rarity:'Common',   desc:'Bigger than a blue tit — glossy black head, white cheeks and a black belly stripe.' },
-  magpie:       { name:'Magpie',        latin:'Pica pica',           img:'magpie.png',       rarity:'Common',   desc:'Black and white with a long iridescent tail. Loud, clever and hard to miss.' },
-  carrioncrow:  { name:'Carrion Crow',  latin:'Corvus corone',       img:'carrioncrow.png',  rarity:'Common',   desc:'All-black with a stout bill. Usually alone or in pairs, unlike rooks.' },
+  dunnock:      { name:'Dunnock',       latin:'Prunella modularis',  img:'dunnock.png',      rarity:'Common',   desc:'Small brown bird, robin-sized, with a grey head; seen in gardens and hedgerows. Often flicks its wings.' },
+  robin:        { name:'Robin',         latin:'Erithacus rubecula',  img:'robin.png',        rarity:'Common',   desc:'Small garden bird with an orange breast and face, often found in woods and parks.' },
+  bluetit:      { name:'Blue Tit',      latin:'Cyanistes caeruleus', img:'bluetit.png',      rarity:'Common'  , desc:'Small blue-and-yellow bird of woods and gardens, with a bright blue cap and a dark line across white cheeks.' },
+  blackbird:    { name:'Blackbird',     latin:'Turdus merula',       img:'blackbird.png',    rarity:'Common',   desc:'Medium bird of gardens and woodlands. Males are all black with a yellow eye-ring and bill; females are plain brown.' },
+  housesparrow: { name:'House sparrow', latin:'Passer domesticus',   img:'housesparrow.png', rarity:'Common',   desc:'Small brown bird around towns and homes. Males have a black bib and white cheeks; females are plain buff-brown.' },
+  woodpigeon:   { name:'Woodpigeon',    latin:'Columba palumbus',    img:'woodpigeon.png',   rarity:'Common',   desc:'Large pigeon found in woods, parks and gardens. Has green and white patches on the neck, and pink on the chest.' },
+  greattit:     { name:'Great Tit',     latin:'Parus major',         img:'greattit.png',     rarity:'Common',   desc:'Small songbird of woods, parks and gardens, with a black head, white cheeks and bright yellow belly.' },
+  magpie:       { name:'Magpie',        latin:'Pica pica',           img:'magpie.png',       rarity:'Common',   desc:'Black-and-white bird with a long tail, seen in parks, gardens and open countryside.' },
+  carrioncrow:  { name:'Carrion Crow',  latin:'Corvus corone',       img:'carrioncrow.png',  rarity:'Common',   desc:'Large all-black crow with a glossy green-purple sheen, seen in towns, woodland and farmland.' },
   mallard:      { name:'Mallard',       latin:'Anas platyrhynchos',  img:'mallard.png',      rarity:'Common',   desc:'The classic duck — bottle-green head on the male, blue wing flash on both.' },
 };
 const NOTSURE = { key:'notsure', name:'Not sure?', latin:'Nullae aves', img:null, rarity:null,
   desc:'Don&rsquo;t worry if you&rsquo;re not 100% certain on what you&rsquo;ve seen, pick any bird here to get started.' };
 
-/* five birds + the "Not sure?" card = the 6 dots on Figma 514:3459 */
-const DECK_ORDER = ['dunnock','robin','bluetit','blackbird','housesparrow'];
-const PICKER     = ['woodpigeon','carrioncrow','robin','magpie','blackbird','bluetit','housesparrow'];
-const TARGET_POOL= ['blackbird','housesparrow','bluetit','robin','greattit','woodpigeon'];
+/* nine birds + the "Not sure?" card = the 10 dots on Figma 489:5608 */
+const DECK_ORDER = ['dunnock','robin','bluetit','blackbird','housesparrow',
+                    'woodpigeon','greattit','magpie','carrioncrow'];
+/* Both of these are fixed lists of what's likely near you, so they read the same
+   every run — nothing is hidden on the basis of what you've already collected. */
+const PICKER  = ['woodpigeon','carrioncrow','robin','magpie','blackbird','bluetit','housesparrow'];
+const TARGETS = ['blackbird','housesparrow','bluetit'];
 
 const photoOf = k => PHOTOS + BIRDS[k].img;
 
@@ -1010,9 +1038,11 @@ const deckCards = DECK_ORDER.map(k => Object.assign({ key:k }, BIRDS[k])).concat
 function deckCardHTML(b) {
   const photo = b.img
     ? '<img src="' + PHOTOS + b.img + '" alt="' + b.name + '">'
-    : '<svg class="glyph" viewBox="0 0 24 24" fill="#8890AE"><use href="#crowPath"/></svg>';
+    : '<img class="glyph" src="' + PLACEHOLDER + '" alt="">';
+  /* the "Not sure?" card keeps the divider and footer, just with nothing in it */
   const foot = b.rarity
-    ? '<span class="near">Likely near you</span><span class="rarity' + (b.rarity === 'Uncommon' ? ' uncommon' : '') + '">' + b.rarity + '</span>'
+    ? '<span class="near">Likely near you</span>'
+      + '<span class="rarity' + (b.rarity === 'Uncommon' ? ' uncommon' : '') + '">' + b.rarity + '</span>'
     : '';
   return '<div class="dc-name">' + b.name + '</div>'
     + '<div class="dc-latin">' + b.latin + '</div>'
@@ -1474,7 +1504,7 @@ function paintUpgrade(t) {
 
 function armUpgrade() {
   cancelAnimationFrame(UP.raf);
-  document.getElementById('upgradeCard').innerHTML = upgradeCardHTML(S.logged || 'robin');
+  document.getElementById('upgradeCard').innerHTML = upgradeCardHTML(loggedCardKey());
   const flip = document.getElementById('upFlip');
   flip.style.transition = 'none';
   flip.style.transform = 'rotateY(0deg)';
@@ -1495,8 +1525,7 @@ function runUpgrade() {
 
 /* ══ SCREEN 5 · the map ═════════════════════════════════════════════════ */
 function buildMap() {
-  const targets = TARGET_POOL.filter(k => k !== S.starter && k !== S.logged).slice(0, 3);
-  document.getElementById('mapTargets').innerHTML = targets.map(k => {
+  document.getElementById('mapTargets').innerHTML = TARGETS.map(k => {
     const b = BIRDS[k];
     return '<div class="target">'
       + '<span class="rarity' + (b.rarity === 'Uncommon' ? ' uncommon' : '') + '">' + b.rarity + '</span>'
@@ -1513,8 +1542,9 @@ function paintChips() {
   document.getElementById('chipXpVal').textContent = S.xp + 'XP';
   document.getElementById('chipCardsVal').textContent = S.cards + '/' + S.cardGoal + ' cards';
 }
+const MAP_ARRIVALS = ['onboarding', 'logged', 'relog'];
 function goToMap(reason) {
-  S.pending = (reason === 'onboarding' || reason === 'logged') ? reason : null;
+  S.pending = MAP_ARRIVALS.indexOf(reason) >= 0 ? reason : null;
   goTo(5);
 }
 
@@ -1604,11 +1634,11 @@ function buildGoalSheet() {
 /* ══ SCREENS 8–11 · the log flow ════════════════════════════════════════ */
 function buildPicker() {
   document.getElementById('spList').innerHTML =
-    '<button class="spitem" onclick="pickSpecies(null)">'
+    '<button class="spitem" onclick="pickSpecies(\'unidentified\')">'
     + '<div class="spavatar" style="background:#DDE8F8;">🙋</div>'
     + '<div class="spinfo"><span class="n blue">Unidentified Species</span>'
     + '<div class="l" style="font-style:normal;">I don&rsquo;t know, ask the community for help</div></div></button>'
-    + PICKER.filter(k => k !== S.starter).map(k => {
+    + PICKER.map(k => {
         const b = BIRDS[k];
         return '<button class="spitem" onclick="pickSpecies(\'' + k + '\')">'
           + '<div class="spavatar"><img src="' + photoOf(k) + '" alt="' + b.name + '"></div>'
@@ -1620,19 +1650,34 @@ function buildPicker() {
 function startLog(key) { pickSpecies(key); }
 
 function pickSpecies(key) {
-  S.logged = key || 'robin';
+  S.logged = key;
   goTo(9);
 }
+/* whatever was picked, resolved to a species that has a card */
+function loggedCardKey() { return BIRDS[S.logged] ? S.logged : 'robin'; }
+
 /* keeps screens 9–11 correct however they're reached, including a #9 deep link */
 function buildLoggedScreens() {
-  if (!S.logged) S.logged = 'robin';
-  const b = BIRDS[S.logged];
-  document.querySelectorAll('[data-species-name]').forEach(el => { el.textContent = b.name; });
-  document.getElementById('rsPin').src = photoOf(S.logged);
-  document.getElementById('newCard').innerHTML = cardHTML(S.logged, 1, 0, 'Bronze', 'Silver (1/5)');
+  if (!S.logged) S.logged = 'robin';          /* deep-linked straight to a log screen */
+  const known = !!BIRDS[S.logged];
+  document.querySelectorAll('[data-species-name]').forEach(el => {
+    el.textContent = known ? BIRDS[S.logged].name : 'Unidentified Species';
+  });
+  document.getElementById('rsPin').style.display = known ? '' : 'none';
+  document.getElementById('rsPinGlyph').style.display = known ? 'none' : '';
+  if (known) document.getElementById('rsPin').src = photoOf(S.logged);
+  document.getElementById('newCard').innerHTML = cardHTML(loggedCardKey(), 1, 0, 'Bronze', 'Silver (1/5)');
   /* screen 11's card is rebuilt by armUpgrade() so the flip always starts clean */
 }
-function saveSighting() { goTo(10); }
+
+/* The board's "Species logged before?" gate. A bird already in your collection
+   earns XP but no new card, and an unidentified sighting goes "straight to the
+   'user level up?' check" — so both skip the card celebrations and land back on
+   the map with the XP toast only. */
+function saveSighting() {
+  const isNewCard = !!BIRDS[S.logged] && S.logged !== S.starter;
+  if (isNewCard) goTo(10); else goToMap('relog');
+}
 
 /* ══ NAVIGATION ═════════════════════════════════════════════════════════ */
 const screens = [...document.querySelectorAll('.screen')];
@@ -1657,14 +1702,19 @@ function onEnter(n) {
     if (S.pending === 'onboarding') {
       /* the card you just earned in onboarding lands on the map */
       T(500, () => playCardToast(S.cards, S.cards, 0));
-    } else if (S.pending === 'logged') {
-      /* XP first; the card toast follows once the XP toast has gone (Figma note) */
-      const from = S.xp, to = S.xp + S.gain, cFrom = S.cards, cTo = S.cards + 1;
-      S.xp = to; S.cards = cTo;
+    } else if (S.pending === 'logged' || S.pending === 'relog') {
+      /* XP first; the card toast follows once the XP toast has gone (Figma note).
+         A re-log or an unidentified sighting earns no card, so it gets XP alone. */
+      const from = S.xp, to = S.xp + S.gain;
+      S.xp = to;
       document.getElementById('chipXpVal').textContent = from + 'XP';
-      document.getElementById('chipCardsVal').textContent = cFrom + '/' + S.cardGoal + ' cards';
       T(450, () => playXpToast(from, to));
-      playCardToast(cFrom, cTo, 4300);
+      if (S.pending === 'logged') {
+        const cFrom = S.cards, cTo = S.cards + 1;
+        S.cards = cTo;
+        document.getElementById('chipCardsVal').textContent = cFrom + '/' + S.cardGoal + ' cards';
+        playCardToast(cFrom, cTo, 4300);
+      }
     }
     S.pending = null;
   }
