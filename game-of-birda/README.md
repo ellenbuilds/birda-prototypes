@@ -4,14 +4,16 @@ Interactive prototypes for the three explored routes. One folder per route so th
 
 **The route prototypes are archived and kept locally only.** They sit in `game-of-birda/_archive/`, which is **gitignored** — so it's on Ellen's machine, not in this repo. They're still in full working order (open any `index.html` and the flow runs), just no longer tracked or listed on the prototypes index. Their last tracked version is in git history at commit `60c47b2`, so they can be recovered with `git checkout 60c47b2 -- game-of-birda/route-1-quests` (and the other route folders) if needed.
 
-`animation-demos/` is the live, tracked work. The route write-ups below are kept as a record of the explorations.
+`points-and-levels/` and `animation-demos/` are the live, tracked work. The route write-ups below are kept as a record of the explorations.
 
 ```
 birda-prototypes/
 ├─ _resources/
 │  ├─ template.html              ← copy this to start a new prototype
-│  └─ bird-photos/               ← SHARED bird photos (proper cutouts)
+│  └─ bird-photos/               ← SHARED bird photos (white-background studio shots)
 └─ game-of-birda/
+   ├─ points-and-levels/         ← THE clickable flow prototype (current)
+   │  └─ v1/index.html
    ├─ animation-demos/           ← standalone animation studies (current, tracked)
    │  ├─ toast-demo.html
    │  ├─ level-up-demo.html
@@ -35,6 +37,38 @@ birda-prototypes/
 ```
 
 Bird photos are referenced from the shared `birda-prototypes/_resources/bird-photos/` folder (as `../../../_resources/bird-photos/…` from inside `_archive/`), so every route prototype uses the same source images.
+
+## points-and-levels
+
+The clickable prototype of the **chosen** design — built from the Figma board *Iteration 1: Flows* ([`DXdW1BgO9HmKqJZN5mQbdV`](https://www.figma.com/design/DXdW1BgO9HmKqJZN5mQbdV/The-Game-of-Birda?node-id=489-4414), section `489:4414`). One self-contained `v1/index.html`, no build step, from `_resources/template.html`. The **viewport is 402×874 — the Figma frame size** — so every coordinate lifted from the board or the animation demos is used 1:1.
+
+Three flows, eleven screens:
+
+**Onboarding**
+1. **Your collection starts with one bird** (`489:5608`) — a swipeable deck of 6 starter cards (drag left, or tap to flick to the next). The button follows the top card — *"Start with the dunnock"*. The last card is **"Not sure?" / *Nullae aves***, whose button switches to the **outline style** and reads *"See the first bird again"*; tapping it flies the whole pile back in from the left and restacks it (260 ms, staggered 45 ms per card so the pile builds up from the back). Whichever bird you pick becomes card #1 and carries through every later screen.
+   **The deck doesn't loop.** Slots past the end of it are genuinely empty, so the pile thins from three cards to two to one as you reach the last one, and trying to swipe left there gives the card a small decaying nudge (−7 / +5 / −2 px over 380 ms) instead of wrapping round. Swiping right on the first card does the same.
+   The carousel motion is transcribed keyframe-for-keyframe from the Figma timeline **"motion: starter card carousel"** (`514:3459`, read with `get_motion_context`): three cards sit at the same spot fanned only by rotation; the top card flings out to `(-331.5, 9.2)` at `-5.75°` over 236 ms, then travels back in over 244 ms to land at the bottom of the pile, while card 2 promotes to top (77 ms delay, 235 ms, ease-in-out) and card 3 to the middle (153 ms, 275 ms), and the selected dot slides one 16 px pitch (115 ms, 235 ms, linear). `translate` and `rotate` are animated as separate properties because the timeline gives them different curves. The two resting slot-transform sets alternate on each advance, which is what gives the pile its hand-shuffled look. Figma's 397 ms lead-in, hold to 2 s and boomerang loop are preview framing — here it's one-shot per swipe.
+   **Swiping right plays the identical timeline backwards** — the previous card comes out from under the pile and returns to the top. The traveller's curves are asymmetric, so it's the same keyframes with `direction: 'reverse'`; the shuffle pair and the dot are symmetric (ease-in-out / linear) so they just take the mirrored delay, `480 − (delay + duration)`. A rightward drag never moves the top card — it stays on its resting mark and the reverse simply starts once the drag passes 60 px, so the only thing that moves is the card coming in from the left. Dragging left still carries the top card under the finger.
+   Gesture plumbing: photos are `pointer-events:none` + `user-drag:none` so a drag never turns into a native image drag; leaving the phone frame mid-drag releases the card at the frame edge rather than stranding it (`pointercancel` / `lostpointercapture` are handled too); drag distance is divided by the shell's fit scale so the threshold is in design px regardless of window size; and the swipe handlers are bound once per card element, gated on "am I currently the top card", so cards cycling through the top slot don't accumulate duplicate listeners.
+2. **Look who just landed in your card collection** (`585:1671`) — the bronze collection card with the acorn/leaf **Confetti pop**, and *"Log a … whenever you see one to upgrade your card. Only 4 more to go until silver!"*
+3. **You've reached level 2** (`648:5701`) — the level track (Level 1 ✓ → the level-2 patch → 3 · 120XP), the bar filling to **🍃50XP**, *"First card bonus"*, and the *"You're ahead of the flock"* row. Motion ported beat-for-beat from `animation-demos/level-up-demo.html` (screen A).
+4. **Great work! Now let's go birding.** (`489:6159`) — the first card goal: 1/4 collected, +40XP bonus, one filled slot and three `???` slots.
+
+**Explore map** (screen 5, `489:6849` / `1524:5602`)
+The hub: the real Minsmere map, search / layers / locate controls, the production **ChunkyButton** pair (Identify + Log), and a bottom sheet holding the **XP chip** (`🍃50XP · LVL 2`) and **cards chip** (`1/4 cards`), a targets carousel, and the 5-item tab bar. The heading reads **Next targets** before you've logged anything and **Birds likely nearby** afterwards. Tapping the cards chip opens the **card goal sheet** (screen 6, `1525:14298`).
+
+**Logging your first bird** (screens 7–11)
+`+` or **Identify/Log** → **log method** sheet (`489:4488`) → **What did you see?** (`489:4498`, layout reused from `PEX-43/v2`) → **Review Sighting** (`1568:15606`, also from `PEX-43/v2`) → **Save** → **New card found** + confetti (`1568:15949`) → **Don't stop there!** card-upgrade explainer (`1573:18999`) — the card fills its bar and 3D-flips **Bronze → Silver → Gold → Shiny** with a sheen sweep on each flip, ported from `animation-demos/upgrade-demo.html` (its structure, gradients, clip-path frame, schedule and `speed: 2` default, 1:1) → back to the map, where the **XP toast** springs in (*"Sighting saved: 🍃+18XP"*, bar 50→68/120XP, the chip popping and ticking up), and once it has gone the **card toast** follows (*"2/4 new cards found"*, dots filling, chip → 2/4) — the hand-off the board annotates as *"After XP toast dismissed"*. Toast motion is the shipped variant (**1d "Update on arrival"**) from `animation-demos/toast-demo.html`.
+
+Only the **happy path** of the post-save chain is built. The other branches on the board — *Card upgraded?*, *Card goal completed?*, *User level up?* — and the session/multi-bird band are not wired up yet.
+
+### Notes for the next pass
+- **Assets** live in `v1/imgs/`. `map.jpg` is the board's own Mapbox image, cropped to the exact region the Figma frame shows. `level-patch-2.svg` and the five `conf-*.svg` confetti sprites were extracted from the animation-demo bundles, so they're the same artwork. `level-patch-3.svg` is in there unused, ready for the ongoing level-up branch. The XP feather is an inline SVG path in the file.
+- **`imgs/birds/*.png`** are the shared `_resources/bird-photos/` cutouts with their **white studio background keyed out** — the shared files are lossy WebP with no alpha, so they'd show as white boxes on the peach card. A few have small white remnants where the original white was enclosed by the bird (under a leg, on a perch).
+- **Card artwork** goes in `imgs/cards/` and is registered in the `CARD_ART` map in the file. Only `robin.png` (the sticker from the upgrade demo) is real artwork so far; every other species falls back to its keyed-out photo inside the same 202×202 box, with the sticker outline drawn in CSS. Drop a new file in, add one line to `CARD_ART`, and that species gets the proper card. `holo.jpg` is the Shiny tier's holographic texture.
+- **`?seek=<ms>`** freezes the animated screens (2, 3, 10) at one moment instead of playing them — useful for grabbing a still of a specific beat.
+- `index.html#N` opens straight on screen N; `←`/`→` step through.
+- The bird you choose in onboarding is filtered out of the species picker, so the log flow always produces a genuine new card. Picking an already-collected bird would go down the *card upgrade* branch, which isn't built.
 
 ## route-2-collections
 A working prototype of a simplified version of our existing onboarding journey that then introduces the **collections & sets** idea. Built as a single self-contained `index.html` (no build step) styled to match production — Rubik, brand tokens (`brand-blue #1F87FE`, `dark-petrol #2D3142`, `light-cloud`), the real screen structures, and real bird photos. Patterns mirror the production app (`/Users/ellen/code/app`, React Native + Expo), reimplemented as plain HTML/CSS/JS for a browser-openable prototype.

@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Points &amp; levels — The Game of Birda</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <!--
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║  THE GAME OF BIRDA · Points & levels — v1                                ║
+    ║  Built from the Figma board "Iteration 1: Flows"                         ║
+    ║  (file DXdW1BgO9HmKqJZN5mQbdV, section 489:4414).                        ║
+    ║                                                                          ║
+    ║  Three flows, one file:                                                  ║
+    ║    1–4   onboarding (first bird → first card → level up → first goal)    ║
+    ║    5     the explore map (the hub: XP chip, cards chip, toasts)          ║
+    ║    6     the current-card-goal sheet                                     ║
+    ║    7–11  logging your first bird → new card → keep birding → toasts      ║
+    ║                                                                          ║
+    ║  The viewport is 402×874 — the Figma frame size — so every coordinate    ║
+    ║  lifted from the board or the animation demos is used 1:1.               ║
+    ║  Toast + level-up motion is ported from the animation demos in           ║
+    ║  ../../animation-demos/ (toast-demo.html, level-up-demo.html).           ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
+  -->
+  <style>
+  /* ─── Reset & tokens ────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  button { font: inherit; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; color: inherit; }
+  :root {
+    /* brand */
+    --blue:#1F87FE; --blue-dk:#0254B1; --blue-5:#E3F0FF; --blue-bg:#F2F8FF;
+    --blue-line:#D2E6FD; --blue-stroke:#3874B8;
+    /* XP green */
+    --green:#158370; --green-2:#188673; --green-pale:#A5E0D6; --green-bg:#F1FEFB;
+    /* ink */
+    --ink:#2D3142; --ink-2:#4C5980; --ink-3:#5C6486;
+    --line:#E4E8F0; --strong:#C4C7D7; --node:#D4E0EF; --rail:#B2C6DE;
+    --base:#FAFCFE;
+    /* bronze card */
+    --bronze:#80431A; --bronze-chip:#F3E1D3; --bronze-track:#EBD9CB; --bronze-fill:#B0774A;
+    --card-mid:#F5DCC9; --card-light:#FCF0E8;
+    /* rarity */
+    --common:#009551; --uncommon:#E09B2D;
+  }
+  html, body { height:100%; }
+  body {
+    height:100vh; overflow:hidden; background:#dde1e9;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-family:'Rubik',-apple-system,sans-serif; color:var(--ink);
+    letter-spacing:.2px;
+  }
+
+  /* ─── Phone shell (house style, sized to the 402×874 Figma frame) ───── */
+  .shell { width:426px; background:#111; border-radius:54px; padding:12px; position:relative; flex-shrink:0; transform-origin:top center;
+    box-shadow:0 0 0 1px rgba(255,255,255,.08), 0 40px 90px rgba(0,0,0,.45); }
+  .shell::before { content:''; position:absolute; left:-3px; top:112px; width:3px; height:36px; background:#222; border-radius:2px 0 0 2px; box-shadow:0 48px 0 #222,0 96px 0 #222; }
+  .shell::after { content:''; position:absolute; right:-3px; top:168px; width:3px; height:78px; background:#222; border-radius:0 2px 2px 0; }
+  .viewport { width:402px; height:874px; border-radius:44px; overflow:hidden; position:relative; background:var(--base); }
+
+  /* ─── Screen scaffold ───────────────────────────────────────────────── */
+  .screen { position:absolute; inset:0; display:none; flex-direction:column; background:var(--base); }
+  .screen.active { display:flex; }
+  .body { flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .body::-webkit-scrollbar { display:none; }
+  .footer { flex-shrink:0; padding:12px 24px 34px; }
+
+  /* status bar */
+  .statusbar { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:16px 28px 6px; z-index:12; position:relative; }
+  .statusbar .time { font-size:15px; font-weight:600; }
+  .statusbar svg { display:block; }
+
+  /* ─── Buttons ───────────────────────────────────────────────────────── */
+  .btn { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:16px 24px; border-radius:4px; font-size:16px; font-weight:500; }
+  .btn-primary { background:var(--blue); color:#fff; }
+  .btn-primary:active { background:#0f6fe0; }
+  .btn-secondary { background:#fff; color:var(--blue); box-shadow:inset 0 0 0 1.5px var(--blue); }
+
+  /* production ChunkyButton (src/molecules/ChunkyButton) */
+  .chunky { display:inline-flex; align-items:center; gap:10px; padding:12px 18px; border-radius:16px;
+    background:var(--blue); color:#fff; font-size:18px; font-weight:500; letter-spacing:.02em;
+    border:1px solid var(--blue); border-bottom:5px solid var(--blue-dk);
+    transition:transform .05s linear, background .05s linear; }
+  .chunky:active { transform:scale(.97); background:#1c7ce8; }
+  .chunky.inverse { background:#fff; color:var(--blue); border-color:#fff; border-bottom-color:#78A9EE; }
+  .chunky.inverse:active { background:#f1f6fd; }
+  .chunky svg { width:20px; height:20px; flex-shrink:0; }
+
+  /* ─── Type helpers ──────────────────────────────────────────────────── */
+  .h1 { font-size:24px; font-weight:600; line-height:32px; text-align:center; }
+  .sub { font-size:16px; font-weight:400; line-height:24px; color:var(--ink); text-align:center; }
+  .xpword { color:var(--green); font-weight:500; white-space:nowrap; }
+  .feather { width:1em; height:1em; vertical-align:-.1em; fill:var(--green); }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     STARTER CARD (onboarding swipe deck)
+     ═════════════════════════════════════════════════════════════════════ */
+  .deck { position:relative; height:426px; margin:0 auto; width:302px; }
+  .deck-card {
+    position:absolute; inset:0; background:#fff; border-radius:12px;
+    box-shadow:0 2px 4px rgba(20,22,24,.10), 0 14px 30px rgba(20,22,24,.13);
+    padding:20px 20px 16px; display:flex; flex-direction:column;
+    /* the pile is animated with the individual transform properties, so translate
+       and rotate can carry the different easing curves the Figma timeline uses */
+    will-change:translate, rotate; touch-action:none; user-select:none;
+  }
+  .deck-card.top { cursor:grab; }
+  .deck-card.top:active { cursor:grabbing; }
+  /* the card owns the gesture: don't let the browser start a native image drag,
+     and let pointer events fall straight through the photo to the card */
+  .deck-card img { -webkit-user-drag:none; user-drag:none; pointer-events:none; }
+  /* a slot past the end of the deck — kept in the DOM so it can be reused */
+  .deck-card.empty { opacity:0; pointer-events:none; }
+  .dc-name { font-size:18px; font-weight:500; }
+  .dc-latin { font-size:14px; font-style:italic; color:var(--ink-2); margin-top:1px; }
+  .dc-photo { flex:1; margin:14px 0 12px; display:flex; align-items:center; justify-content:center; min-height:0; }
+  .dc-photo img { max-width:100%; max-height:190px; object-fit:contain; }
+  .dc-photo .glyph { width:96px; height:96px; opacity:.22; }
+  .dc-desc { font-size:13px; line-height:19px; color:var(--ink-2); }
+  .dc-foot { display:flex; align-items:center; justify-content:space-between; margin-top:14px; min-height:24px; }
+  .dc-foot .near { font-size:13px; color:var(--ink-2); }
+  .rarity { font-size:12px; font-weight:500; line-height:1.35; color:#fff; background:var(--common); border-radius:4px; padding:3px 8px; }
+  .rarity.uncommon { background:var(--uncommon); }
+  /* 6 static dots on a 16px pitch with one blue dot that slides between them */
+  .dots { position:relative; display:flex; justify-content:center; margin-top:58px; height:7px; }
+  .dots i { width:7px; height:7px; margin:0 4.5px; border-radius:99px; background:var(--strong); opacity:.55; }
+  .dots .sel { position:absolute; left:0; top:0; width:7px; height:7px; border-radius:99px; background:var(--blue); }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     COLLECTION CARD (bronze) — the thing you level up
+     ═════════════════════════════════════════════════════════════════════ */
+  /* Lifted verbatim from animation-demos/upgrade-demo.html — the card is 296×413
+     with a 1px metal edge, a notched frame drawn as a clip-path, and per-tier
+     gradients. Each tier just sets the custom properties below. */
+  .tcard { width:296px; height:413px; flex-shrink:0; perspective:1400px; }
+  .tcard-in { position:relative; width:296px; height:413px; transform-style:preserve-3d; }
+  .tface { position:absolute; inset:0; overflow:hidden; border-radius:8px; background:var(--metal);
+    box-shadow:0 28px 52px rgba(20,22,24,.25);
+    backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    display:flex; flex-direction:column; gap:20px; padding:1px; align-items:center; }
+  .tface.back { transform:rotateY(180deg); }
+  .tpaper { position:absolute; inset:1px; border-radius:7px; background:var(--paper); }
+  .tsticker { position:relative; height:225px; flex-shrink:0; align-self:stretch; }
+  .tsticker .art { position:absolute; left:46px; top:28px; width:202px; height:202px;
+    display:flex; align-items:center; justify-content:center; }
+  .tsticker .art img { max-width:100%; max-height:100%; }
+  /* stand-ins keyed from the shared photos get the sticker outline drawn in CSS;
+     supplied card art already has it baked in */
+  .tsticker .art.keyed img { filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 3px 4px rgba(0,0,0,.22)); }
+  .tstats { position:relative; height:90px; display:flex; flex-direction:column; gap:20px; padding:0 24px;
+    align-items:flex-start; box-sizing:border-box; flex-shrink:0; align-self:stretch; }
+  .tchips { height:38px; display:flex; gap:8px; align-items:flex-start; flex-shrink:0; align-self:stretch; }
+  .tchip { height:38px; border-radius:8px; background:var(--chip); display:flex; gap:4px;
+    padding:6px 16px 8px; align-items:flex-end; box-sizing:border-box; flex-grow:1; }
+  .tchip b { font-weight:500; font-size:28px; line-height:24px; color:var(--tint); }
+  .tchip span { font-weight:500; font-size:14px; line-height:14px; color:var(--tint); }
+  .tbar { height:32px; display:flex; flex-direction:column; justify-content:center; align-items:center;
+    flex-shrink:0; align-self:stretch; }
+  .tbar .track { position:relative; height:8px; border-radius:999px; background:var(--chip);
+    box-shadow:inset 0 1px 1px var(--trackshadow); flex-shrink:0; align-self:stretch; }
+  .tbar .track i { position:absolute; left:0; top:0; height:8px; border-radius:999px; background:var(--barfill);
+    box-shadow:inset 0 -1px 2px rgba(83,95,101,.12); }
+  .tbar .tiers { height:24px; display:flex; justify-content:space-between; align-items:flex-start;
+    flex-shrink:0; align-self:stretch; font-weight:500; font-size:14px; line-height:24px; color:var(--tint); }
+  .tfoot { position:relative; display:flex; flex-direction:column; padding:0 24px; align-items:center;
+    box-sizing:border-box; flex-grow:1; align-self:stretch; }
+  .tfoot .rule { width:278px; height:1px; background:var(--chip); flex-shrink:0; }
+  .tfoot .latin { display:flex; gap:8px; padding:0 0 8px; align-items:center; box-sizing:border-box;
+    flex-grow:1; align-self:stretch;
+    font-weight:400; font-style:italic; font-size:14px; line-height:100%; color:var(--tint); }
+  .tframe { position:absolute; left:1px; top:1px; width:294px; height:411px; }
+  .tframe .metal { position:absolute; left:0; top:0; width:294px; height:411px; background:var(--metal);
+    clip-path:path('M 287 0 C 290.866 0 294 3.134 294 7 L 294 404 C 294 407.866 290.866 411 287 411 L 7 411 C 3.134 411 0 407.866 0 404 L 0 7 C 0 3.134 3.134 0 7 0 L 287 0 Z M 82 33 C 82 37.418 78.418 41 74 41 L 8 41 L 8 399 C 8 401.209 9.791 403 12 403 L 282 403 C 284.209 403 286 401.209 286 399 L 286 12 C 286 9.791 284.209 8 282 8 L 82 8 L 82 33 Z'); }
+  .tframe .nm { position:absolute; left:16px; top:10px; font-weight:500; font-size:18px; white-space:nowrap;
+    line-height:100%; color:var(--tint); }
+  .sheen { position:absolute; top:-20%; bottom:-20%; left:-100%; width:300%; pointer-events:none; z-index:6;
+    background:linear-gradient(105deg, rgba(255,255,255,0) 44%, rgba(255,255,255,.5) 50%, rgba(255,255,255,0) 56%);
+    transform:translateX(-40%) skewX(-12deg); opacity:0; }
+
+  /* ─── tier palettes (exact values from the upgrade demo) ─── */
+  .tface[data-tier="bronze"] {
+    --metal:linear-gradient(158.468deg, rgb(211,163,131) 4.55%, rgb(233,198,175) 8.08%, rgb(255,234,219) 12.24%, rgb(228,183,153) 16.02%, rgb(223,175,142) 29.45%, rgb(253,228,211) 36.32%, rgb(219,166,130) 42.66%, rgb(213,156,117) 62.08%, rgb(245,187,148) 69.80%, rgb(196,123,74) 77.96%, rgb(217,148,102) 93.85%);
+    --paper:linear-gradient(142.756deg, rgb(255,247,242) 7.04%, rgb(255,241,231) 87.02%);
+    --barfill:linear-gradient(118.513deg, rgb(253,215,190) 28.34%, rgb(228,183,153) 48.85%, rgb(192,130,89) 72.65%, rgb(217,148,102) 92.42%);
+    --chip:rgb(244,224,210); --tint:rgb(128,67,26); --trackshadow:rgba(128,67,26,.12);
+  }
+  .tface[data-tier="silver"] {
+    --metal:linear-gradient(158.468deg, rgb(218,222,225) 4.55%, rgb(239,243,245) 8.08%, rgb(227,237,243) 12.24%, rgb(216,226,231) 16.02%, rgb(203,215,222) 29.45%, rgb(238,245,252) 36.32%, rgb(174,188,198) 42.66%, rgb(194,204,213) 62.08%, rgb(230,238,244) 69.80%, rgb(188,196,202) 77.96%, rgb(171,186,196) 93.85%);
+    --paper:linear-gradient(142.756deg, rgb(251,253,254) 7.04%, rgb(244,248,251) 87.02%);
+    --barfill:linear-gradient(103.220deg, rgb(232,237,240) 31.59%, rgb(202,218,226) 51.81%, rgb(174,188,193) 75.27%, rgb(191,205,214) 94.77%);
+    --chip:rgb(229,236,240); --tint:rgb(83,95,101); --trackshadow:rgba(83,95,101,.12);
+  }
+  .tface[data-tier="gold"] {
+    --metal:linear-gradient(158.468deg, rgb(213,189,148) 4.55%, rgb(231,205,164) 8.08%, rgb(255,236,210) 12.24%, rgb(228,193,153) 16.02%, rgb(223,186,142) 29.45%, rgb(251,213,171) 36.32%, rgb(219,177,130) 42.66%, rgb(213,168,117) 62.08%, rgb(244,195,140) 69.80%, rgb(201,149,89) 77.96%, rgb(217,163,102) 93.85%);
+    --paper:linear-gradient(142.756deg, rgb(252,248,243) 7.04%, rgb(249,244,236) 87.02%);
+    --barfill:linear-gradient(94.213deg, rgb(253,232,190) 32.44%, rgb(228,203,153) 52.58%, rgb(192,157,89) 75.96%, rgb(217,179,102) 95.38%);
+    --chip:rgb(244,232,210); --tint:rgb(126,85,28); --trackshadow:rgba(128,67,26,.12);
+  }
+  .tface[data-tier="shiny"] {
+    --metal:url('imgs/cards/holo.jpg') center / cover no-repeat;
+    --paper:linear-gradient(142.756deg, rgb(242,249,255) 8.58%, rgb(255,245,255) 28.19%, rgb(237,242,255) 47.03%, rgb(240,251,255) 65.87%, rgb(231,241,255) 87.02%);
+    --barfill:linear-gradient(91.829deg, rgb(222,215,254) 0.91%, rgb(207,213,253) 35.74%, rgb(251,228,254) 66.09%, rgb(174,229,250) 101.34%);
+    --chip:rgb(229,230,250); --tint:rgb(87,70,106); --trackshadow:rgba(128,67,26,.12);
+  }
+
+  /* mini card (grids, toasts, the "ahead of the flock" row) */
+  .mini { width:var(--mw,87px); height:calc(var(--mw,87px) * 1.276); border-radius:5px; flex-shrink:0; padding:4px;
+    background:linear-gradient(142deg,#EFCBAC,#B4703F 20%,#F3D9C0 45%,#A9663C 70%,#E7BF9F);
+    box-shadow:0 2px 3px rgba(0,0,0,.16); }
+  .mini-in { height:100%; border-radius:3px; background:var(--card-light); padding:4px 5px 6px;
+    display:flex; flex-direction:column; }
+  /* birds are sized with max-width/max-height inside a flex box rather than
+     object-fit, which letterboxes and can composite oddly */
+  .mini-fig { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
+  .mini-fig img { max-width:100%; max-height:100%;
+    filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff); }
+  .mini-name { font-size:9px; font-weight:500; color:var(--bronze); margin-top:2px; }
+  .mini-bar { height:4px; border-radius:99px; background:var(--bronze-track); margin-top:3px; }
+  /* locked "???" slot */
+  .mini.locked { background:var(--blue-line); }
+  .mini.locked .mini-in { background:var(--blue-bg); align-items:center; }
+  .mini.locked svg { width:44px; height:44px; fill:var(--blue-line); margin:auto; }
+  .mini.locked .mini-name { color:var(--ink); align-self:stretch; }
+  .mini.locked .mini-bar { background:var(--blue-line); }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     LEVEL TRACK + BADGE (level-up screen)
+     ═════════════════════════════════════════════════════════════════════ */
+  .track { position:relative; height:200px; width:402px; margin:0 auto; }
+  .track .rail { position:absolute; left:60px; right:14px; top:75px; height:3px; }
+  .track .rail svg { width:100%; height:3px; overflow:visible; }
+  .track .fill { position:absolute; left:60px; top:73px; height:8px; width:0; border-radius:0 99px 99px 0; background:var(--green-pale); z-index:1; }
+  .track .node { position:absolute; top:57px; width:40px; height:40px; border-radius:999px; z-index:2;
+    display:flex; align-items:center; justify-content:center; }
+  .track .node.done { left:40px; background:var(--green); box-shadow:0 0 0 6px var(--green-pale); }
+  .track .node.done svg { width:20px; height:20px; fill:var(--base); }
+  .track .node.next { left:305px; background:var(--node); font-size:20px; font-weight:500; color:var(--ink-2); }
+  .track .tlabel { position:absolute; top:110px; font-size:12px; font-weight:500; line-height:24px; text-align:center; width:120px; }
+  .track .badge { position:absolute; left:110px; top:-8px; width:160px; z-index:3;
+    transform-origin:50% 62%; filter:drop-shadow(0 18px 22px rgba(20,22,24,.25)); }
+  .track .badge img { width:100%; display:block; }
+  .track .conf { position:absolute; left:190px; top:60px; width:0; height:0; overflow:visible; z-index:4; pointer-events:none; }
+  .track .conf img { position:absolute; pointer-events:none; }
+
+  .xpbig { display:flex; align-items:center; justify-content:center; gap:8px; }
+  .xpbig svg { width:34px; height:34px; fill:var(--green); }
+  .xpbig span { font-size:48px; font-weight:600; line-height:1; color:var(--green); }
+  .xpcap { font-size:24px; font-weight:600; color:var(--green); text-align:center; margin-top:6px; }
+
+  /* "You're ahead of the flock" */
+  .flockrow { position:relative; background:#fff; border-radius:16px; box-shadow:inset 0 0 0 1px var(--strong);
+    padding:16px 16px 16px 100px; min-height:83px; display:flex; flex-direction:column; justify-content:center; gap:3px; }
+  .flockrow .mini { position:absolute; left:-4px; top:-14px; transform:rotate(-5deg); transform-origin:20% 90%; }
+  .flockrow b { font-size:16px; font-weight:500; }
+  .flockrow span { font-size:14px; color:var(--ink-2); line-height:19px; }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     CONFETTI POP (celebration screens)
+     ═════════════════════════════════════════════════════════════════════ */
+  .popfx { position:absolute; left:50%; top:300px; width:0; height:0; overflow:visible; z-index:6; pointer-events:none; }
+  .popfx img { position:absolute; pointer-events:none; }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     EXPLORE MAP
+     ═════════════════════════════════════════════════════════════════════ */
+  .mapscreen { background:#E8EFDC; }
+  .mapbg { position:absolute; inset:0; background:url('imgs/map.jpg') 42% 34% / cover no-repeat; }
+  .mapctl { position:absolute; top:62px; width:44px; height:44px; border-radius:999px; background:#fff;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(45,49,66,.18); z-index:6; }
+  .mapctl svg { width:20px; height:20px; stroke:#3A3F4C; stroke-width:2; fill:none; }
+  .mapctl.left { left:22px; } .mapctl.right { right:22px; }
+  .mapctl.locate { right:22px; top:118px; }
+  .mapctl.locate svg { stroke:none; fill:#006FFD; }
+  .locdot { position:absolute; left:50%; top:212px; transform:translate(-50%,-50%); width:18px; height:18px;
+    border-radius:50%; background:var(--blue); border:3px solid #fff; z-index:5;
+    box-shadow:0 0 0 12px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.25); }
+  .floatbtns { position:absolute; left:0; right:0; top:352px; display:flex; justify-content:center; gap:16px; z-index:7; }
+
+  /* bottom sheet */
+  .sheet { position:absolute; left:0; right:0; bottom:0; top:424px; background:#fff;
+    border-radius:38px 38px 0 0; box-shadow:0 -8px 30px rgba(20,22,30,.16); z-index:8;
+    display:flex; flex-direction:column; transition:top .38s cubic-bezier(.25,.8,.35,1); }
+  .sheet .handle { width:38px; height:4px; border-radius:99px; background:#D4D8E4; margin:10px auto 4px; flex-shrink:0; }
+  .sheet .sbody { flex:1; padding:12px 24px 0; overflow:hidden; }
+
+  .chiprow { display:flex; gap:12px; }
+  .chip { position:relative; flex:1; height:44px; border-radius:999px; display:flex; align-items:center;
+    justify-content:center; gap:8px; padding:12px 16px;
+    background:var(--green-bg); box-shadow:inset 0 0 0 2px var(--green);
+    transition:transform .38s cubic-bezier(.25,.8,.35,1), box-shadow .3s ease, background-color .35s ease; }
+  .chip .ring { position:absolute; inset:0; border-radius:999px; box-shadow:0 0 0 3px rgba(21,131,112,.55); opacity:0; pointer-events:none; }
+  .chip .val { display:flex; align-items:center; gap:2px; font-size:16px; font-weight:500; color:var(--green); white-space:nowrap; }
+  .chip .val svg { width:16px; height:16px; fill:var(--green); }
+  .chip .lvl { height:20px; border-radius:999px; background:var(--green); color:#fff; font-size:12px; font-weight:500; padding:3px 6px; }
+  .chip.cards { background:var(--blue-bg); box-shadow:inset 0 0 0 2px var(--blue-stroke); }
+  .chip.cards .val { color:var(--blue-stroke); }
+  .chip.cards .val svg { fill:var(--blue-stroke); }
+  .chip.cards .ring { box-shadow:0 0 0 3px rgba(31,135,254,.55); }
+
+  .seghead { display:flex; align-items:baseline; justify-content:space-between; margin:20px 0 12px; }
+  .seghead h2 { font-size:18px; font-weight:500; }
+  .seghead a { font-size:15px; font-weight:400; color:var(--blue); }
+
+  .targets { display:flex; gap:12px; overflow:hidden; }
+  .target { width:118px; flex-shrink:0; background:#fff; border-radius:16px; box-shadow:inset 0 0 0 1px var(--line);
+    padding:8px; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .target .rarity { align-self:flex-start; }
+  .target figure { height:74px; width:100%; display:flex; align-items:center; justify-content:center; }
+  .target figure img { max-width:96px; max-height:74px; }
+  .target b { font-size:13px; font-weight:400; line-height:18px; }
+  .target .logbtn { width:100%; margin-top:2px; display:flex; align-items:center; justify-content:center; gap:5px;
+    height:30px; border-radius:6px; box-shadow:inset 0 0 0 1.5px var(--blue); color:var(--blue); font-size:14px; font-weight:500; }
+  .target .logbtn svg { width:15px; height:15px; fill:var(--blue); }
+
+  /* tab bar */
+  .tabbar { flex-shrink:0; height:96px; display:flex; align-items:flex-start; justify-content:space-between;
+    padding:10px 22px 0; position:relative; }
+  .tab { width:60px; display:flex; flex-direction:column; align-items:center; gap:4px; color:#8890AE; }
+  .tab svg { width:22px; height:22px; fill:currentColor; }
+  .tab span { font-size:11px; font-weight:400; }
+  .tab.on { color:var(--blue); }
+  .fab { position:absolute; left:50%; top:-2px; transform:translateX(-50%); width:56px; height:56px; border-radius:999px;
+    background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 6px 16px rgba(31,135,254,.42), 0 0 0 5px rgba(255,255,255,.9); }
+  .fab svg { width:26px; height:26px; fill:#fff; }
+  .tab.spacer { visibility:hidden; }
+
+  /* ─── toasts (ported from animation-demos/toast-demo.html) ──────────── */
+  .toast { position:absolute; left:24px; top:70px; width:354px; z-index:20; background:#fff;
+    box-shadow:inset 0 0 0 1px var(--strong), 0 4px 4px rgba(0,0,0,.15);
+    padding:16px 16px 16px 100px; display:flex; align-items:flex-start;
+    opacity:0; transform:translateY(-170px); pointer-events:none; }
+  .toast.xp { height:73px; border-radius:99px 16px 16px 99px; }
+  .toast.card { height:90px; border-radius:16px; }
+  .toast.in { opacity:1; transform:none; transition:transform .55s cubic-bezier(.34,1.56,.64,1), opacity .25s ease-out; }
+  .toast.out { opacity:0; transform:translateY(-170px); transition:transform .45s cubic-bezier(.5,0,.75,1), opacity .35s ease-in; }
+  .toast-body { display:flex; flex-direction:column; gap:8px; flex-grow:1; min-width:0; }
+  .toast-title { display:flex; gap:5px; align-items:center; font-size:16px; font-weight:500; white-space:nowrap; }
+  .toast-title svg { width:15px; height:15px; fill:var(--green); flex-shrink:0; }
+  .toast-gain { color:var(--green); }
+  .toast-meter { display:flex; gap:8px; align-items:center; height:14px; }
+  .toast-meter .t { flex-grow:1; height:4px; border-radius:4px; background:var(--line); position:relative; }
+  .toast-meter .t i { position:absolute; left:0; top:0; bottom:0; border-radius:4px; background:var(--green-2); }
+  .toast-meter small { font-size:10px; letter-spacing:.11px; }
+  .toast .puck { position:absolute; left:0; top:-8px; width:88px; height:88px; border-radius:999px; background:#fff;
+    box-shadow:inset 0 0 0 1.1px var(--line); display:flex; align-items:center; justify-content:center; font-size:39px; }
+  .toast .puck-lvl { position:absolute; left:48px; top:-8px; height:20px; border-radius:999px; background:var(--green-2);
+    color:#fff; font-size:12px; font-weight:500; padding:3px 6px; box-shadow:0 0 0 4px #fff; }
+  .toast .cardsline { display:flex; gap:3px; align-items:center; white-space:nowrap; font-size:13px; font-weight:600; line-height:130%; }
+  .toast .cardsline svg { width:11px; height:11px; fill:var(--green); flex-shrink:0; }
+  .toast .cardsline em { color:var(--green); font-style:normal; }
+  .toast .tdots { display:flex; gap:4px; align-items:center; }
+  .toast .tdots i { width:12px; height:12px; border-radius:999px; background:var(--line);
+    transition:background-color .25s ease, transform .25s cubic-bezier(.34,1.56,.64,1); }
+  .toast .tdots i.on { background:var(--blue); }
+  .toast .toastmini { position:absolute; left:-4px; top:-10px; transform:rotate(-2.2deg); }
+
+  /* ─── log-method sheet (screen 7) ───────────────────────────────────── */
+  .scrim { position:absolute; inset:0; background:rgba(20,22,30,.42); z-index:9; }
+  .methods { position:absolute; left:24px; right:24px; top:238px; z-index:10; display:flex; flex-direction:column; gap:12px; }
+  .method { display:flex; gap:14px; align-items:flex-start; background:#fff; border-radius:16px; padding:16px;
+    box-shadow:0 6px 18px rgba(20,22,30,.18); text-align:left; }
+  .method .ic { width:44px; height:44px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .method .ic svg { width:24px; height:24px; }
+  .method b { display:block; font-size:16px; font-weight:500; }
+  .method p { font-size:13px; line-height:18px; color:var(--ink-2); margin-top:2px; }
+  .closex { position:absolute; left:50%; transform:translateX(-50%); bottom:38px; z-index:10;
+    width:46px; height:46px; border-radius:999px; background:#2E3340; color:#fff; display:flex; align-items:center; justify-content:center; }
+  .closex svg { width:16px; height:16px; stroke:#fff; stroke-width:2.4; fill:none; stroke-linecap:round; }
+
+  /* ─── nav bar for the pushed screens ────────────────────────────────── */
+  .nav { flex-shrink:0; height:48px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; position:relative; }
+  .nav-title { position:absolute; left:50%; transform:translateX(-50%); font-size:17px; font-weight:500; white-space:nowrap; }
+  .nav-back svg { width:11px; height:19px; fill:none; stroke:var(--ink-2); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+  .nav-act { font-size:16px; color:var(--blue); font-weight:400; }
+
+  /* ─── species picker (from PEX-43/v2) ───────────────────────────────── */
+  .searchbar { margin:6px 20px 14px; background:#F1F3F8; border-radius:999px; display:flex; align-items:center; gap:8px; padding:11px 16px; }
+  .searchbar svg { width:16px; height:16px; fill:none; stroke:#8890AE; stroke-width:1.6; }
+  .searchbar input { flex:1; font:inherit; font-size:16px; color:var(--ink); background:none; border:none; outline:none; }
+  .searchbar input::placeholder { color:#8890AE; }
+  .splist { padding:0 20px 24px; display:flex; flex-direction:column; gap:12px; }
+  .spitem { display:flex; align-items:center; gap:14px; padding:10px 12px; background:#fff; border-radius:8px;
+    box-shadow:inset 0 0 0 1px var(--line); cursor:pointer; text-align:left; width:100%; }
+  .spitem:active { background:#F7F9FC; }
+  .spavatar { width:68px; height:68px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:32px; }
+  .spavatar img { max-width:100%; max-height:100%; }
+  .spinfo { flex:1; min-width:0; }
+  .spinfo .n { font-size:15px; font-weight:500; }
+  .spinfo .n.blue { display:inline-block; background:var(--blue-5); color:var(--blue); padding:2px 8px; border-radius:4px; }
+  .spinfo .l { font-size:14px; font-style:italic; color:var(--ink-2); margin-top:2px; }
+  .spinfo .g { font-size:15px; color:var(--ink-2); margin-top:4px; }
+
+  /* ─── review sighting (from PEX-43/v2) ─────────────────────────────── */
+  .mapband { height:200px; position:relative; flex-shrink:0; background:url('imgs/map.jpg') 52% 20% / 190% auto no-repeat; }
+  .mapband .pin { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:58px; height:58px;
+    border-radius:999px; background:#fff; border:2.5px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,.28);
+    display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .mapband .pin img { max-width:46px; max-height:44px; }
+  .mapband .credit { position:absolute; left:10px; bottom:8px; font-size:10px; color:rgba(0,0,0,.5);
+    background:rgba(255,255,255,.72); border-radius:3px; padding:1px 5px; }
+  .seclabel { font-size:15px; font-weight:500; padding:16px 20px 10px; }
+  .group { margin:0 20px; background:#fff; border-radius:12px; box-shadow:inset 0 0 0 1px var(--line); overflow:hidden; }
+  .row { display:flex; align-items:center; gap:12px; padding:13px 16px; min-height:52px; border-bottom:1px solid var(--line); }
+  .row:last-child { border-bottom:none; }
+  .row .ic { width:22px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .row .ic svg { width:20px; height:20px; fill:none; stroke:var(--ink-2); stroke-width:1.5; }
+  .row .lb { flex:1; font-size:15px; }
+  .row .vl { font-size:15px; color:var(--ink-2); }
+  .row .cv { color:var(--strong); font-size:19px; font-weight:300; }
+  .countbox { width:66px; height:38px; border-radius:8px; box-shadow:inset 0 0 0 1.5px var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:500; color:var(--blue); }
+  .photos { padding:16px 20px 0; }
+  .photos h3 { font-size:15px; font-weight:500; padding-bottom:10px; }
+  .photoadd { width:88px; height:88px; border-radius:8px; box-shadow:inset 0 0 0 1.5px var(--blue);
+    display:flex; align-items:center; justify-content:center; font-size:28px; color:var(--blue); }
+  .notes { margin:16px 20px 0; box-shadow:inset 0 0 0 1px var(--line); border-radius:12px; padding:13px 16px; }
+  .notes input { width:100%; font:inherit; font-size:15px; border:none; background:none; outline:none; color:var(--ink); }
+  .notes input::placeholder { color:#B9BECF; }
+
+  /* ─── card-goal sheet (screen 6) ────────────────────────────────────── */
+  .goalhead { display:flex; align-items:center; justify-content:space-between; padding:4px 0 18px; }
+  .goalhead h2 { font-size:17px; font-weight:500; }
+  .goalhead a { font-size:15px; color:var(--blue); }
+  .goalhead button svg { width:15px; height:15px; stroke:var(--ink); stroke-width:2.2; fill:none; stroke-linecap:round; }
+  .goalrow { display:flex; align-items:center; justify-content:space-between; }
+  .goalrow b { font-size:18px; font-weight:500; }
+  .goalpill { display:flex; flex-direction:column; align-items:flex-end; }
+  .goalpill .v { display:flex; align-items:center; gap:3px; font-size:16px; font-weight:500; color:var(--green); }
+  .goalpill .v svg { width:15px; height:15px; fill:var(--green); }
+  .goalpill small { font-size:11px; color:var(--ink-2); }
+  .goaldots { display:flex; gap:6px; margin-top:12px; }
+  .goaldots i { width:10px; height:10px; border-radius:99px; background:var(--line); }
+  .goaldots i.on { background:var(--blue); }
+  .cardgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:24px; }
+  .slot { background:#fff; border-radius:12px; box-shadow:inset 0 0 0 1px var(--line); padding:12px;
+    display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .slot .mini { --mw:118px; }
+  .slot .mini-name { font-size:11px; }
+  .slot .mini.locked svg { width:56px; height:56px; }
+  .slot .cta { width:100%; height:30px; border-radius:6px; box-shadow:inset 0 0 0 1.5px var(--blue);
+    color:var(--blue); font-size:13px; font-weight:500; display:flex; align-items:center; justify-content:center; }
+  .slot .nm { font-size:13px; font-weight:500; }
+
+  /* ─── Wayfinding (template) ─────────────────────────────────────────── */
+  .proto-nav { position:fixed; top:22px; left:22px; z-index:200; width:200px; display:flex; flex-direction:column; gap:12px; font-family:'Rubik',-apple-system,sans-serif; letter-spacing:normal; }
+  .proto-back { align-self:flex-start; display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:500; color:#4A4E5A; text-decoration:none; padding:7px 12px 7px 10px; background:#fff; border:1px solid #E5E5EA; border-radius:8px; transition:background .12s; }
+  .proto-back:hover { background:#F7F7FA; }
+  .proto-back svg { width:7px; height:12px; flex-shrink:0; }
+  .proto-pages { background:#fff; border:1px solid #E5E5EA; border-radius:10px; padding:6px; }
+  .proto-pages-head { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#8E8E93; padding:7px 10px 8px; }
+  .proto-page { display:block; font-size:14px; font-weight:500; color:#2D3142; text-decoration:none; padding:8px 10px; border-radius:7px; transition:background .12s; }
+  .proto-page:hover { background:#F2F2F7; }
+  .proto-page.active { background:#E2F0FF; color:#1F87FE; }
+  .proto-about { background:#fff; border:1px solid #E5E5EA; border-radius:10px; padding:13px; display:flex; flex-direction:column; gap:11px; }
+  .proto-about-head { font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:#8E8E93; }
+  .proto-about-text { font-size:12px; line-height:1.5; color:#6B6F7B; }
+  .proto-about-text strong { font-weight:600; color:#2D3142; }
+  .proto-reset { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; font-size:13px; font-weight:500; color:#2D3142; background:#F2F2F7; border:1px solid #E5E5EA; border-radius:8px; padding:9px 10px; cursor:pointer; transition:background .12s; }
+  .proto-reset:hover { background:#EBEBF0; }
+  .proto-reset svg { width:13px; height:13px; flex-shrink:0; }
+  @media (max-width: 980px) { .proto-nav { position:static; width:auto; margin:0 0 20px; align-items:center; } }
+  </style>
+</head>
+<body>
+<nav class="proto-nav" id="protoNav"></nav>
+
+<div class="shell">
+  <div class="viewport" id="viewport">
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       1 · onboarding: first bird  (Figma 489:5608 / 1502:6342)
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen" data-screen="1">
+    <div class="statusbar"></div>
+    <div class="body" style="padding:24px 40px 0;">
+      <h1 class="h1" id="deckTitle">Your collection starts with one bird</h1>
+      <p class="sub" style="margin-top:8px;" id="deckSub">Swipe through and choose a bird you&rsquo;ve spotted before.</p>
+      <div class="deck" id="deck" style="margin-top:32px;"></div>
+      <div class="dots" id="deckDots"></div>
+    </div>
+    <div class="footer">
+      <button class="btn btn-primary" id="deckBtn" onclick="chooseDeckBird()">Start with the dunnock</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       2 · onboarding: first card (+ confetti)  (Figma 585:1671 / 609:10916)
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen" data-screen="2">
+    <div class="statusbar"></div>
+    <div class="body" style="padding:16px 40px 0; position:relative;">
+      <h1 class="h1">Look who just landed<br>in your card collection</h1>
+      <div style="display:flex; justify-content:center; margin-top:26px;">
+        <div id="firstCard"></div>
+      </div>
+      <p class="sub" style="margin-top:26px;" id="firstCardNote"></p>
+      <div class="popfx" id="fx2"></div>
+    </div>
+    <div class="footer">
+      <button class="btn btn-primary" onclick="goTo(3)">Add card to my collection</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       3 · user level up  (Figma 648:5701) — motion from level-up-demo.html
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen" data-screen="3">
+    <div class="statusbar"></div>
+    <div class="body" style="padding:22px 40px 0;">
+      <h1 class="h1">You&rsquo;ve reached level 2</h1>
+      <p class="sub" style="margin-top:8px;">
+        Keep going! Every bird logged earns <span class="xpword"><svg class="feather" viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg>XP</span> towards your next level.
+      </p>
+
+      <div class="track" style="margin-top:34px; margin-left:-40px;" id="luTrack">
+        <div class="rail">
+          <svg preserveAspectRatio="none"><line x1="0" y1="1.5" x2="100%" y2="1.5" stroke="#B2C6DE" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 12"/></svg>
+        </div>
+        <div class="fill" id="luFill"></div>
+        <div class="node done"><svg viewBox="0 0 24 24"><path d="M9.2 16.4 5 12.2l-1.4 1.4 5.6 5.6L20.4 7.8 19 6.4z"/></svg></div>
+        <div class="tlabel" style="left:0;">Level 1</div>
+        <div class="node next">3</div>
+        <div class="tlabel" style="left:265px;">120XP</div>
+        <div class="badge" id="luBadge"><img src="imgs/level-patch-2.svg" alt="Level 2"></div>
+        <div class="conf" id="luConf"></div>
+      </div>
+
+      <div class="xpbig" id="luXp" style="margin-top:-6px;">
+        <svg viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg><span>0XP</span>
+      </div>
+      <div class="xpcap" id="luCap" style="opacity:0;">First card bonus</div>
+
+      <div style="margin-top:34px;" id="luFlock"></div>
+    </div>
+    <div class="footer">
+      <button class="btn btn-primary" id="luBtn" style="opacity:0;" onclick="goTo(4)">Continue</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       4 · onboarding: first set  (Figma 489:6159)
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen" data-screen="4">
+    <div class="statusbar"></div>
+    <div class="body" style="padding:22px 40px 0;">
+      <h1 class="h1">Great work!<br>Now let&rsquo;s go birding.</h1>
+      <p class="sub" style="margin-top:8px;">
+        Find your first 4 cards for a
+        <span class="xpword"><svg class="feather" viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg>+40XP</span> bonus
+      </p>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:22px;">
+        <div class="goaldots" id="setDots"></div>
+        <span style="font-size:14px; color:var(--ink-2);">1/4 collected</span>
+      </div>
+      <div class="cardgrid" id="setGrid" style="margin-top:18px;"></div>
+    </div>
+    <div class="footer">
+      <button class="btn btn-primary" onclick="goToMap('onboarding')">Let&rsquo;s go birding</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       5 · explore map  (Figma 489:6849 / 1524:5602 / 1572:18598 / 1676:21081)
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen mapscreen" data-screen="5">
+    <div class="mapbg"></div>
+    <div class="statusbar"></div>
+    <button class="mapctl left"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="6"/><line x1="13" y1="13" x2="18" y2="18"/></svg></button>
+    <button class="mapctl right"><svg viewBox="0 0 20 20"><path d="M10 2 2 6l8 4 8-4-8-4Z"/><path d="M2 10.5 10 14.5l8-4"/></svg></button>
+    <button class="mapctl locate"><svg viewBox="0 0 20 20"><path d="M18 2 2 8.6l6.6 2.4 2 6.6L18 2Z"/></svg></button>
+    <div class="locdot"></div>
+
+    <div class="floatbtns">
+      <button class="chunky" onclick="goTo(7)">
+        <svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="6"/><line x1="13" y1="13" x2="18" y2="18"/></svg>
+        Identify
+      </button>
+      <button class="chunky inverse" onclick="goTo(8)">
+        <svg viewBox="0 0 24 24" fill="#1F87FE"><use href="#crowPath"/></svg>
+        Log
+      </button>
+    </div>
+
+    <!-- toasts -->
+    <div class="toast xp" id="toastXp">
+      <div class="toast-body">
+        <div class="toast-title">
+          <span>Sighting saved:</span>
+          <svg viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg>
+          <span class="toast-gain" id="txGain">+18XP</span>
+        </div>
+        <div class="toast-meter">
+          <div class="t"><i id="txBar" style="width:42%"></i></div>
+          <small id="txLabel">50/120XP</small>
+        </div>
+      </div>
+      <div class="puck">🦅</div>
+      <div class="puck-lvl">LVL2</div>
+    </div>
+
+    <div class="toast card" id="toastCard">
+      <div class="toast-body">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <span style="font-size:16px; font-weight:500;" id="tcHead">1/4 new cards found</span>
+          <div class="cardsline">
+            <span>Collect 4 for a</span>
+            <svg viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg>
+            <em>+40XP</em><span>&nbsp;bonus</span>
+          </div>
+        </div>
+        <div class="tdots" id="tcDots"></div>
+      </div>
+      <div class="toastmini" id="tcMini"></div>
+    </div>
+
+    <!-- bottom sheet -->
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sbody">
+        <div class="chiprow">
+          <button class="chip" id="chipXp">
+            <div class="ring"></div>
+            <div class="val"><svg viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg><span id="chipXpVal">50XP</span></div>
+            <div class="lvl">LVL 2</div>
+          </button>
+          <button class="chip cards" id="chipCards" onclick="goTo(6)">
+            <div class="ring"></div>
+            <div class="val"><svg viewBox="0 0 16.921 17.353"><use href="#cardsPath"/></svg><span id="chipCardsVal">1/4 cards</span></div>
+          </button>
+        </div>
+
+        <div class="seghead">
+          <h2 id="mapSegTitle">Next targets</h2>
+          <a href="#" onclick="return false;">See all</a>
+        </div>
+        <div class="targets" id="mapTargets"></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on"><svg viewBox="0 0 22 22"><path d="M9.5 2a7.5 7.5 0 1 0 4.6 13.4l4.8 4.8 1.4-1.4-4.8-4.8A7.5 7.5 0 0 0 9.5 2Zm0 2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"/></svg><span>Explore</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24"><path d="M8 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 13c-3.3 0-6 2-6 4.5V19h12v-1.5C14 15 11.3 13 8 13Zm8 .5c-.9 0-1.7.1-2.4.4 1.5 1 2.4 2.5 2.4 4.1V19h6v-1.2c0-2.2-2.7-4.3-6-4.3Z"/></svg><span>Community</span></div>
+        <div class="tab spacer"><svg viewBox="0 0 24 24"></svg><span>&nbsp;</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24"><path d="M7 3h10v2h3v3a4 4 0 0 1-3.3 3.9A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1a5 5 0 0 1-3.7-4A4 4 0 0 1 4 8V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z"/></svg><span>Challenges</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#C4C7D7"/></svg><span>Profile</span></div>
+        <button class="fab" onclick="goTo(7)"><svg viewBox="0 0 24 24"><path d="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7V4Z"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       6 · active card goal  (Figma 1525:14298)
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen mapscreen" data-screen="6">
+    <div class="mapbg"></div>
+    <div class="statusbar"></div>
+    <div class="sheet" style="top:132px;">
+      <div class="handle"></div>
+      <div class="sbody" style="overflow-y:auto;">
+        <div class="goalhead">
+          <button onclick="goToMap('back')"><svg viewBox="0 0 15 15"><line x1="1" y1="1" x2="14" y2="14"/><line x1="14" y1="1" x2="1" y2="14"/></svg></button>
+          <h2>Current card goal</h2>
+          <a href="#" onclick="return false;">All cards</a>
+        </div>
+        <div class="goalrow">
+          <b>Find 4 new cards</b>
+          <div class="goalpill">
+            <div class="v"><svg viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg>+40XP</div>
+            <small>reward</small>
+          </div>
+        </div>
+        <div class="goaldots" id="goalDots"></div>
+        <div class="cardgrid" id="goalGrid"></div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on"><svg viewBox="0 0 22 22"><path d="M9.5 2a7.5 7.5 0 1 0 4.6 13.4l4.8 4.8 1.4-1.4-4.8-4.8A7.5 7.5 0 0 0 9.5 2Zm0 2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"/></svg><span>Explore</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24"><path d="M8 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 13c-3.3 0-6 2-6 4.5V19h12v-1.5C14 15 11.3 13 8 13Zm8 .5c-.9 0-1.7.1-2.4.4 1.5 1 2.4 2.5 2.4 4.1V19h6v-1.2c0-2.2-2.7-4.3-6-4.3Z"/></svg><span>Community</span></div>
+        <div class="tab spacer"><svg viewBox="0 0 24 24"></svg><span>&nbsp;</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24"><path d="M7 3h10v2h3v3a4 4 0 0 1-3.3 3.9A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1a5 5 0 0 1-3.7-4A4 4 0 0 1 4 8V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z"/></svg><span>Challenges</span></div>
+        <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#C4C7D7"/></svg><span>Profile</span></div>
+        <button class="fab" onclick="goTo(7)"><svg viewBox="0 0 24 24"><path d="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7V4Z"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       7 · log method  (Figma 489:4488)
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen mapscreen" data-screen="7">
+    <div class="mapbg"></div>
+    <div class="scrim" onclick="goToMap('back')"></div>
+    <div class="statusbar"></div>
+    <div class="methods">
+      <button class="method" onclick="goTo(8)">
+        <div class="ic" style="background:#DEFAED;"><svg viewBox="0 0 24 24" fill="#009551"><path d="M12 2 9.8 8.2 3.5 10.4l6.3 2.2L12 19l2.2-6.4 6.3-2.2-6.3-2.2L12 2Z"/></svg></div>
+        <div><b>Identify a Bird</b><p>Use Birda AI to quickly identify any bird with your photos or our species guide.</p></div>
+      </button>
+      <button class="method" onclick="goTo(8)">
+        <div class="ic" style="background:#E4E1FB;"><svg viewBox="0 0 24 24" fill="#7265E3"><use href="#crowPath"/></svg></div>
+        <div><b>Log a Sighting</b><p>An easy way to log that you&rsquo;ve seen a bird.</p></div>
+      </button>
+      <button class="method" onclick="goTo(8)">
+        <div class="ic" style="background:#FBEBE2;"><svg viewBox="0 0 24 24" fill="#FF9857"><path d="M13.5 2.5a2 2 0 1 1-2 2 2 2 0 0 1 2-2ZM10 7.5l3.6-1.2 2.2 3.4 3.2 1.3-.8 1.9-4-1.6-1.3 3 2.9 3.1 1.6 4.6-2 .7-1.4-4-3.9-4.1-1.9 5.3-2-.7 2.4-6.6L8 9.2 5 11.6 3.7 10l4-3.2Z"/></svg></div>
+        <div><b>Add a Session</b><p>On a walk? At a hide? Add a session to log multiple birds easily.</p></div>
+      </button>
+    </div>
+    <button class="closex" onclick="goToMap('back')"><svg viewBox="0 0 16 16"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg></button>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       8 · What did you see?  (Figma 489:4498 — layout from PEX-43/v2)
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen" data-screen="8">
+    <div class="statusbar"></div>
+    <div class="nav">
+      <button class="nav-back" onclick="goToMap('back')"><svg viewBox="0 0 11 19"><polyline points="9.5,1.5 2,9.5 9.5,17.5"/></svg></button>
+      <div class="nav-title">What did you see?</div>
+      <span></span>
+    </div>
+    <div class="body">
+      <div class="searchbar">
+        <svg viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="5"/><line x1="10.5" y1="10.5" x2="14.5" y2="14.5" stroke-linecap="round"/></svg>
+        <input placeholder="Describe the bird" type="text">
+      </div>
+      <div class="splist" id="spList"></div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       9 · Review Sighting  (Figma 1568:15606 — layout from PEX-43/v2)
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen" data-screen="9">
+    <div class="statusbar"></div>
+    <div class="nav">
+      <button class="nav-back" onclick="goTo(8)"><svg viewBox="0 0 11 19"><polyline points="9.5,1.5 2,9.5 9.5,17.5"/></svg></button>
+      <div class="nav-title">Review Sighting</div>
+      <button class="nav-act" onclick="saveSighting()">Save</button>
+    </div>
+    <div class="body">
+      <div class="mapband">
+        <div class="pin"><img id="rsPin" src="" alt=""></div>
+        <div class="credit">© Mapbox</div>
+      </div>
+
+      <div class="photos">
+        <h3>Photos</h3>
+        <div class="photoadd">+</div>
+      </div>
+
+      <div class="notes"><input placeholder="Got something interesting to add?"></div>
+
+      <div class="seclabel">Sighting</div>
+      <div class="group">
+        <div class="row" style="padding-bottom:4px; border-bottom:none;">
+          <div class="ic"><svg viewBox="0 0 24 24" stroke="none" fill="var(--ink-2)"><use href="#crowPath"/></svg></div>
+          <span class="lb" data-species-name>Robin</span>
+          <span class="cv">›</span>
+        </div>
+        <div class="row" style="padding:4px 16px 12px 50px;"><div class="countbox">1</div></div>
+        <div class="row">
+          <div class="ic"><svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="13" rx="2"/><line x1="3" y1="8" x2="17" y2="8"/><line x1="7" y1="2" x2="7" y2="6"/><line x1="13" y1="2" x2="13" y2="6"/></svg></div>
+          <span class="lb">Jul 17th, 2026&nbsp;&nbsp;22:57</span>
+          <span class="cv">›</span>
+        </div>
+        <div class="row">
+          <div class="ic"><svg viewBox="0 0 20 20"><path d="M10 2C7.2 2 5 4.2 5 7c0 4 5 11 5 11s5-7 5-11c0-2.8-2.2-5-5-5Z"/><circle cx="10" cy="7" r="2"/></svg></div>
+          <span class="lb">Minsmere, England, United Kingdom</span>
+          <span class="cv">›</span>
+        </div>
+        <div class="row">
+          <div class="ic"><svg viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.5"/><path d="M3 18c0-3.3 3.1-6 7-6s7 2.7 7 6"/></svg></div>
+          <span class="lb">Tag people</span>
+          <span class="cv">›</span>
+        </div>
+      </div>
+
+      <div class="seclabel">Sighting privacy</div>
+      <div class="group">
+        <div class="row">
+          <div class="ic"><svg viewBox="0 0 20 20"><path d="M10 4C5 4 1.5 10 1.5 10S5 16 10 16s8.5-6 8.5-6S15 4 10 4Z"/><circle cx="10" cy="10" r="2.5"/></svg></div>
+          <span class="lb">Post Sharing</span><span class="vl">Everyone</span><span class="cv">›</span>
+        </div>
+        <div class="row">
+          <div class="ic"><svg viewBox="0 0 20 20"><rect x="4" y="9" width="12" height="9" rx="2"/><path d="M7 9V6a3 3 0 0 1 6 0v3"/></svg></div>
+          <span class="lb">Location Privacy</span><span class="vl">Everyone</span><span class="cv">›</span>
+        </div>
+      </div>
+
+      <div style="padding:22px 20px 30px;">
+        <button class="btn btn-primary" onclick="saveSighting()">Save Sighting</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       10 · new card found (+ confetti)  (Figma 1568:15949 / 1568:16227)
+       ══════════════════════════════════════════════════════════════════ -->
+  <section class="screen" data-screen="10">
+    <div class="statusbar"></div>
+    <div class="body" style="padding:16px 40px 0; position:relative;">
+      <h1 class="h1">New card found</h1>
+      <p class="sub" style="margin-top:8px;">Your flock keeps growing!</p>
+      <div style="display:flex; justify-content:center; margin-top:34px;">
+        <div id="newCard"></div>
+      </div>
+      <div class="popfx" id="fx10"></div>
+    </div>
+    <div class="footer">
+      <button class="btn btn-primary" onclick="goTo(11)">Add card to my collection</button>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       11 · explainer: card upgrade  (Figma 1573:18999)
+       ══════════════════════════════════════════════════════════════════ -->
+  <!-- Structure, spacing and copy are the upgrade demo's, 1:1 -->
+  <section class="screen" data-screen="11">
+    <div class="statusbar"></div>
+    <div class="body" style="display:flex; flex-direction:column; gap:32px; padding:24px 40px 32px; align-items:center; overflow:visible;">
+      <div style="height:128px; align-self:stretch; flex-shrink:0; display:flex; flex-direction:column; gap:8px;">
+        <span style="font-weight:500; font-size:24px; text-align:center; line-height:100%;">Don&rsquo;t stop there!</span>
+        <span style="font-weight:400; font-size:16px; text-align:center; line-height:24px;">Every extra log of this bird counts towards upgrading its card.</span>
+      </div>
+      <div id="upgradeCard"></div>
+    </div>
+    <div class="footer" style="padding:0 40px 32px;">
+      <button class="btn btn-primary" onclick="goToMap('logged')">Keep birding</button>
+    </div>
+  </section>
+
+  </div>
+</div>
+
+<!-- shared SVG paths (feather = XP, crow = log, cards = collection) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <path id="featherPath" d="M 6.154 5.051 L 0.165 11.037 C -0.055 11.257 -0.055 11.613 0.165 11.831 C 0.386 12.049 0.742 12.052 0.96 11.831 L 2.713 10.078 C 2.886 10.186 3.071 10.27 3.271 10.324 C 4.321 10.61 5.954 10.65 7.548 9.593 C 7.834 9.403 7.684 8.998 7.342 8.998 L 6.964 8.998 C 6.845 8.998 6.749 8.902 6.749 8.782 C 6.749 8.686 6.812 8.604 6.901 8.576 L 9.191 7.889 C 9.271 7.866 9.341 7.817 9.388 7.746 C 9.491 7.596 9.589 7.444 9.683 7.287 C 9.829 7.045 9.648 6.748 9.367 6.748 L 8.462 6.748 C 8.343 6.748 8.246 6.652 8.246 6.532 C 8.246 6.436 8.31 6.354 8.399 6.326 L 10.295 5.756 C 10.403 5.724 10.492 5.644 10.534 5.538 C 11.216 3.818 11.528 2.016 11.624 0.86 C 11.643 0.628 11.554 0.401 11.389 0.237 C 11.225 0.073 10.998 -0.016 10.766 0.002 C 8.802 0.162 4.982 0.947 2.846 3.082 C 0.969 4.959 0.955 7.083 1.297 8.351 C 1.346 8.536 1.579 8.576 1.714 8.44 L 5.57 4.587 C 5.715 4.442 5.954 4.442 6.1 4.587 C 6.226 4.713 6.243 4.906 6.151 5.051 L 6.154 5.051 Z"/>
+  <path id="cardsPath" d="M 14.831 2.724 C 15.984 2.724 16.921 3.661 16.921 4.814 L 16.921 15.263 C 16.921 16.416 15.984 17.353 14.831 17.353 L 8.561 17.353 C 8.085 17.353 7.647 17.19 7.294 16.922 L 11.797 15.717 C 13.747 15.194 14.906 13.189 14.384 11.237 L 12.101 2.724 L 14.831 2.724 Z M 7.605 0.072 C 8.718 -0.228 9.864 0.435 10.165 1.548 L 12.868 11.642 C 13.166 12.755 12.506 13.901 11.389 14.202 L 5.335 15.825 C 4.222 16.125 3.075 15.462 2.775 14.349 L 0.071 4.255 C -0.226 3.139 0.434 1.992 1.547 1.695 L 7.605 0.072 Z"/>
+  <path id="crowPath" d="M20.7 6.1c.5-.3.8-.9.8-1.5 0-.6-.3-1.1-.8-1.4l-2.4-1.5c-.3-.2-.7 0-.7.4v.9c-1.3-.4-2.7-.2-3.8.6L6.3 8.4C4.9 9.4 4 11 4 12.8c0 1.5.6 2.9 1.6 3.9l-3.3 3.6c-.3.3-.2.8.2 1 .3.2.7.1.9-.2l3.2-3.5c.9.5 1.9.8 3 .8h7.9c.4 0 .7-.3.7-.7 0-.3-.2-.6-.5-.7l-2.3-.7c-.3-.1-.5-.4-.4-.7.1-.3.3-.4.6-.4h3.6c.4 0 .7-.3.7-.7 0-.2-.1-.4-.2-.5l-1.6-1.7c-.2-.2-.2-.6 0-.8.2-.2.5-.2.7 0l1.4 1.1V6.1Zm-3.9-.4c-.5 0-.9-.4-.9-.9s.4-.9.9-.9.9.4.9.9-.4.9-.9.9Z"/>
+</defs></svg>
+
+<script>
+/* ══ CONFIG ═════════════════════════════════════════════════════════════ */
+const PROTO = {
+  indexHref: '../../../index.html',
+  group: 'Points & levels',
+  current: 0,
+  iterations: [],   // add a 2nd entry to reveal the switcher
+  about: 'The <strong>points &amp; levels</strong> flow end to end: onboarding (pick your first bird, '
+       + 'earn the card, level up), the <strong>explore map</strong> hub, then <strong>logging your first bird</strong>. '
+       + 'Swipe the deck on screen 1. Tap the <strong>cards chip</strong> on the map to open the card goal. '
+       + 'Save a sighting and watch the XP toast, then the card toast, pay into the chips.',
+};
+
+/* ══ SPECIES ════════════════════════════════════════════════════════════ */
+/* imgs/birds/*.png are the shared _resources/bird-photos cutouts with their
+   white studio background keyed out, so they can sit on the peach card. */
+const PHOTOS = 'imgs/birds/';
+const BIRDS = {
+  dunnock:      { name:'Dunnock',       latin:'Prunella modularis',  img:'dunnock.png',      rarity:'Common',   desc:'Small robin-sized bird with a grey head and streaky brown back, seen in gardens and hedgerows.' },
+  robin:        { name:'Robin',         latin:'Erithacus rubecula',  img:'robin.png',        rarity:'Common',   desc:'Unmistakable orange-red breast, upright stance and a thin dark bill. Bold around gardeners.' },
+  bluetit:      { name:'Blue Tit',      latin:'Cyanistes caeruleus', img:'bluetit.png',      rarity:'Uncommon', desc:'Tiny, acrobatic and bright — blue cap and wings, yellow underparts, white cheeks.' },
+  blackbird:    { name:'Blackbird',     latin:'Turdus merula',       img:'blackbird.png',    rarity:'Common',   desc:'Glossy black with a bright orange bill and eye-ring. Females are a warm streaky brown.' },
+  housesparrow: { name:'House sparrow', latin:'Passer domesticus',   img:'housesparrow.png', rarity:'Common',   desc:'Chunky, chattering and sociable. Males have a grey crown and black bib.' },
+  woodpigeon:   { name:'Woodpigeon',    latin:'Columba palumbus',    img:'woodpigeon.png',   rarity:'Common',   desc:'Large and heavy with a white neck patch. Its clattering take-off gives it away.' },
+  greattit:     { name:'Great Tit',     latin:'Parus major',         img:'greattit.png',     rarity:'Common',   desc:'Bigger than a blue tit — glossy black head, white cheeks and a black belly stripe.' },
+  magpie:       { name:'Magpie',        latin:'Pica pica',           img:'magpie.png',       rarity:'Common',   desc:'Black and white with a long iridescent tail. Loud, clever and hard to miss.' },
+  carrioncrow:  { name:'Carrion Crow',  latin:'Corvus corone',       img:'carrioncrow.png',  rarity:'Common',   desc:'All-black with a stout bill. Usually alone or in pairs, unlike rooks.' },
+  mallard:      { name:'Mallard',       latin:'Anas platyrhynchos',  img:'mallard.png',      rarity:'Common',   desc:'The classic duck — bottle-green head on the male, blue wing flash on both.' },
+};
+const NOTSURE = { key:'notsure', name:'Not sure?', latin:'Nullae aves', img:null, rarity:null,
+  desc:'Don&rsquo;t worry if you&rsquo;re not 100% certain on what you&rsquo;ve seen, pick any bird here to get started.' };
+
+/* five birds + the "Not sure?" card = the 6 dots on Figma 514:3459 */
+const DECK_ORDER = ['dunnock','robin','bluetit','blackbird','housesparrow'];
+const PICKER     = ['woodpigeon','carrioncrow','robin','magpie','blackbird','bluetit','housesparrow'];
+const TARGET_POOL= ['blackbird','housesparrow','bluetit','robin','greattit','woodpigeon'];
+
+const photoOf = k => PHOTOS + BIRDS[k].img;
+
+/* ══ STATE ══════════════════════════════════════════════════════════════ */
+const S = {
+  starter:  'dunnock',   // the bird chosen in onboarding
+  logged:   null,        // the bird logged in the log flow
+  xp:       50,          // XP at the point onboarding ends
+  gain:     18,          // XP earned for the first logged sighting
+  level:    2,
+  nextLvl:  120,
+  cards:    1,
+  cardGoal: 4,
+  pending:  null,        // 'onboarding' | 'logged' — what the map should play on arrival
+};
+
+/* ══ WAYFINDING (template) ══════════════════════════════════════════════ */
+(function buildNav() {
+  const back = '<a class="proto-back" href="' + PROTO.indexHref + '">'
+    + '<svg viewBox="0 0 7 12" fill="none"><path d="M6 1 1 6l5 5" stroke="#4A4E5A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    + 'All prototypes</a>';
+  let extra = '';
+  if (PROTO.iterations.length >= 2) {
+    const pages = PROTO.iterations.map((it, i) =>
+      '<a class="proto-page' + (i === PROTO.current ? ' active' : '') + '" href="' + it.href + '">' + it.label + '</a>'
+    ).join('');
+    extra += '<div class="proto-pages"><div class="proto-pages-head">' + PROTO.group + '</div>' + pages + '</div>';
+  }
+  if (PROTO.about) {
+    extra += '<div class="proto-about"><div class="proto-about-head">About this version</div>'
+      + '<p class="proto-about-text">' + PROTO.about + '</p>'
+      + '<button class="proto-reset" onclick="location.reload()">'
+      + '<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      + 'Restart prototype</button></div>';
+  }
+  document.getElementById('protoNav').innerHTML = back + extra;
+})();
+
+/* ══ STATUS BAR ═════════════════════════════════════════════════════════ */
+const sbSVG = '<svg width="82" height="15" viewBox="0 0 82 16" fill="black"><path d="M3.7 9H2.5a1 1 0 0 0-1 1v2.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V10a1 1 0 0 0-1-1m5.2-2.5H7.7a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-5a1 1 0 0 0-1-1M14.1 4h-1.2a1 1 0 0 0-1 1v7.5a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1m5.2-2.5h-1.2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h1.2a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1"/><path d="M30.5 4.3a10 10 0 0 1 6.6 2.5.4.4 0 0 0 .5 0l1.2-1.2a.4.4 0 0 0 0-.6 12.5 12.5 0 0 0-16.6 0 .4.4 0 0 0 0 .6L23.4 6.8a.4.4 0 0 0 .5 0 10 10 0 0 1 6.6-2.5m0 4a6 6 0 0 1 3.9 1.5.4.4 0 0 0 .5 0l1.2-1.3a.4.4 0 0 0 0-.6 8.5 8.5 0 0 0-11.2 0 .4.4 0 0 0 0 .6l1.2 1.3a.4.4 0 0 0 .5 0 6 6 0 0 1 3.9-1.5m2.4 3.6-2.1 2.3a.4.4 0 0 1-.6 0l-2.1-2.3a.4.4 0 0 1 0-.6 4.4 4.4 0 0 1 4.8 0 .4.4 0 0 1 0 .6"/><path d="M70.5 1c2.05 0 3.08 0 3.88.34a4.3 4.3 0 0 1 2.28 2.28c.34.8.34 1.83.34 3.88s0 3.08-.34 3.88a4.3 4.3 0 0 1-2.28 2.28c-.8.34-1.83.34-3.88.34h-12c-2.05 0-3.08 0-3.88-.34a4.3 4.3 0 0 1-2.28-2.28C52 10.58 52 9.55 52 7.5s0-3.08.34-3.88a4.3 4.3 0 0 1 2.28-2.28C55.42 1 56.45 1 58.5 1z" opacity=".35"/><path d="M78.5 5.5v4a2.5 2.5 0 0 0 1.5-2 2.5 2.5 0 0 0-1.5-2" opacity=".4"/><path d="M54 7c0-1.4 0-2.1.27-2.63a2.5 2.5 0 0 1 1.1-1.1C55.9 3 56.6 3 58 3h13c1.4 0 2.1 0 2.64.27q.72.37 1.09 1.1C75 4.9 75 5.6 75 7v1c0 1.4 0 2.1-.27 2.64a2.5 2.5 0 0 1-1.1 1.09C73.1 12 72.4 12 71 12H58c-1.4 0-2.1 0-2.63-.27a2.5 2.5 0 0 1-1.1-1.1C54 10.1 54 9.4 54 8z"/></svg>';
+document.querySelectorAll('.statusbar').forEach(sb => { sb.innerHTML = '<span class="time">9:41</span>' + sbSVG; });
+
+/* ══ SHARED BUILDERS ════════════════════════════════════════════════════ */
+const featherSVG = (px) => '<svg viewBox="0 0 11.626 11.996" style="width:' + px + 'px;height:' + px + 'px;fill:var(--green)"><use href="#featherPath"/></svg>';
+
+/* Card artwork as supplied for the card faces (sticker already outlined, 202×202).
+   Species without artwork yet fall back to the keyed-out shared photo. */
+const CARD_ART = { robin: 'imgs/cards/robin.png' };
+
+/* One face of the collection card — the exact 296×413 card from the upgrade demo.
+   `back` puts it on the reverse of the flip; `tiers` is the label pair under the bar. */
+function faceHTML(tier, key, opts) {
+  const b = BIRDS[key];
+  const art = CARD_ART[key]
+    ? '<div class="art"><img src="' + CARD_ART[key] + '" alt="' + b.name + '"></div>'
+    : '<div class="art keyed"><img src="' + photoOf(key) + '" alt="' + b.name + '"></div>';
+  return '<div class="tface' + (opts.back ? ' back' : '') + '" data-tier="' + tier + '"'
+    + (opts.hidden ? ' style="visibility:hidden"' : '') + '>'
+    + '<div class="tpaper"></div>'
+    + '<div class="tsticker">' + art + '</div>'
+    + '<div class="tstats">'
+    +   '<div class="tchips">'
+    +     '<div class="tchip"><b data-count>' + opts.logged + '</b><span>logged</span></div>'
+    +     '<div class="tchip"><b>' + (opts.photos || 0) + '</b><span>photos</span></div>'
+    +   '</div>'
+    +   '<div class="tbar"><div class="track"><i style="width:' + opts.fill + 'px"></i></div>'
+    +   '<div class="tiers"><span>' + opts.tier + '</span><span data-next>' + (opts.next || '') + '</span></div></div>'
+    + '</div>'
+    + '<div class="tfoot"><div class="rule"></div><div class="latin">' + b.latin + '</div></div>'
+    + '<div class="tframe"><div class="metal"></div><div class="nm">' + b.name + '</div></div>'
+    + '<div class="sheen" data-sheen></div>'
+    + '</div>';
+}
+
+/* a single static card, used on the two celebration screens */
+function cardHTML(key, logged, photos, tier, next) {
+  return '<div class="tcard"><div class="tcard-in">'
+    + faceHTML(tier.toLowerCase(), key, { logged:logged, photos:photos, tier:tier, next:next, fill:16 })
+    + '</div></div>';
+}
+
+/* the four-face flip card for the upgrade explainer */
+function upgradeCardHTML(key) {
+  return '<div class="tcard"><div class="tcard-in" id="upFlip">'
+    + faceHTML('bronze', key, { logged:1,   photos:0, tier:'Bronze', next:'Silver (1/5)',    fill:16 })
+    + faceHTML('gold',   key, { logged:25,  photos:0, tier:'Gold',   next:'Shiny (25/100)',  fill:61.5, hidden:true })
+    + faceHTML('silver', key, { logged:5,   photos:0, tier:'Silver', next:'Gold (5/25)',     fill:49,   back:true })
+    + faceHTML('shiny',  key, { logged:100, photos:0, tier:'Shiny',  next:'',                fill:246,  back:true, hidden:true })
+    + '</div></div>';
+}
+
+/* the small card used in grids, toasts and rows */
+function miniHTML(key) {
+  const b = BIRDS[key];
+  return '<div class="mini"><div class="mini-in">'
+    + '<figure class="mini-fig"><img src="' + photoOf(key) + '" alt="' + b.name + '"></figure>'
+    + '<div class="mini-name">' + b.name + '</div><div class="mini-bar"></div>'
+    + '</div></div>';
+}
+function miniLockedHTML() {
+  return '<div class="mini locked"><div class="mini-in">'
+    + '<figure class="mini-fig"><svg viewBox="0 0 24 24"><use href="#crowPath"/></svg></figure>'
+    + '<div class="mini-name">???</div><div class="mini-bar"></div>'
+    + '</div></div>';
+}
+
+/* ══ SCREEN 1 · the swipe deck ══════════════════════════════════════════
+   Motion transcribed from the Figma timeline "motion: starter card carousel"
+   (node 514:3459 — 2000ms, boomerang preview). Three cards sit at the same spot,
+   fanned only by rotation; advancing flings the top card out to the left, and it
+   travels back in to land at the bottom of the pile while the two cards beneath
+   promote up. Times below are the Figma keyframes with the 397ms lead-in removed,
+   so t=0 is the start of the swipe. */
+const PILE = [
+  /* resting slot transforms — the timeline alternates between these two sets,
+     which is what gives the pile its hand-shuffled look */
+  [ { x:0,     y:0,      r:0 }, { x:0,      y:0,      r:-3.45 }, { x:0,     y:0,     r:5.51 } ],
+  [ { x:2.008, y:-2.993, r:0 }, { x:-7.004, y:10.005, r:-6.49 }, { x:1.563, y:0.131, r:3.19 } ],
+];
+const FLING = { x:-331.534, y:9.156, r:-5.747 };   /* the outgoing card's extreme */
+const T_OUT = 236;   /* top card: fling out (0 → 236ms) */
+const T_END = 480;   /* …then back in to the bottom of the pile (236 → 480ms) */
+const T_MID = { delay:77,  dur:235 };   /* card 2 → top */
+const T_BCK = { delay:153, dur:275 };   /* card 3 → middle */
+const T_DOT = { delay:115, dur:235 };   /* the selected dot slides one 16px pitch */
+const EASE_OUT_XY = 'cubic-bezier(0.601,-0.002,0.417,0.996)';
+const EASE_OUT_R  = 'cubic-bezier(0.6,0,0.42,1)';
+const EASE_BACK_XY= 'cubic-bezier(0.707,-0.008,0.58,1)';
+const EASE_BACK_R = 'ease-in';
+
+let deckIdx = 0, pileState = 0, pileEls = [], deckBusy = false;
+const deckCards = DECK_ORDER.map(k => Object.assign({ key:k }, BIRDS[k])).concat([NOTSURE]);
+
+function deckCardHTML(b) {
+  const photo = b.img
+    ? '<img src="' + PHOTOS + b.img + '" alt="' + b.name + '">'
+    : '<svg class="glyph" viewBox="0 0 24 24" fill="#8890AE"><use href="#crowPath"/></svg>';
+  const foot = b.rarity
+    ? '<span class="near">Likely near you</span><span class="rarity' + (b.rarity === 'Uncommon' ? ' uncommon' : '') + '">' + b.rarity + '</span>'
+    : '';
+  return '<div class="dc-name">' + b.name + '</div>'
+    + '<div class="dc-latin">' + b.latin + '</div>'
+    + '<div class="dc-photo">' + photo + '</div>'
+    + '<div class="dc-desc">' + b.desc + '</div>'
+    + '<div class="dc-foot">' + foot + '</div>';
+}
+
+function place(el, slot, state) {
+  const p = PILE[state][slot];
+  el.style.translate = p.x + 'px ' + p.y + 'px';
+  el.style.rotate = p.r + 'deg';
+  el.style.zIndex = 3 - slot;
+  el.classList.toggle('top', slot === 0);
+}
+/* the deck doesn't loop, so slots past the end of it are simply empty */
+function cardAt(i) { return (i >= 0 && i < deckCards.length) ? deckCards[i] : null; }
+function fillCard(el, idx) {
+  const c = cardAt(idx);
+  el.classList.toggle('empty', !c);
+  if (c) el.innerHTML = deckCardHTML(c);
+}
+
+function renderDeck() {
+  const deck = document.getElementById('deck');
+  deck.innerHTML = '';
+  pileEls = [];
+  /* three cards, all at the same spot — the fan comes from rotation alone */
+  for (let slot = 2; slot >= 0; slot--) {
+    const el = document.createElement('div');
+    el.className = 'deck-card';
+    el.style.transition = 'none';
+    fillCard(el, deckIdx + slot);
+    place(el, slot, pileState);
+    attachSwipe(el);          /* bound once per element; the handlers ignore it
+                                 unless it is currently the top card */
+    deck.appendChild(el);
+    pileEls[slot] = el;
+  }
+
+  const dots = deckCards.map(() => '<i></i>').join('');
+  document.getElementById('deckDots').innerHTML = dots + '<b class="sel"></b>';
+  positionDot(null);
+  updateDeckBtn();
+}
+function updateDeckBtn() {
+  const b = cardAt(deckIdx);
+  const btn = document.getElementById('deckBtn');
+  const last = b.key === 'notsure';
+  btn.textContent = last ? 'See the first bird again' : 'Start with the ' + b.name.toLowerCase();
+  /* the rewind is a secondary action, so it takes the outline button */
+  btn.className = 'btn ' + (last ? 'btn-secondary' : 'btn-primary');
+}
+/* the blue dot slides one 16px pitch per advance; `timing` null = jump */
+function positionDot(timing) {
+  const dots = document.getElementById('deckDots');
+  const sel = dots.querySelector('.sel');
+  const first = dots.querySelector('i');
+  if (!sel || !first) return;
+  sel.style.transition = timing
+    ? 'translate ' + timing.dur + 'ms linear ' + timing.delay + 'ms' : 'none';
+  sel.style.left = first.offsetLeft + 'px';
+  sel.style.translate = deckIdx * 16 + 'px 0px';
+}
+
+/* nothing more to see this way — a small nudge that dies away */
+function shakeTop(fromX) {
+  const el = pileEls[0];
+  if (!el) return;
+  const p = PILE[pileState][0];
+  const at = d => (p.x + d) + 'px ' + p.y + 'px';
+  el.getAnimations().forEach(a => a.cancel());
+  el.style.transition = 'none';
+  const opts = { duration: 380, easing: 'ease-out' };
+  el.animate([
+    { translate: at(fromX || 0) }, { translate: at(-7), offset: 0.34 },
+    { translate: at(5), offset: 0.62 }, { translate: at(-2), offset: 0.83 },
+    { translate: at(0) },
+  ], opts);
+  el.animate([{ rotate: ((fromX || 0) * 0.04) + 'deg' }, { rotate: p.r + 'deg' }], opts);
+  el.style.translate = at(0);
+  el.style.rotate = p.r + 'deg';
+}
+
+/* drag to swipe either way; a tap also flicks to the next card */
+function attachSwipe(el) {
+  let x0 = null, dx = 0, done = true;
+  const scale = () => (typeof shellScale === 'number' && shellScale > 0) ? shellScale : 1;
+
+  const release = () => {
+    if (done) return;
+    done = true; x0 = null;
+    if (dx < -60) { moveDeck(1, dx); return; }    /* left  → next card */
+    if (dx >  60) { moveDeck(-1); return; }       /* right → previous card returns */
+    const tapped = Math.abs(dx) < 4;
+    el.style.transition = 'translate .28s cubic-bezier(.4,0,.2,1), rotate .28s cubic-bezier(.4,0,.2,1)';
+    place(el, 0, pileState);
+    if (tapped) setTimeout(() => moveDeck(1, 0), 60);
+  };
+
+  el.addEventListener('pointerdown', e => {
+    if (deckBusy || el !== pileEls[0]) return;
+    x0 = e.clientX; dx = 0; done = false;
+    el.setPointerCapture(e.pointerId);
+    el.style.transition = 'none';
+  });
+  el.addEventListener('pointermove', e => {
+    if (done) return;
+    /* leaving the phone finishes the drag at the frame edge rather than stranding
+       the card mid-gesture */
+    const r = document.getElementById('viewport').getBoundingClientRect();
+    const outside = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    const cx = Math.min(r.right, Math.max(r.left, e.clientX));
+    dx = (cx - x0) / scale();
+    if (dx > 0) {
+      /* dragging right never moves the top card — it just starts the reversed
+         timeline, so the card at the back comes in from the left */
+      place(el, 0, pileState);
+      if (dx > 60) { done = true; x0 = null; moveDeck(-1); }
+      else if (outside) release();
+      return;
+    }
+    el.style.translate = dx + 'px 0px';
+    el.style.rotate = (dx * 0.04) + 'deg';
+    if (outside) release();
+  });
+  /* any way the gesture can end — including the pointer being lost entirely */
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev =>
+    el.addEventListener(ev, release));
+}
+
+/* The advance — the Figma timeline, keyframe for keyframe. dir === -1 plays the
+   very same timeline backwards, so the previous card comes out from under the pile
+   and returns to the top. The traveller's curves are asymmetric, so its animation
+   is played with direction:'reverse' rather than re-derived; the promote/demote
+   pair and the dot are symmetric (ease-in-out, linear), so they just take the
+   mirrored delay, end - (delay + duration). */
+function moveDeck(dir, fromX) {
+  if (deckBusy) return;
+  const fwd = dir > 0;
+  const target = deckIdx + (fwd ? 1 : -1);
+  /* the deck has ends: nudge the card instead of wrapping round */
+  if (target < 0 || target >= deckCards.length) { shakeTop(fromX); return; }
+  deckBusy = true;
+  const next = 1 - pileState;
+  const startX = fromX || 0;
+  const mirror = t => T_END - (t.delay + t.dur);
+
+  /* who does what */
+  const trav = fwd ? pileEls[0] : pileEls[2];   /* takes the long way round */
+  const a    = fwd ? pileEls[1] : pileEls[0];   /* slot1 → slot0, or slot0 → slot1 */
+  const b    = fwd ? pileEls[2] : pileEls[1];   /* slot2 → slot1, or slot1 → slot2 */
+
+  /* the traveller. Forward the path is slot0(now) → fling → slot2(next);
+     the same keyframes reversed are slot2(now) → fling → slot0(next). */
+  const from = fwd ? PILE[pileState][0] : PILE[next][0];
+  const to   = fwd ? PILE[next][2]      : PILE[pileState][2];
+  const opts = { duration: T_END, fill:'forwards', easing:'linear',
+                 direction: fwd ? 'normal' : 'reverse' };
+  trav.style.transition = 'none';
+  trav.animate([
+    { translate: (fwd ? startX : from.x) + 'px ' + (fwd ? 0 : from.y) + 'px', easing: EASE_OUT_XY },
+    { translate: FLING.x + 'px ' + FLING.y + 'px', offset: T_OUT / T_END, easing: EASE_BACK_XY },
+    { translate: to.x + 'px ' + to.y + 'px' },
+  ], opts);
+  trav.animate([
+    { rotate: (fwd ? startX * 0.04 : from.r) + 'deg', easing: EASE_OUT_R },
+    { rotate: FLING.r + 'deg', offset: T_OUT / T_END, easing: EASE_BACK_R },
+    { rotate: to.r + 'deg' },
+  ], opts);
+  trav.style.zIndex = fwd ? 3 : 0;
+  trav.classList.remove('top');
+
+  /* the other two shuffle across, staggered */
+  const shift = (el, slot, t) => {
+    const delay = fwd ? t.delay : mirror(t);
+    el.style.transition = 'translate ' + t.dur + 'ms ease-in-out ' + delay + 'ms, '
+                        + 'rotate '    + t.dur + 'ms ease-in-out ' + delay + 'ms';
+    place(el, slot, next);
+  };
+  shift(a, fwd ? 0 : 1, T_MID);
+  shift(b, fwd ? 1 : 2, T_BCK);
+
+  deckIdx = target;
+  positionDot({ dur: T_DOT.dur, delay: fwd ? T_DOT.delay : mirror(T_DOT) });
+  updateDeckBtn();
+
+  /* at the extreme the traveller is off to the left: swap in its new bird and move
+     it through the pile's z-order there, out of sight. Near the end of the deck
+     there may be no card for it to become, in which case it just doesn't come back. */
+  setTimeout(() => {
+    trav.style.zIndex = fwd ? 1 : 3;
+    fillCard(trav, fwd ? target + 2 : target);
+  }, fwd ? T_OUT : T_END - T_OUT);
+
+  setTimeout(() => {
+    [trav, a, b].forEach(el => el.getAnimations().forEach(an => an.cancel()));
+    pileEls = fwd ? [a, b, trav] : [trav, a, b];
+    pileState = next;
+    pileEls.forEach((el, slot) => { el.style.transition = 'none'; place(el, slot, pileState); });
+    deckBusy = false;
+  }, T_END);
+}
+function advanceDeck(fromX) { moveDeck(1, fromX); }
+
+/* "See the first bird again" — the whole pile flies back in from the left and
+   restacks, using the same arrival motion as a single card, just quicker */
+function resetDeck() {
+  if (deckBusy) return;
+  deckBusy = true;
+  deckIdx = 0; pileState = 0;
+  const DUR = 260, STEP = 45;
+  pileEls.forEach((el, slot) => {
+    el.getAnimations().forEach(a => a.cancel());
+    fillCard(el, slot);
+    el.style.transition = 'none';
+    el.style.translate = FLING.x + 'px ' + FLING.y + 'px';
+    el.style.rotate = FLING.r + 'deg';
+    el.style.zIndex = 3 - slot;
+  });
+  void pileEls[0].offsetWidth;                 /* flush, so the transitions run */
+  pileEls.forEach((el, slot) => {
+    const delay = (2 - slot) * STEP;           /* the pile builds up from the back */
+    el.style.transition = 'translate ' + DUR + 'ms ease-in-out ' + delay + 'ms, '
+                        + 'rotate '    + DUR + 'ms ease-in-out ' + delay + 'ms';
+    place(el, slot, 0);
+  });
+  positionDot({ dur: 240, delay: 0 });
+  updateDeckBtn();
+  setTimeout(() => {
+    pileEls.forEach((el, slot) => { el.style.transition = 'none'; place(el, slot, 0); });
+    deckBusy = false;
+  }, DUR + 2 * STEP + 20);
+}
+
+function chooseDeckBird() {
+  const b = cardAt(deckIdx);
+  if (b.key === 'notsure') { resetDeck(); return; }
+  S.starter = b.key;
+  buildOnboardingCards();
+  goTo(2);
+}
+
+/* ══ SCREENS 2–4 · onboarding payoff ════════════════════════════════════ */
+function buildOnboardingCards() {
+  const b = BIRDS[S.starter];
+  document.getElementById('firstCard').innerHTML = cardHTML(S.starter, 1, 0, 'Bronze', 'Silver (1/5)');
+  document.getElementById('firstCardNote').innerHTML =
+    'Log a ' + b.name.toLowerCase() + ' whenever you see one to upgrade your card. Only 4 more to go until silver!';
+  document.getElementById('luFlock').innerHTML =
+    '<div class="flockrow">' + miniHTML(S.starter)
+    + '<b>You&rsquo;re ahead of the flock</b>'
+    + '<span>Only 2% of people have collected the ' + b.name.toLowerCase() + '</span></div>';
+  /* screen 4 — the 4-slot goal, one filled */
+  document.getElementById('setDots').innerHTML =
+    [0,1,2,3].map(i => '<i class="' + (i < 1 ? 'on' : '') + '"></i>').join('');
+  document.getElementById('setGrid').innerHTML =
+    '<div class="slot filled">' + miniHTML(S.starter) + '</div>'
+    + Array(3).fill('<div class="slot">' + miniLockedHTML() + '</div>').join('');
+}
+
+/* ══ SCREEN 3 · level up — timeline ported from level-up-demo.html ══════ */
+const c01  = v => Math.max(0, Math.min(1, v));
+const eoC  = p => 1 - Math.pow(1 - p, 3);
+const eioC = p => (p < 0.5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2);
+const eoB  = p => { const s = 1.9; return 1 + (s + 1) * Math.pow(p - 1, 3) + s * Math.pow(p - 1, 2); };
+
+const CONFETTI_ICONS = ['imgs/conf-acorn.svg','imgs/conf-nest.svg','imgs/conf-sparkle.svg','imgs/conf-bird1.svg','imgs/conf-bird2.svg'];
+function makeConfetti(n) {
+  return Array.from({ length: n || 28 }, (_, i) => ({
+    ang: (-90 + (Math.random() * 150 - 75)) * Math.PI / 180,
+    dist: 75 + Math.random() * 115,
+    iconSize: 14 + Math.random() * 8,
+    icon: CONFETTI_ICONS[i % CONFETTI_ICONS.length],
+    spin: (Math.random() * 2 - 1) * 620,
+    delay: Math.random() * 130,
+  }));
+}
+/* one <img> per particle, positioned every frame */
+function mountConfetti(host, parts) {
+  host.innerHTML = parts.map(p =>
+    '<img src="' + p.icon + '" alt="" style="width:' + p.iconSize + 'px;height:' + p.iconSize + 'px;opacity:0">').join('');
+  return [...host.children];
+}
+function drawConfetti(els, parts, t, start) {
+  els.forEach((el, i) => {
+    const p = parts[i];
+    const pi = c01((t - start - p.delay) / 950);
+    if (pi <= 0) { el.style.opacity = 0; return; }
+    const d = p.dist * eoC(pi);
+    el.style.left = (Math.cos(p.ang) * d) + 'px';
+    el.style.top  = (Math.sin(p.ang) * d + 110 * pi * pi) + 'px';
+    el.style.opacity = 1 - Math.max(0, (pi - 0.55) / 0.45);
+    el.style.transform = 'rotate(' + (p.spin * pi).toFixed(1) + 'deg)';
+  });
+}
+
+const LU = { raf:0, t:0, last:0, parts:null, els:null };
+const LU_END = 5200;
+
+/* Every value is a pure function of t, so the whole beat sheet can be seeked
+   to any moment (see ?seek= below) as well as played. */
+function paintLevelUp(t) {
+  const fill  = document.getElementById('luFill');
+  const badge = document.getElementById('luBadge');
+  const xpEl  = document.querySelector('#luXp span');
+  const cap   = document.getElementById('luCap');
+  const flock = document.querySelector('#luFlock .flockrow');
+  const btn   = document.getElementById('luBtn');
+
+  const FROM = 0, TO = 130;             /* px, relative to .fill's left:60px  */
+  const BADGE_START = 1750, BADGE_DUR = 650;
+  const CONF_START  = BADGE_START + 0.25 * BADGE_DUR;
+  const ph = (start, dur) => c01((t - start) / dur);
+
+  /* 1 · bar + XP counter, 600 → 1700ms */
+  const bp = eioC(ph(600, 1100));
+  fill.style.width = (FROM + bp * (TO - FROM)) + 'px';
+  xpEl.textContent = Math.round(S.xp * bp) + 'XP';
+
+  /* 2 · badge stamp, 1750 → 2400ms */
+  const bP = ph(BADGE_START, BADGE_DUR);
+  let sc = 0.3, rot = 0, op = 0;
+  if (t >= BADGE_START) {
+    if (bP < 0.45) { const q = bP / 0.45;        sc = 2.1 - 1.15 * q * q;   rot = -9 + 7 * q * q;   op = Math.min(1, q * 1.6); }
+    else           { const q = (bP - 0.45)/0.55; sc = 0.95 + 0.05 * eoB(q); rot = -2 + 2 * eoC(q);  op = 1; }
+  }
+  badge.style.transform = 'scale(' + sc.toFixed(4) + ') rotate(' + rot.toFixed(2) + 'deg)';
+  badge.style.opacity = op;
+
+  /* 3 · confetti burst */
+  if (LU.els) {
+    if (t > CONF_START && t < CONF_START + 1400) drawConfetti(LU.els, LU.parts, t, CONF_START);
+    else LU.els.forEach(el => el.style.opacity = 0);
+  }
+
+  /* 4 · "First card bonus", 1700 → 2150ms */
+  const bn = ph(1700, 450);
+  cap.style.opacity = bn === 0 ? 0 : Math.min(1, bn * 2);
+  cap.style.transform = 'translateY(' + ((1 - eoC(bn)) * 10).toFixed(2) + 'px)';
+
+  /* 5 · the "ahead of the flock" row, 2450 → 2950ms */
+  const fp = ph(2450, 500);
+  flock.style.opacity = fp === 0 ? 0 : Math.min(1, fp * 2.2);
+  flock.style.transform = 'translateX(' + ((1 - eoC(fp)) * -16).toFixed(2) + 'px)';
+  const ip = ph(2630, 420);
+  flock.querySelector('.mini').style.transform = 'rotate(' + (-5 + (1 - eoC(ip)) * -5).toFixed(2) + 'deg)';
+
+  /* 6 · Continue, 3070 → 3470ms */
+  const cp = ph(3070, 400);
+  btn.style.opacity = cp === 0 ? 0 : Math.min(1, cp * 2);
+  btn.style.transform = 'translateY(' + ((1 - eoC(cp)) * 14).toFixed(2) + 'px)';
+}
+
+function armLevelUp() {
+  cancelAnimationFrame(LU.raf);
+  LU.parts = makeConfetti(28);
+  LU.els = mountConfetti(document.getElementById('luConf'), LU.parts);
+}
+function runLevelUp() {
+  armLevelUp();
+  LU.t = 0; LU.last = performance.now();
+  paintLevelUp(0);
+  const frame = (now) => {
+    LU.t += Math.min(50, now - LU.last);
+    LU.last = now;
+    paintLevelUp(LU.t);
+    if (LU.t < LU_END) LU.raf = requestAnimationFrame(frame);
+  };
+  LU.raf = requestAnimationFrame(frame);
+}
+
+/* ══ CELEBRATION CONFETTI POP (screens 2 & 10) ══════════════════════════ */
+function armPop(hostId) {
+  const host = document.getElementById(hostId);
+  cancelAnimationFrame(host._raf);
+  host._parts = makeConfetti(46).map(p => Object.assign(p, { dist: 130 + Math.random() * 190 }));
+  host._els = mountConfetti(host, host._parts);
+  return host;
+}
+function paintPop(host, t) {
+  if (t < 1600) drawConfetti(host._els, host._parts, t, 120);
+  else host._els.forEach(el => el.style.opacity = 0);
+}
+function runPop(hostId) {
+  const host = armPop(hostId);
+  let t = 0, last = performance.now();
+  const frame = (now) => {
+    t += Math.min(50, now - last); last = now;
+    paintPop(host, t);
+    if (t < 1600) host._raf = requestAnimationFrame(frame);
+  };
+  host._raf = requestAnimationFrame(frame);
+}
+
+/* ?seek=<ms> freezes the animated screens at one moment instead of playing
+   them — handy for grabbing a still of a specific beat. */
+const SEEK = (() => { const m = /[?&]seek=(\d+)/.exec(location.search); return m ? +m[1] : null; })();
+
+/* ══ SCREEN 11 · card upgrade — ported from animation-demos/upgrade-demo.html ══
+   Bronze → Silver → Gold → Shiny. Four faces live in one preserve-3d box: bronze
+   and gold on the front, silver and shiny pre-rotated on the back, swapped by
+   visibility mid-flip so each rotation reveals the next tier. Times below are the
+   demo's own schedule; UP_SPEED is its default speed, so wall clock is halved. */
+const UP_SPEED = 2;
+const UP_END   = 12600;
+const UP = { raf:0, t:0, last:0, rot:0 };
+const UP_FLIPS = [3300, 7200, 11100];
+
+function sweepSheen() {
+  const sk = ' skewX(-12deg)';
+  document.querySelectorAll('#upFlip [data-sheen]').forEach(el => {
+    if (!el.animate) return;
+    el.animate([
+      { transform:'translateX(-40%)' + sk, opacity:1 },
+      { transform:'translateX(-40%)' + sk, opacity:1,  offset:0.06, easing:'cubic-bezier(0.3, 0.2, 0.3, 1)' },
+      { transform:'translateX(38%)'  + sk, opacity:1,  offset:0.52, easing:'cubic-bezier(0.35, 0, 0.4, 1)' },
+      { transform:'translateX(26%)'  + sk, opacity:0.7, offset:0.72, easing:'ease-out' },
+      { transform:'translateX(31%)'  + sk, opacity:0 },
+    ], { duration: 1450 });   /* the demo leaves the sweep unscaled by speed */
+  });
+}
+
+function paintUpgrade(t) {
+  const flip = document.getElementById('upFlip');
+  if (!flip) return;
+  const [bronze, gold, silver, shiny] = flip.children;
+  /* each fill is a 2200ms tween eased with t² */
+  const prog = (start) => Math.pow(c01((t - start) / 2200), 2);
+  const p1 = prog(1100), p2 = prog(5000), p3 = prog(8900);
+
+  const set = (face, count, fill, next) => {
+    face.querySelector('[data-count]').textContent = count;
+    face.querySelector('.track i').style.width = fill + 'px';
+    face.querySelector('[data-next]').textContent = next;
+  };
+  const c1 = Math.min(5,   1  + Math.floor(p1 * 4  + 0.001));
+  const c2 = Math.min(25,  5  + Math.floor(p2 * 20 + 0.001));
+  const c3 = Math.min(100, 25 + Math.floor(p3 * 75 + 0.001));
+  set(bronze, c1, 16   + p1 * 230,   'Silver (' + c1 + '/5)');
+  set(silver, c2, 49   + p2 * 197,   'Gold (' + c2 + '/25)');
+  set(gold,   c3, 61.5 + p3 * 184.5, 'Shiny (' + c3 + '/100)');
+
+  /* the front swaps bronze→gold behind the first flip, the back silver→shiny behind the second */
+  const frontIsGold = t >= 4400, backIsShiny = t >= 8300;
+  bronze.style.visibility = frontIsGold ? 'hidden'  : 'visible';
+  gold.style.visibility   = frontIsGold ? 'visible' : 'hidden';
+  silver.style.visibility = backIsShiny ? 'hidden'  : 'visible';
+  shiny.style.visibility  = backIsShiny ? 'visible' : 'hidden';
+
+  const rot = UP_FLIPS.filter(ms => t >= ms).length * 180;
+  if (rot !== UP.rot) {
+    UP.rot = rot;
+    flip.style.transition = 'transform 1s cubic-bezier(0.34, 1.35, 0.5, 1)';  /* also unscaled */
+    flip.style.transform = 'rotateY(' + rot + 'deg)';
+    sweepSheen();
+  }
+}
+
+function armUpgrade() {
+  cancelAnimationFrame(UP.raf);
+  document.getElementById('upgradeCard').innerHTML = upgradeCardHTML(S.logged || 'robin');
+  const flip = document.getElementById('upFlip');
+  flip.style.transition = 'none';
+  flip.style.transform = 'rotateY(0deg)';
+  UP.rot = 0;
+}
+function runUpgrade() {
+  armUpgrade();
+  UP.t = 0; UP.last = performance.now();
+  paintUpgrade(0);
+  const frame = (now) => {
+    UP.t += Math.min(50, now - UP.last) * UP_SPEED;
+    UP.last = now;
+    paintUpgrade(UP.t);
+    if (UP.t < UP_END) UP.raf = requestAnimationFrame(frame);
+  };
+  UP.raf = requestAnimationFrame(frame);
+}
+
+/* ══ SCREEN 5 · the map ═════════════════════════════════════════════════ */
+function buildMap() {
+  const targets = TARGET_POOL.filter(k => k !== S.starter && k !== S.logged).slice(0, 3);
+  document.getElementById('mapTargets').innerHTML = targets.map(k => {
+    const b = BIRDS[k];
+    return '<div class="target">'
+      + '<span class="rarity' + (b.rarity === 'Uncommon' ? ' uncommon' : '') + '">' + b.rarity + '</span>'
+      + '<figure><img src="' + photoOf(k) + '" alt="' + b.name + '"></figure>'
+      + '<b>' + b.name + '</b>'
+      + '<button class="logbtn" onclick="startLog(\'' + k + '\')">'
+      +   '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="9"/><path d="M10 5.5v9M5.5 10h9" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/></svg>Log'
+      + '</button></div>';
+  }).join('');
+  document.getElementById('mapSegTitle').textContent = S.logged ? 'Birds likely nearby' : 'Next targets';
+  paintChips();
+}
+function paintChips() {
+  document.getElementById('chipXpVal').textContent = S.xp + 'XP';
+  document.getElementById('chipCardsVal').textContent = S.cards + '/' + S.cardGoal + ' cards';
+}
+function goToMap(reason) {
+  S.pending = (reason === 'onboarding' || reason === 'logged') ? reason : null;
+  goTo(5);
+}
+
+/* ── toasts (ported from animation-demos/toast-demo.html, variant 1d) ─── */
+const TOAST = { timers: [] };
+function tClear() { TOAST.timers.forEach(clearTimeout); TOAST.timers = []; }
+function T(ms, fn) { TOAST.timers.push(setTimeout(fn, ms)); }
+
+/* the chip pops, a ring ripples outward, the number ticks up */
+function chipArrive(chip, tick) {
+  const ring = chip.querySelector('.ring');
+  chip.style.transform = 'scale(1.07)';
+  ring.style.transition = 'none'; ring.style.inset = '0px'; ring.style.opacity = .9;
+  requestAnimationFrame(() => {
+    ring.style.transition = 'inset .55s cubic-bezier(.2,.6,.35,1), opacity .55s ease-out';
+    ring.style.inset = '-9px'; ring.style.opacity = 0;
+  });
+  T(380, () => { chip.style.transform = 'none'; });
+  if (tick) tick();
+}
+function tweenNumber(from, to, ms, write) {
+  const t0 = performance.now();
+  const step = (now) => {
+    const p = Math.min(1, (now - t0) / ms);
+    write(Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3))));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function playXpToast(from, to) {
+  const el = document.getElementById('toastXp');
+  document.getElementById('txGain').textContent = '+' + S.gain + 'XP';
+  document.getElementById('txBar').style.width = ((from / S.nextLvl) * 100).toFixed(1) + '%';
+  document.getElementById('txLabel').textContent = from + '/' + S.nextLvl + 'XP';
+  el.className = 'toast xp';
+  T(60, () => { el.className = 'toast xp in'; });
+  T(650, () => {
+    chipArrive(document.getElementById('chipXp'), () => {
+      tweenNumber(from, to, 700, v => {
+        document.getElementById('chipXpVal').textContent = v + 'XP';
+        document.getElementById('txBar').style.width = ((v / S.nextLvl) * 100).toFixed(1) + '%';
+        document.getElementById('txLabel').textContent = v + '/' + S.nextLvl + 'XP';
+      });
+    });
+  });
+  T(2800, () => { el.className = 'toast xp out'; });
+  T(3350, () => { el.className = 'toast xp'; });
+}
+
+function playCardToast(from, to, delay) {
+  const el = document.getElementById('toastCard');
+  const dots = (n) => document.getElementById('tcDots').innerHTML =
+    Array.from({ length: S.cardGoal }, (_, i) => '<i class="' + (i < n ? 'on' : '') + '"></i>').join('');
+  /* the toast shows the mystery card still to find, not the one just earned */
+  document.getElementById('tcMini').innerHTML = miniLockedHTML();
+  dots(from);
+  document.getElementById('tcHead').textContent = from + '/' + S.cardGoal + ' new cards found';
+  el.className = 'toast card';
+  T(delay + 60, () => { el.className = 'toast card in'; });
+  if (to > from) {
+    T(delay + 750, () => { dots(to); document.getElementById('tcHead').textContent = to + '/' + S.cardGoal + ' new cards found'; });
+    T(delay + 650, () => {
+      chipArrive(document.getElementById('chipCards'), () => {
+        document.getElementById('chipCardsVal').textContent = to + '/' + S.cardGoal + ' cards';
+      });
+    });
+  } else {
+    T(delay + 650, () => chipArrive(document.getElementById('chipCards'), null));
+  }
+  T(delay + 2800, () => { el.className = 'toast card out'; });
+  T(delay + 3350, () => { el.className = 'toast card'; });
+}
+
+/* ── card-goal sheet ─────────────────────────────────────────────────── */
+function buildGoalSheet() {
+  const collected = [S.starter].concat(S.logged ? [S.logged] : []);
+  document.getElementById('goalDots').innerHTML =
+    Array.from({ length: S.cardGoal }, (_, i) => '<i class="' + (i < collected.length ? 'on' : '') + '"></i>').join('');
+  const slots = collected.map(k => '<div class="slot filled">' + miniHTML(k) + '</div>');
+  while (slots.length < S.cardGoal) {
+    slots.push('<div class="slot">' + miniLockedHTML() + '<button class="cta" onclick="goTo(8)">Log a bird</button></div>');
+  }
+  document.getElementById('goalGrid').innerHTML = slots.join('');
+}
+
+/* ══ SCREENS 8–11 · the log flow ════════════════════════════════════════ */
+function buildPicker() {
+  document.getElementById('spList').innerHTML =
+    '<button class="spitem" onclick="pickSpecies(null)">'
+    + '<div class="spavatar" style="background:#DDE8F8;">🙋</div>'
+    + '<div class="spinfo"><span class="n blue">Unidentified Species</span>'
+    + '<div class="l" style="font-style:normal;">I don&rsquo;t know, ask the community for help</div></div></button>'
+    + PICKER.filter(k => k !== S.starter).map(k => {
+        const b = BIRDS[k];
+        return '<button class="spitem" onclick="pickSpecies(\'' + k + '\')">'
+          + '<div class="spavatar"><img src="' + photoOf(k) + '" alt="' + b.name + '"></div>'
+          + '<div class="spinfo"><div class="n">' + b.name + '</div><div class="l">' + b.latin + '</div>'
+          + '<div class="g">' + (k === 'blackbird' ? '♂ ♀' : '⚥') + '</div></div></button>';
+      }).join('');
+}
+/* jump straight from a map "Log" button into Review Sighting */
+function startLog(key) { pickSpecies(key); }
+
+function pickSpecies(key) {
+  S.logged = key || 'robin';
+  goTo(9);
+}
+/* keeps screens 9–11 correct however they're reached, including a #9 deep link */
+function buildLoggedScreens() {
+  if (!S.logged) S.logged = 'robin';
+  const b = BIRDS[S.logged];
+  document.querySelectorAll('[data-species-name]').forEach(el => { el.textContent = b.name; });
+  document.getElementById('rsPin').src = photoOf(S.logged);
+  document.getElementById('newCard').innerHTML = cardHTML(S.logged, 1, 0, 'Bronze', 'Silver (1/5)');
+  /* screen 11's card is rebuilt by armUpgrade() so the flip always starts clean */
+}
+function saveSighting() { goTo(10); }
+
+/* ══ NAVIGATION ═════════════════════════════════════════════════════════ */
+const screens = [...document.querySelectorAll('.screen')];
+let cur = 1;
+function show(n) {
+  cur = Math.max(1, Math.min(screens.length, n));
+  tClear();
+  cancelAnimationFrame(LU.raf);
+  cancelAnimationFrame(UP.raf);
+  screens.forEach(s => s.classList.toggle('active', +s.dataset.screen === cur));
+  const active = screens.find(s => +s.dataset.screen === cur);
+  const body = active && active.querySelector('.body'); if (body) body.scrollTop = 0;
+  onEnter(cur);
+}
+function onEnter(n) {
+  if (n === 1) renderDeck();
+  if (n === 2) { buildOnboardingCards(); if (SEEK === null) T(120, () => runPop('fx2')); else paintPop(armPop('fx2'), SEEK); }
+  if (n === 3) { if (SEEK === null) T(80, runLevelUp); else { armLevelUp(); paintLevelUp(SEEK); } }
+  if (n === 4) buildOnboardingCards();
+  if (n === 5) {
+    buildMap();
+    if (S.pending === 'onboarding') {
+      /* the card you just earned in onboarding lands on the map */
+      T(500, () => playCardToast(S.cards, S.cards, 0));
+    } else if (S.pending === 'logged') {
+      /* XP first; the card toast follows once the XP toast has gone (Figma note) */
+      const from = S.xp, to = S.xp + S.gain, cFrom = S.cards, cTo = S.cards + 1;
+      S.xp = to; S.cards = cTo;
+      document.getElementById('chipXpVal').textContent = from + 'XP';
+      document.getElementById('chipCardsVal').textContent = cFrom + '/' + S.cardGoal + ' cards';
+      T(450, () => playXpToast(from, to));
+      playCardToast(cFrom, cTo, 4300);
+    }
+    S.pending = null;
+  }
+  if (n === 6) buildGoalSheet();
+  if (n === 8) buildPicker();
+  if (n === 9 || n === 10 || n === 11) buildLoggedScreens();
+  if (n === 10) { if (SEEK === null) T(140, () => runPop('fx10')); else paintPop(armPop('fx10'), SEEK); }
+  if (n === 11) { if (SEEK === null) T(80, runUpgrade); else { armUpgrade(); paintUpgrade(SEEK); } }
+}
+function next() { show(cur === screens.length ? 1 : cur + 1); }
+function goTo(n) { show(n); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') next();
+  else if (e.key === 'ArrowLeft') show(cur === 1 ? screens.length : cur - 1);
+});
+
+/* ══ FIT THE PHONE TO THE WINDOW ════════════════════════════════════════ */
+const shell = document.querySelector('.shell');
+const protoNavEl = document.querySelector('.proto-nav');
+let shellScale = 1;
+function fitShell() {
+  shell.style.transform = 'none';
+  shell.style.marginBottom = '0px';
+  const navH = protoNavEl && getComputedStyle(protoNavEl).position === 'static'
+    ? protoNavEl.offsetHeight + 18 : 0;
+  const W = shell.offsetWidth, H = shell.offsetHeight, margin = 40;
+  shellScale = Math.min(1, (window.innerHeight - margin - navH) / H, (window.innerWidth - margin) / W);
+  shell.style.transform = 'scale(' + shellScale + ')';
+  /* a transform shrinks what's painted but not the layout box — claw the rest back */
+  shell.style.marginBottom = -(H * (1 - shellScale)) + 'px';
+}
+window.addEventListener('resize', fitShell);
+fitShell();
+
+/* ══ BOOT ═══════════════════════════════════════════════════════════════ */
+buildOnboardingCards();
+show(parseInt((location.hash || '').replace('#', '')) || 1);
+</script>
+</body>
+</html>
