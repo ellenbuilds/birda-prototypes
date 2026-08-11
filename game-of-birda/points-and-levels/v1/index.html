@@ -1671,6 +1671,10 @@ function paintLevelUp(t) {
   const node2 = document.querySelector('#luTrack .node.reached');
 
   const FROM = 0, TO = 118;             /* px; the demo's screen-A segment width */
+  /* The bar starts at 83 and the level-2 node's left edge is at 181.25 (both from
+     the CSS), so the two meet at 98.25px of fill — well before the bar reaches
+     the node's centre at 118, which is where waiting for a full bar put it. */
+  const TOUCH = (181.25 - 83) / TO;
   const BADGE_START = 1750, BADGE_DUR = 650;
   const CONF_START  = BADGE_START + 0.25 * BADGE_DUR;
   const ph = (start, dur) => c01((t - start) / dur);
@@ -1680,7 +1684,7 @@ function paintLevelUp(t) {
   fill.style.width = (FROM + bp * (TO - FROM)) + 'px';
   xpEl.textContent = Math.round(S.xp * bp) + 'XP';
   /* set both ways, not just on, so a seek to any moment paints the right state */
-  if (node2) node2.classList.toggle('lit', bp >= 1);
+  if (node2) node2.classList.toggle('lit', bp >= TOUCH);
 
   /* 2 · badge stamp, 1750 → 2400ms */
   const bP = ph(BADGE_START, BADGE_DUR);
