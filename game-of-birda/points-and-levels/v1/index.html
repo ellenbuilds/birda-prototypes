@@ -67,6 +67,11 @@
   .shell::before { content:''; position:absolute; left:-3px; top:112px; width:3px; height:36px; background:#222; border-radius:2px 0 0 2px; box-shadow:0 48px 0 #222,0 96px 0 #222; }
   .shell::after { content:''; position:absolute; right:-3px; top:168px; width:3px; height:78px; background:#222; border-radius:0 2px 2px 0; }
   .viewport { width:402px; height:874px; border-radius:44px; overflow:hidden; position:relative; background:var(--base); }
+  /* no photo in the frame should be draggable: a stray drag lifts the image out
+     of the page, which reads as the prototype breaking. Elements that must not
+     receive the press at all — the deck cards, the carousel photos — also carry
+     pointer-events:none, so the card underneath gets the gesture. */
+  .viewport img { -webkit-user-drag:none; user-drag:none; }
 
   /* ─── Screen scaffold ───────────────────────────────────────────────── */
   .screen { position:absolute; inset:0; display:none; flex-direction:column; background:var(--base); }
@@ -235,8 +240,13 @@
   /* the shared placeholder bird, inlined from the defs so it takes the tier's
      own colour rather than the grey baked into the file */
   .scard figure svg { width:78px; height:78px; fill:var(--chip); }
-  .scard .nm { position:absolute; left:22px; top:136px; width:107px;
-    font-size:16px; font-weight:500; line-height:24px; color:var(--ink); }
+  /* Anchored by its BOTTOM, so a name that wraps grows up into the bird's space
+     instead of down through the progress bar. bottom:39 with an 18px line puts a
+     single line exactly where the old top:136/24 did — centred on 148 — so the
+     short names are untouched. fitScardNames() gives the figure back whatever
+     height a second line takes. */
+  .scard .nm { position:absolute; left:22px; bottom:39px; width:107px;
+    font-size:16px; font-weight:500; line-height:18px; color:var(--ink); }
   .scard .bar { position:absolute; left:22px; top:164px; width:109px; height:8px;
     border-radius:99px; background:var(--chip); }
   .scard .bar i { position:absolute; left:0; top:0; height:8px; width:16px;
@@ -419,7 +429,8 @@
   .target .rarity { font-size:10px; line-height:12px; }
   .target .tbird { display:flex; flex-direction:column; gap:8px; }
   .target figure { width:121px; height:91px; display:flex; align-items:center; justify-content:center; }
-  .target figure img { max-width:121px; max-height:91px; }
+  .target figure img { max-width:121px; max-height:91px;
+    -webkit-user-drag:none; user-drag:none; pointer-events:none; }
   .target b { width:100%; font-size:12px; font-weight:500; line-height:14px; text-align:center; }
   .target .logbtn { display:flex; align-items:center; justify-content:center; gap:8px;
     padding:6px 16px; border-radius:4px; box-shadow:inset 0 0 0 1px var(--blue);
@@ -1089,10 +1100,8 @@ const PROTO = {
   group: 'Points & levels',
   current: 0,
   iterations: [],   // add a 2nd entry to reveal the switcher
-  about: 'The <strong>points &amp; levels</strong> flow end to end: onboarding (pick your first bird, '
-       + 'earn the card, level up), the <strong>explore map</strong> hub, then <strong>logging your first bird</strong>. '
-       + 'Swipe the deck on screen 1. Tap the <strong>cards chip</strong> on the map to open the card goal. '
-       + 'Save a sighting and watch the XP toast, then the card toast, pay into the chips.',
+  about: 'A prototype of the <strong>onboarding</strong> and <strong>first log</strong> flows, '
+       + 'demonstrating points, levels and collectable cards.',
 };
 
 /* ══ SPECIES ════════════════════════════════════════════════════════════ */
@@ -1132,7 +1141,10 @@ const S = {
   gain:     18,          // XP earned for the first logged sighting
   level:    2,
   nextLvl:  120,
-  cards:    1,
+  /* the species whose cards you hold, in the order found. Everything about the
+     collection is derived from this — a separate count drifted away from it,
+     because a count counts sightings where the sheet counts species. */
+  collected: ['dunnock'],
   cardGoal: 4,
   pending:  null,        // 'onboarding' | 'logged' — what the map should play on arrival
   explained:false,       // has the one-off upgrade explainer been shown?
@@ -1575,6 +1587,7 @@ function chooseDeckBird() {
   const b = cardAt(deckIdx);
   if (b.key === 'notsure') { resetDeck(); return; }
   S.starter = b.key;
+  S.collected = [b.key];
   buildOnboardingCards();
   pushTo(2);
 }
@@ -1591,11 +1604,13 @@ function buildOnboardingCards() {
     '<div class="flockrow">' + miniHTML(S.starter)
     + '<b>You&rsquo;re ahead of the flock</b>'
     + '<span>Only 2% of people have collected the ' + b.name.toLowerCase() + '</span></div>';
-  /* screen 4 — the 4-slot goal, one filled */
+  /* screen 4 — the 4-slot goal, filled from the collection (one, at this point) */
+  const held = S.collected.length;
   document.getElementById('setDots').innerHTML =
-    [0,1,2,3].map(i => '<i class="' + (i < 1 ? 'on' : '') + '"></i>').join('');
+    Array.from({ length: S.cardGoal }, (_, i) => '<i class="' + (i < held ? 'on' : '') + '"></i>').join('');
   document.getElementById('setGrid').innerHTML =
-    scardHTML(S.starter) + scardLockedHTML().repeat(3);
+    S.collected.map(scardHTML).join('') + scardLockedHTML().repeat(Math.max(0, S.cardGoal - held));
+  fitScardNames(document.getElementById('setGrid'));
 }
 
 /* ══ SCREEN 3 · level up — timeline ported from level-up-demo.html ══════ */
@@ -1852,7 +1867,7 @@ function buildMap() {
 }
 function paintChips() {
   document.getElementById('chipXpVal').textContent = S.xp + 'XP';
-  document.getElementById('chipCardsVal').textContent = S.cards + '/' + S.cardGoal + ' cards';
+  document.getElementById('chipCardsVal').textContent = S.collected.length + '/' + S.cardGoal + ' cards';
 }
 /* Where the species list was opened from, so its back button retraces the way
    in: the log-method screen when you came through the +, the map when you tapped
@@ -1970,16 +1985,36 @@ function playCardToast(from, to, delay) {
   T(delay + 3350, () => { el.className = 'toast card'; });
 }
 
+/* A wrapped name eats upward into the bird's box, so the bird gives up the same
+   height and — being centred — rises by half of it. offsetWidth/Height rather
+   than a client rect, since the shell is scaled at most window sizes. */
+const SCARD_LINE = 18, SCARD_FIG = 130;
+function fitScardNames(root) {
+  (root || document).querySelectorAll('.scard').forEach(card => {
+    const nm = card.querySelector('.nm'), fig = card.querySelector('figure');
+    if (!nm || !fig) return;
+    /* nothing inside a display:none subtree has a height — bail rather than
+       clearing a good value and re-measuring as zero */
+    if (!nm.offsetHeight) return;
+    fig.style.height = '';
+    const extra = nm.offsetHeight - SCARD_LINE;
+    if (extra > 0) fig.style.height = (SCARD_FIG - extra) + 'px';
+  });
+}
+
 /* ── card-goal sheet ─────────────────────────────────────────────────── */
 function buildGoalSheet() {
-  const collected = [S.starter].concat(S.logged ? [S.logged] : []);
+  /* capped at the goal: past four the chip keeps counting but the sheet still
+     shows four slots, which is as far as this prototype goes */
+  const collected = S.collected.slice(0, S.cardGoal);
   document.getElementById('goalDots').innerHTML =
-    Array.from({ length: S.cardGoal }, (_, i) => '<i class="' + (i < collected.length ? 'on' : '') + '"></i>').join('');
+    Array.from({ length: S.cardGoal }, (_, i) => '<i class="' + (i < S.collected.length ? 'on' : '') + '"></i>').join('');
   /* the same card as the goal screen, but an empty one here is loggable: the
      button takes the place of the name and progress bar inside the card */
   const slots = collected.map(scardHTML);
   while (slots.length < S.cardGoal) slots.push(scardLoggableHTML());
   document.getElementById('goalGrid').innerHTML = slots.join('');
+  fitScardNames(document.getElementById('goalGrid'));
 }
 
 /* ══ THE CARD GOAL, A MODE OF THE MAP SHEET ═════════════════════════════
@@ -1998,10 +2033,11 @@ function setSheetMode(mode, animate) {
   const map   = document.getElementById('sheetMap');
   const goal  = document.getElementById('sheetGoal');
   if (!sheet) return;
-  if (mode === 'goal') buildGoalSheet();
   map.hidden  = (mode === 'goal');
   goal.hidden = (mode !== 'goal');
   head.hidden = (mode !== 'goal');
+  /* after the flags, not before: fitScardNames() can't measure a hidden grid */
+  if (mode === 'goal') buildGoalSheet();
   sheet.style.transition = animate ? '' : 'none';
   sheet.style.top = SHEET_TOP[mode] + 'px';
   if (!animate) { void sheet.offsetHeight; sheet.style.transition = ''; }
@@ -2065,7 +2101,9 @@ function buildLoggedScreens() {
    'user level up?' check" — so both skip the card celebrations and land back on
    the map with the XP toast only. */
 function saveSighting() {
-  const isNewCard = !!BIRDS[S.logged] && S.logged !== S.starter;
+  /* a species you already hold earns XP but not another card — testing against
+     the starter alone let a repeat log of the same bird mint a duplicate */
+  const isNewCard = !!BIRDS[S.logged] && S.collected.indexOf(S.logged) < 0;
   if (isNewCard) goTo(9); else goToMap('relog');
 }
 /* The upgrade explainer is a one-off: it follows the first *real* log — the
@@ -2323,6 +2361,7 @@ function onEnter(n, d) {
   }
   if (n === 4) {
     buildOnboardingCards();
+    fitScardNames(document.getElementById('setGrid'));   /* now that it is on screen */
     /* the grid is already there when the screen slides in; the button follows it
        on 120ms after the push lands (delays here run from the push starting, the
        same convention screen 3's timeline uses) */
@@ -2335,7 +2374,7 @@ function onEnter(n, d) {
     sheetModeOnEnter = 'map';
     if (S.pending === 'onboarding') {
       /* the card you just earned in onboarding lands on the map */
-      T(500, () => playCardToast(S.cards, S.cards, 0));
+      T(500, () => playCardToast(S.collected.length, S.collected.length, 0));
     } else if (S.pending === 'logged' || S.pending === 'relog') {
       /* XP first; the card toast follows once the XP toast has gone (Figma note).
          A re-log or an unidentified sighting earns no card, so it gets XP alone. */
@@ -2344,8 +2383,9 @@ function onEnter(n, d) {
       document.getElementById('chipXpVal').textContent = from + 'XP';
       T(450, () => playXpToast(from, to));
       if (S.pending === 'logged') {
-        const cFrom = S.cards, cTo = S.cards + 1;
-        S.cards = cTo;
+        const cFrom = S.collected.length;
+        S.collected.push(S.logged);
+        const cTo = S.collected.length;
         document.getElementById('chipCardsVal').textContent = cFrom + '/' + S.cardGoal + ' cards';
         playCardToast(cFrom, cTo, 4300);
       }
