@@ -1138,7 +1138,14 @@ const DECK_ORDER = ['dunnock','robin','bluetit','blackbird','housesparrow',
 const PICKER  = ['woodpigeon','carrioncrow','robin','magpie','blackbird','bluetit','housesparrow'];
 const TARGETS = ['blackbird','housesparrow','bluetit'];
 
-const photoOf = k => PHOTOS + BIRDS[k].img;
+/* ?v= busts a cached copy of an earlier cutout. The filenames didn't change when
+   the sticker border was baked in, and since the CSS outline went with it, a
+   stale image renders cut tight to the bird with no border at all — which is what
+   anyone who had already loaded the previous build saw. Bump this whenever the
+   contents of imgs/birds change. */
+const ART_V = '2';
+const artUrl = img => PHOTOS + img + '?v=' + ART_V;
+const photoOf = k => artUrl(BIRDS[k].img);
 
 /* ══ STATE ══════════════════════════════════════════════════════════════ */
 const S = {
@@ -1344,7 +1351,7 @@ const deckCards = DECK_ORDER.map(k => Object.assign({ key:k }, BIRDS[k])).concat
 
 function deckCardHTML(b) {
   const photo = b.img
-    ? '<img src="' + PHOTOS + b.img + '" alt="' + b.name + '">'
+    ? '<img src="' + artUrl(b.img) + '" alt="' + b.name + '">'
     : '<svg class="glyph" viewBox="0 0 112 112"><use href="#birdSil"/></svg>';
   /* the "Not sure?" card keeps the divider and footer, just with nothing in it */
   const foot = b.rarity
