@@ -188,7 +188,14 @@
   .tsticker .art img { max-width:100%; max-height:100%; }
   /* stand-ins keyed from the shared photos get the sticker outline drawn in CSS;
      supplied card art already has it baked in */
-  .tsticker .art.keyed img { filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 0 3px #fff) drop-shadow(0 3px 4px rgba(0,0,0,.22)); }
+  /* The white sticker edge is baked into imgs/birds/*.png (see
+     scripts/stickerborder.py, run at a target of 8): each cutout is trimmed and
+     dilated by its own radius so all ten land on 8 CSS px in this 202px art box,
+     and scale down proportionally on the smaller cards. A CSS outline can't reach
+     that without going lumpy — chained zero-blur shadows dilate further on the
+     diagonals — and baking costs nothing while the card flips and sways. All that
+     is left here is the cast shadow, kept small and sharp. */
+  .tsticker .art img { filter:drop-shadow(0 2px 2px rgba(0,0,0,.28)); }
   .tstats { position:relative; height:90px; display:flex; flex-direction:column; gap:20px; padding:0 24px;
     align-items:flex-start; box-sizing:border-box; flex-shrink:0; align-self:stretch; }
   .tchips { height:38px; display:flex; gap:8px; align-items:flex-start; flex-shrink:0; align-self:stretch; }
@@ -236,7 +243,7 @@
   .scard figure { position:absolute; left:6px; top:6px; width:141px; height:130px;
     display:flex; align-items:center; justify-content:center; }
   .scard figure img { max-width:129px; max-height:112px;
-    filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 2px 3px rgba(0,0,0,.18)); }
+    filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.24)); }
   /* the shared placeholder bird, inlined from the defs so it takes the tier's
      own colour rather than the grey baked into the file */
   .scard figure svg { width:78px; height:78px; fill:var(--chip); }
@@ -294,7 +301,7 @@
      object-fit, which letterboxes and can composite oddly */
   .mini-fig { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
   .mini-fig img { max-width:100%; max-height:100%;
-    filter:drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff); }
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.2)); }
   .mini-name { font-size:9px; font-weight:500; color:var(--bronze); margin-top:2px; }
   .mini-bar { height:4px; border-radius:99px; background:var(--bronze-track); margin-top:3px; }
   /* locked "???" slot */
@@ -328,6 +335,9 @@
   .lvl .node.next, .lvl .node.reached { background:var(--node); font-size:20px; font-weight:500; color:var(--ink-2); }
   .lvl .node.next { left:319.5px; }
   .lvl .node.reached { left:181.25px; }
+  /* the moment the bar arrives, the node takes the level-1 circle's two greens —
+     the pale one as its fill, the dark one as its number */
+  .lvl .node.reached.lit { background:var(--green-pale); color:var(--green); }
   .lvl .tlabel { position:absolute; top:107px; width:120px; font-size:12px; font-weight:500;
     line-height:24px; text-align:center; }
   .lvl .badge { position:absolute; left:121.2px; top:0; width:160px; z-index:3;
@@ -672,9 +682,6 @@
   .proto-about-text strong { font-weight:600; color:#2D3142; }
   .proto-reset { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; font-size:13px; font-weight:500; color:#2D3142; background:#F2F2F7; border:1px solid #E5E5EA; border-radius:8px; padding:9px 10px; cursor:pointer; transition:background .12s; }
   .proto-reset:hover { background:#EBEBF0; }
-  /* TEMPORARY (dev only): the two reload buttons stacked a little tighter
-     than the panel's own 11px rhythm, so they read as a pair */
-  .proto-btns { display:flex; flex-direction:column; gap:6px; }
   .proto-reset svg { width:13px; height:13px; flex-shrink:0; }
   @media (max-width: 980px) { .proto-nav { position:static; width:auto; margin:0 0 20px; align-items:center; } }
   </style>
@@ -1165,17 +1172,9 @@ const S = {
   if (PROTO.about) {
     extra += '<div class="proto-about"><div class="proto-about-head">About this version</div>'
       + '<p class="proto-about-text">' + PROTO.about + '</p>'
-      + '<div class="proto-btns">'
-      +   '<button class="proto-reset" onclick="location.hash=\'\'; location.reload()">'
-      +     '<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-      +     'Restart prototype</button>'
-      /* TEMPORARY (dev only): reload in place, so a code change can be checked on
-         the screen you are already looking at instead of walking the flow again.
-         Remove before sharing. */
-      +   '<button class="proto-reset" onclick="devReload()">'
-      +     '<svg viewBox="0 0 16 16" fill="none"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-      +     'Reload this screen</button>'
-      + '</div></div>';
+      + '<button class="proto-reset" onclick="location.hash=\'\'; location.reload()">'
+      +   '<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      +   'Restart prototype</button></div>';
   }
   document.getElementById('protoNav').innerHTML = back + extra;
 })();
@@ -1191,7 +1190,10 @@ const featherSVG = (px) => '<svg viewBox="0 0 11.626 11.996" style="width:' + px
 
 /* Card artwork as supplied for the card faces (sticker already outlined, 202×202).
    Species without artwork yet fall back to the keyed-out shared photo. */
-const CARD_ART = { robin: 'imgs/cards/robin.png' };
+/* Per-bird card art, when we have it. Empty for now: the robin art was the only
+   entry, and its baked border and shadow made that one card the odd one out —
+   every bird now goes down the keyed path with the same baked edge. */
+const CARD_ART = {};
 
 /* The metal frame is the 8px ring unioned with the name container — a 102x33
    rounded rect at (8,8) on the component. Cut as one clip-path here, with the
@@ -1666,6 +1668,7 @@ function paintLevelUp(t) {
   const cap   = document.getElementById('luCap');
   const flock = document.querySelector('#luFlock .flockrow');
   const btn   = document.getElementById('luBtn');
+  const node2 = document.querySelector('#luTrack .node.reached');
 
   const FROM = 0, TO = 118;             /* px; the demo's screen-A segment width */
   const BADGE_START = 1750, BADGE_DUR = 650;
@@ -1676,6 +1679,8 @@ function paintLevelUp(t) {
   const bp = eioC(ph(600, 1100));
   fill.style.width = (FROM + bp * (TO - FROM)) + 'px';
   xpEl.textContent = Math.round(S.xp * bp) + 'XP';
+  /* set both ways, not just on, so a seek to any moment paints the right state */
+  if (node2) node2.classList.toggle('lit', bp >= 1);
 
   /* 2 · badge stamp, 1750 → 2400ms */
   const bP = ph(BADGE_START, BADGE_DUR);
@@ -1877,23 +1882,10 @@ function openPicker(from) { pickerBack = from || null; goTo(7); }
 function pickerGoBack() { if (pickerBack) goTo(pickerBack); else goToMap('back'); }
 
 const MAP_ARRIVALS = ['onboarding', 'logged', 'relog'];
-/* TEMPORARY (dev only): the reason survives S.pending being consumed, so the
-   chrome's "Reload this screen" can put the map back the way you entered it. */
-let devArrival = null;
 function goToMap(reason) {
   pickerBack = null;
   S.pending = MAP_ARRIVALS.indexOf(reason) >= 0 ? reason : null;
-  devArrival = S.pending;
   goTo(5);
-}
-
-/* TEMPORARY (dev only): reload in place and replay. Most screens run their
-   entry animation from onEnter, so landing on them is enough — but the map's
-   toasts only fire for an arrival reason, so that rides along in the hash. */
-function devReload() {
-  const state = cur !== 5 ? '' : (sheetMode === 'goal' ? ',goal' : (devArrival ? ',' + devArrival : ''));
-  location.hash = cur + state;
-  location.reload();
 }
 
 /* ── toasts (ported from animation-demos/toast-demo.html, variant 1d) ─── */
@@ -2023,9 +2015,6 @@ function buildGoalSheet() {
    `top` transition already on .sheet. */
 const SHEET_TOP = { map: 421, goal: 62 };
 let sheetMode = 'map';
-/* TEMPORARY (dev only): what mode the next arrival on the map should land in,
-   so the chrome's reload button can put you back in the goal sheet */
-let sheetModeOnEnter = 'map';
 function setSheetMode(mode, animate) {
   sheetMode = mode;
   const sheet = document.querySelector('[data-screen="5"] .sheet');
@@ -2369,9 +2358,8 @@ function onEnter(n, d) {
   }
   if (n === 5) {
     buildMap();
-    /* the sheet always starts in the mode you arrive in, and without animating */
-    setSheetMode(sheetModeOnEnter, false);
-    sheetModeOnEnter = 'map';
+    /* the sheet always arrives in map mode, and without animating */
+    setSheetMode('map', false);
     if (S.pending === 'onboarding') {
       /* the card you just earned in onboarding lands on the map */
       T(500, () => playCardToast(S.collected.length, S.collected.length, 0));
@@ -2434,12 +2422,8 @@ fitShell();
 
 /* ══ BOOT ═══════════════════════════════════════════════════════════════ */
 buildOnboardingCards();
-/* #<screen> — or #<screen>,<arrival> from the dev reload button, which needs
-   the arrival restored before show() so onEnter can schedule the toasts */
-const BOOT = (location.hash || '').replace('#', '').split(',');
-if (BOOT[1] === 'goal') sheetModeOnEnter = 'goal';
-else if (BOOT[1] && MAP_ARRIVALS.indexOf(BOOT[1]) >= 0) { S.pending = BOOT[1]; devArrival = BOOT[1]; }
-show(parseInt(BOOT[0]) || 1);
+/* #<screen> opens straight on that screen, handy for sharing a specific step */
+show(parseInt((location.hash || '').replace('#', '')) || 1);
 </script>
 </body>
 </html>
