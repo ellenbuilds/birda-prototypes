@@ -28,6 +28,10 @@
   /* ─── Reset & tokens ────────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   button { font: inherit; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; color: inherit; }
+  /* the UA's [hidden] rule is only a plain `display:none`, so any author
+     `display` on the same element beats it — the goal sheet's two bodies both
+     set display, so hiding them needs the override to win */
+  [hidden] { display: none !important; }
   :root {
     /* brand */
     --blue:#1F87FE; --blue-dk:#0254B1; --blue-5:#E3F0FF; --blue-bg:#F2F8FF;
@@ -36,7 +40,7 @@
     --green:#158370; --green-2:#188673; --green-pale:#A5E0D6; --green-bg:#F1FEFB;
     /* ink */
     --ink:#2D3142; --ink-2:#4C5980; --ink-3:#5C6486; --ink-4:#636E90;
-    --line:#E4E8F0; --strong:#C4C7D7; --node:#D4E0EF; --rail:#B2C6DE;
+    --line:#E4E8F0; --border:#D4D8E4; --strong:#C4C7D7; --node:#D4E0EF; --rail:#B2C6DE;
     --base:#FAFCFE;
     /* bronze card */
     --bronze:#80431A; --bronze-chip:#F3E1D3; --bronze-track:#EBD9CB; --bronze-fill:#B0774A;
@@ -86,20 +90,25 @@
   .btn-secondary { background:#fff; color:var(--blue); box-shadow:inset 0 0 0 1.5px var(--blue); }
 
   /* production ChunkyButton (src/molecules/ChunkyButton) */
-  .chunky { display:inline-flex; align-items:center; gap:10px; padding:12px 18px; border-radius:16px;
-    background:var(--blue); color:#fff; font-size:18px; font-weight:500; letter-spacing:.02em;
-    border:1px solid var(--blue); border-bottom:5px solid var(--blue-dk);
+  /* 120 wide, 16px padding, the type at 16/19 on .32 tracking. The 5px edge is
+     a drop-shadow in Figma, not a border, so it hangs below the 51px button
+     rather than eating into it. */
+  .chunky { display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    width:120px; padding:16px; border-radius:16px;
+    background:#1E87FD; color:#fff; font-size:16px; font-weight:500; line-height:19px; letter-spacing:.32px;
+    box-shadow:0 5px 0 #0254B1;
     transition:transform .05s linear, background .05s linear; }
-  .chunky:active { transform:scale(.97); background:#1c7ce8; }
-  .chunky.inverse { background:#fff; color:var(--blue); border-color:#fff; border-bottom-color:#78A9EE; }
-  .chunky.inverse:active { background:#f1f6fd; }
-  .chunky svg { width:20px; height:20px; flex-shrink:0; }
+  div.chunky { cursor:default; }
+  button.chunky:active { transform:scale(.97); background:#1c7ce8; }
+  .chunky.inverse { background:#fff; color:#1E87FD; box-shadow:0 5px 0 #2988F2; }
+  button.chunky.inverse:active { background:#f1f6fd; }
+  .chunky svg { width:16px; height:16px; flex-shrink:0; }
 
   /* ─── Type helpers ──────────────────────────────────────────────────── */
   /* Medium, not SemiBold — the weight used across the Figma frames */
   .h1 { font-size:24px; font-weight:500; line-height:32px; text-align:center; }
   .sub { font-size:16px; font-weight:400; line-height:24px; color:var(--ink); text-align:center; }
-  .xpword { color:var(--green); font-weight:500; white-space:nowrap; }
+  .xpword { color:var(--green); font-weight:600; white-space:nowrap; }
   .feather { width:1em; height:1em; vertical-align:-.1em; fill:var(--green); }
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -129,8 +138,8 @@
   .dc-latin { font-size:14px; font-style:italic; line-height:17px; color:var(--ink-2); margin-top:4px; }
   .dc-photo { height:169px; margin-top:16px; display:flex; align-items:center; justify-content:center; }
   .dc-photo img { max-width:224px; max-height:169px; }
-  /* shared placeholder icon; it carries its own #D6D9E0 fill */
-  .dc-photo .glyph { width:112px; height:112px; }
+  /* the shared placeholder bird, in the asset's own grey */
+  .dc-photo .glyph { width:112px; height:112px; fill:#D6D9E0; }
   /* height is left to the copy — the longer descriptions run to four lines */
   .dc-desc { margin-top:16px; font-size:14px; line-height:19px; color:var(--ink-4); }
   /* min-height keeps the divider on 365 even on the "Not sure?" card, whose
@@ -138,10 +147,10 @@
   .dc-foot { min-height:48px; margin:auto -16px 0; padding:14px 16px; border-top:1px solid var(--line);
     display:flex; align-items:center; gap:8px; flex-shrink:0; box-sizing:border-box; }
   .dc-foot .near { flex:1; font-size:14px; color:var(--ink-4); }
-  /* a pill on the starter card, a rounded rect on the map's target cards */
+  /* a pill in both places it appears — the starter card's footer at 12px, the
+     map's target cards at 10px */
   .rarity { font-size:12px; font-weight:500; line-height:12px; color:#fff; background:var(--common);
-    border-radius:4px; padding:4px 8px; }
-  .dc-foot .rarity { border-radius:999px; }
+    border-radius:999px; padding:4px 8px; }
   .rarity.uncommon { background:var(--uncommon); }
   /* 6 static dots on a 16px pitch with one blue dot that slides between them */
   .dots { position:relative; display:flex; justify-content:center; margin-top:78px; height:8px; }
@@ -207,25 +216,58 @@
     transform:translateX(-40%) skewX(-12deg); opacity:0; }
 
   /* ─── tier palettes (exact values from the upgrade demo) ─── */
-  .tface[data-tier="bronze"] {
+  /* ═══════════════════════════════════════════════════════════════════════
+     SMALL CARD — 153×196, the grid cell on the card-goal screens
+     (Figma 574:3562). A 6px frame with the interior inset, the tier tag in the
+     top-left corner, then the name and progress bar. Not a shrunk collection
+     card: its own geometry, and its name is ink rather than the tier tint.
+     ═════════════════════════════════════════════════════════════════════ */
+  .scard { position:relative; width:153px; height:196px; border-radius:8px; flex-shrink:0;
+    background:var(--metal); box-shadow:0 2px 5px rgba(20,22,24,.16); }
+  .scard[data-tier="locked"] { box-shadow:none; }
+  .scard .paper { position:absolute; inset:6px; border-radius:3px; background:var(--paper); }
+  /* the bird is centred in the space above the name — 6px inset down to the name
+     at 136 — which is also where the frame's sticker sits */
+  .scard figure { position:absolute; left:6px; top:6px; width:141px; height:130px;
+    display:flex; align-items:center; justify-content:center; }
+  .scard figure img { max-width:129px; max-height:112px;
+    filter:drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 2px 3px rgba(0,0,0,.18)); }
+  /* the shared placeholder bird, inlined from the defs so it takes the tier's
+     own colour rather than the grey baked into the file */
+  .scard figure svg { width:78px; height:78px; fill:var(--chip); }
+  .scard .nm { position:absolute; left:22px; top:136px; width:107px;
+    font-size:16px; font-weight:500; line-height:24px; color:var(--ink); }
+  .scard .bar { position:absolute; left:22px; top:164px; width:109px; height:8px;
+    border-radius:99px; background:var(--chip); }
+  .scard .bar i { position:absolute; left:0; top:0; height:8px; width:16px;
+    border-radius:99px; background:var(--barfill); }
+  .scard .tag { position:absolute; left:0; top:0; border-radius:8px 0 8px 0; padding:4px 8px;
+    font-size:12px; font-weight:500; line-height:12px; background:var(--tag); color:#fff; }
+  /* an empty slot in the goal: pale blue frame and fill, a silhouette, no tag */
+  [data-tier="locked"] {
+    --metal:#D2E6FC; --paper:#F2F8FF; --chip:#D2E6FC; --barfill:#D2E6FC;
+    --tint:var(--ink); --tag:#D2E6FC;
+  }
+
+  [data-tier="bronze"] {
     --metal:linear-gradient(158.468deg, rgb(211,163,131) 4.55%, rgb(233,198,175) 8.08%, rgb(255,234,219) 12.24%, rgb(228,183,153) 16.02%, rgb(223,175,142) 29.45%, rgb(253,228,211) 36.32%, rgb(219,166,130) 42.66%, rgb(213,156,117) 62.08%, rgb(245,187,148) 69.80%, rgb(196,123,74) 77.96%, rgb(217,148,102) 93.85%);
     --paper:linear-gradient(142.756deg, rgb(255,247,242) 7.04%, rgb(255,241,231) 87.02%);
     --barfill:linear-gradient(118.513deg, rgb(253,215,190) 28.34%, rgb(228,183,153) 48.85%, rgb(192,130,89) 72.65%, rgb(217,148,102) 92.42%);
-    --chip:rgb(244,224,210); --tint:rgb(128,67,26); --trackshadow:rgba(128,67,26,.12);
+    --chip:rgb(244,224,210); --tint:rgb(128,67,26); --trackshadow:rgba(128,67,26,.12); --tag:#966529;
   }
-  .tface[data-tier="silver"] {
+  [data-tier="silver"] {
     --metal:linear-gradient(158.468deg, rgb(218,222,225) 4.55%, rgb(239,243,245) 8.08%, rgb(227,237,243) 12.24%, rgb(216,226,231) 16.02%, rgb(203,215,222) 29.45%, rgb(238,245,252) 36.32%, rgb(174,188,198) 42.66%, rgb(194,204,213) 62.08%, rgb(230,238,244) 69.80%, rgb(188,196,202) 77.96%, rgb(171,186,196) 93.85%);
     --paper:linear-gradient(142.756deg, rgb(251,253,254) 7.04%, rgb(244,248,251) 87.02%);
     --barfill:linear-gradient(103.220deg, rgb(232,237,240) 31.59%, rgb(202,218,226) 51.81%, rgb(174,188,193) 75.27%, rgb(191,205,214) 94.77%);
     --chip:rgb(229,236,240); --tint:rgb(83,95,101); --trackshadow:rgba(83,95,101,.12);
   }
-  .tface[data-tier="gold"] {
+  [data-tier="gold"] {
     --metal:linear-gradient(158.468deg, rgb(213,189,148) 4.55%, rgb(231,205,164) 8.08%, rgb(255,236,210) 12.24%, rgb(228,193,153) 16.02%, rgb(223,186,142) 29.45%, rgb(251,213,171) 36.32%, rgb(219,177,130) 42.66%, rgb(213,168,117) 62.08%, rgb(244,195,140) 69.80%, rgb(201,149,89) 77.96%, rgb(217,163,102) 93.85%);
     --paper:linear-gradient(142.756deg, rgb(252,248,243) 7.04%, rgb(249,244,236) 87.02%);
     --barfill:linear-gradient(94.213deg, rgb(253,232,190) 32.44%, rgb(228,203,153) 52.58%, rgb(192,157,89) 75.96%, rgb(217,179,102) 95.38%);
     --chip:rgb(244,232,210); --tint:rgb(126,85,28); --trackshadow:rgba(128,67,26,.12);
   }
-  .tface[data-tier="shiny"] {
+  [data-tier="shiny"] {
     --metal:url('imgs/cards/holo.jpg') center / cover no-repeat;
     --paper:linear-gradient(142.756deg, rgb(242,249,255) 8.58%, rgb(255,245,255) 28.19%, rgb(237,242,255) 47.03%, rgb(240,251,255) 65.87%, rgb(231,241,255) 87.02%);
     --barfill:linear-gradient(91.829deg, rgb(222,215,254) 0.91%, rgb(207,213,253) 35.74%, rgb(251,228,254) 66.09%, rgb(174,229,250) 101.34%);
@@ -255,33 +297,54 @@
   /* ═══════════════════════════════════════════════════════════════════════
      LEVEL TRACK + BADGE (level-up screen)
      ═════════════════════════════════════════════════════════════════════ */
-  .track { position:relative; height:200px; width:402px; margin:0 auto; }
-  .track .rail { position:absolute; left:60px; right:14px; top:75px; height:3px; }
-  .track .rail svg { width:100%; height:3px; overflow:visible; }
-  .track .fill { position:absolute; left:60px; top:73px; height:8px; width:0; border-radius:0 99px 99px 0; background:var(--green-pale); z-index:1; }
-  .track .node { position:absolute; top:57px; width:40px; height:40px; border-radius:999px; z-index:2;
+  /* The level track, geometry from animation-demos/level-up-demo.html. Every piece
+     is centred on y=79 — dashed rail top 77.5 + its 1.5 line offset, solid fill
+     top 75 + half of 8, nodes top 59 + half of 40 — which is what keeps the
+     dashed and solid lines reading as one continuous track. The block is the full
+     402 wide (pulled out of the body's 40px padding) so the rails can run to the
+     screen edge, and its children sit at their absolute frame coordinates. */
+  .lvl { position:relative; width:402px; height:263px; margin-left:-40px; }
+  .lvl .rail { position:absolute; top:77.5px; height:3px; }
+  .lvl .rail svg { display:block; }
+  .lvl .fill { position:absolute; left:83px; top:75px; height:8px; width:0;
+    border-radius:0 99px 99px 0; background:var(--green-pale); z-index:1; }
+  .lvl .node { position:absolute; top:59px; width:40px; height:40px; border-radius:999px; z-index:2;
     display:flex; align-items:center; justify-content:center; }
-  .track .node.done { left:40px; background:var(--green); box-shadow:0 0 0 6px var(--green-pale); }
-  .track .node.done svg { width:20px; height:20px; fill:var(--base); }
-  .track .node.next { left:305px; background:var(--node); font-size:20px; font-weight:500; color:var(--ink-2); }
-  .track .tlabel { position:absolute; top:110px; font-size:12px; font-weight:500; line-height:24px; text-align:center; width:120px; }
-  .track .badge { position:absolute; left:110px; top:-8px; width:160px; z-index:3;
+  .lvl .node.done { left:43px; background:var(--green); box-shadow:0 0 0 6px var(--green-pale); }
+  .lvl .node.done svg { width:24px; height:24px; fill:var(--base); }
+  /* the level you just reached and the one after it are the same pale node; the
+     patch lands on top of the first, so it is only visible until the badge stamps
+     in — centre 201.25, midway between 63 and 339.5, which is where the patch is */
+  .lvl .node.next, .lvl .node.reached { background:var(--node); font-size:20px; font-weight:500; color:var(--ink-2); }
+  .lvl .node.next { left:319.5px; }
+  .lvl .node.reached { left:181.25px; }
+  .lvl .tlabel { position:absolute; top:107px; width:120px; font-size:12px; font-weight:500;
+    line-height:24px; text-align:center; }
+  .lvl .badge { position:absolute; left:121.2px; top:0; width:160px; z-index:3;
     transform-origin:50% 62%; filter:drop-shadow(0 18px 22px rgba(20,22,24,.25)); }
-  .track .badge img { width:100%; display:block; }
-  .track .conf { position:absolute; left:190px; top:60px; width:0; height:0; overflow:visible; z-index:4; pointer-events:none; }
-  .track .conf img { position:absolute; pointer-events:none; }
+  .lvl .badge img { width:100%; display:block; }
+  .lvl .conf { position:absolute; left:201px; top:65px; width:0; height:0; overflow:visible;
+    z-index:4; pointer-events:none; }
+  .lvl .conf img { position:absolute; pointer-events:none; }
 
-  .xpbig { display:flex; align-items:center; justify-content:center; gap:8px; }
-  .xpbig svg { width:34px; height:34px; fill:var(--green); }
+  .xpbig { position:absolute; left:114px; top:178px; width:167px; height:57px;
+    display:flex; align-items:center; gap:8px; }
+  .xpbig svg { width:32px; height:32px; fill:var(--green); flex-shrink:0; }
   .xpbig span { font-size:48px; font-weight:600; line-height:1; color:var(--green); }
-  .xpcap { font-size:24px; font-weight:600; color:var(--green); text-align:center; margin-top:6px; }
+  /* one line, centred on the screen — the frame's 157px box is narrower than the
+     24px type needs, and the demo keeps it nowrap */
+  .xpcap { position:absolute; left:0; right:0; top:232px; white-space:nowrap;
+    font-size:24px; font-weight:600; color:var(--green); text-align:center; }
 
   /* "You're ahead of the flock" */
+  /* 89 tall on the frame: 16 padding, a 57 copy block (19 + 2 + 36), 16 padding */
   .flockrow { position:relative; background:#fff; border-radius:16px; box-shadow:inset 0 0 0 1px var(--strong);
-    padding:16px 16px 16px 100px; min-height:83px; display:flex; flex-direction:column; justify-content:center; gap:3px; }
-  .flockrow .mini { position:absolute; left:-4px; top:-14px; transform:rotate(-5deg); transform-origin:20% 90%; }
-  .flockrow b { font-size:16px; font-weight:500; }
-  .flockrow span { font-size:14px; color:var(--ink-2); line-height:19px; }
+    padding:16px 16px 16px 96px; display:flex; flex-direction:column; justify-content:center; gap:2px; }
+  /* -9 rather than half the overhang: the rotation lifts the card's visual centre
+     by ~2px, so this is what actually centres it against the 89px banner */
+  .flockrow .mini { position:absolute; left:-4px; top:-9px; transform:rotate(-5deg); transform-origin:20% 90%; }
+  .flockrow b { font-size:16px; font-weight:500; line-height:19px; }
+  .flockrow span { font-size:14px; color:var(--ink-2); line-height:18px; }
 
   /* ═══════════════════════════════════════════════════════════════════════
      CONFETTI POP (celebration screens)
@@ -294,69 +357,110 @@
      ═════════════════════════════════════════════════════════════════════ */
   .mapscreen { background:#E8EFDC; }
   .mapbg { position:absolute; inset:0; background:url('imgs/map.jpg') 42% 34% / cover no-repeat; }
-  .mapctl { position:absolute; top:62px; width:44px; height:44px; border-radius:999px; background:#fff;
-    display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(45,49,66,.18); z-index:6; }
-  .mapctl svg { width:20px; height:20px; stroke:#3A3F4C; stroke-width:2; fill:none; }
-  .mapctl.left { left:22px; } .mapctl.right { right:22px; }
-  .mapctl.locate { right:22px; top:118px; }
+  /* 48px buttons (16px glyph on 16px padding) at x=24. The rows stack on a 12px
+     gap from y=62, and the location dot is the last item in that column — hence
+     62 + 48 + 12 + 48 + 12 + 12 = a centre of 194. */
+  /* display-only in this prototype, so they shouldn't read as clickable: the
+     three map controls, the XP chip, and the two "see all" links */
+  .mapctl, .chip:not(.cards), .seghead a, .goalhead a { cursor:default; }
+  .mapctl { position:absolute; top:62px; width:48px; height:48px; border-radius:999px; background:#fff;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,.25); z-index:6; }
+  .mapctl svg { width:16px; height:16px; stroke:#3A3F4C; stroke-width:2; fill:none; }
+  .mapctl.left { left:24px; } .mapctl.right { right:24px; }
+  .mapctl.locate { right:24px; top:122px; }
   .mapctl.locate svg { stroke:none; fill:#006FFD; }
-  .locdot { position:absolute; left:50%; top:212px; transform:translate(-50%,-50%); width:18px; height:18px;
-    border-radius:50%; background:var(--blue); border:3px solid #fff; z-index:5;
-    box-shadow:0 0 0 12px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.25); }
-  .floatbtns { position:absolute; left:0; right:0; top:352px; display:flex; justify-content:center; gap:16px; z-index:7; }
+  /* 24px overall: a 12px blue core inside a 6px white ring */
+  .locdot { position:absolute; left:50%; top:194px; transform:translate(-50%,-50%); width:24px; height:24px;
+    border-radius:50%; background:var(--blue); border:6px solid #fff; z-index:5;
+    box-shadow:0 2px 6px rgba(0,0,0,.25); }
+  .floatbtns { position:absolute; left:0; right:0; top:354px; display:flex; justify-content:center; gap:12px; z-index:7; }
 
   /* bottom sheet */
-  .sheet { position:absolute; left:0; right:0; bottom:0; top:424px; background:#fff;
+  .sheet { position:absolute; left:0; right:0; bottom:0; top:421px; background:#fff;
     border-radius:38px 38px 0 0; box-shadow:0 -8px 30px rgba(20,22,30,.16); z-index:8;
     display:flex; flex-direction:column; transition:top .38s cubic-bezier(.25,.8,.35,1); }
-  .sheet .handle { width:38px; height:4px; border-radius:99px; background:#D4D8E4; margin:10px auto 4px; flex-shrink:0; }
-  .sheet .sbody { flex:1; padding:12px 24px 0; overflow:hidden; }
+  /* the grabber block is 16 tall — 5 above the 36×5 pill and 6 below — then an
+     8px gap to the content, so the chips land on 445 and goal mode's header bar
+     sits directly on the block at 78 */
+  .sheet .handle { width:36px; height:5px; border-radius:99px; background:#CCC; margin:5px auto 6px; flex-shrink:0; }
+  .sheet .sbody { flex:1; padding:8px 24px 0; overflow:hidden; }
 
   .chiprow { display:flex; gap:12px; }
-  .chip { position:relative; flex:1; height:44px; border-radius:999px; display:flex; align-items:center;
+  .chip { position:relative; flex:1; height:43px; border-radius:999px; display:flex; align-items:center;
     justify-content:center; gap:8px; padding:12px 16px;
     background:var(--green-bg); box-shadow:inset 0 0 0 2px var(--green);
     transition:transform .38s cubic-bezier(.25,.8,.35,1), box-shadow .3s ease, background-color .35s ease; }
   .chip .ring { position:absolute; inset:0; border-radius:999px; box-shadow:0 0 0 3px rgba(21,131,112,.55); opacity:0; pointer-events:none; }
   .chip .val { display:flex; align-items:center; gap:2px; font-size:16px; font-weight:500; color:var(--green); white-space:nowrap; }
   .chip .val svg { width:16px; height:16px; fill:var(--green); }
-  .chip .lvl { height:20px; border-radius:999px; background:var(--green); color:#fff; font-size:12px; font-weight:500; padding:3px 6px; }
+  .chip .lvlpill { border-radius:999px; background:var(--green); color:#fff; font-size:12px; font-weight:500; padding:2px 6px; }
   .chip.cards { background:var(--blue-bg); box-shadow:inset 0 0 0 2px var(--blue-stroke); }
-  .chip.cards .val { color:var(--blue-stroke); }
-  .chip.cards .val svg { fill:var(--blue-stroke); }
+  .chip.cards .val { color:var(--blue-stroke); gap:4px; }
+  .chip.cards .val svg { width:18px; height:18px; fill:var(--blue-stroke); }
   .chip.cards .ring { box-shadow:0 0 0 3px rgba(31,135,254,.55); }
 
-  .seghead { display:flex; align-items:baseline; justify-content:space-between; margin:20px 0 12px; }
-  .seghead h2 { font-size:18px; font-weight:500; }
-  .seghead a { font-size:15px; font-weight:400; color:var(--blue); }
+  /* header and cards are 16 apart, the chips 24 above — so the cards start at 547 */
+  .seghead { display:flex; align-items:baseline; justify-content:space-between; margin:24px 0 16px; }
+  .seghead h2 { font-size:16px; font-weight:500; line-height:19px; }
+  .seghead a { font-size:16px; font-weight:500; line-height:19px; color:var(--blue); text-decoration:none; }
 
-  .targets { display:flex; gap:12px; overflow:hidden; }
-  .target { width:118px; flex-shrink:0; background:#fff; border-radius:16px; box-shadow:inset 0 0 0 1px var(--line);
-    padding:8px; display:flex; flex-direction:column; align-items:center; gap:4px; }
-  .target .rarity { align-self:flex-start; }
-  .target figure { height:74px; width:100%; display:flex; align-items:center; justify-content:center; }
-  .target figure img { max-width:96px; max-height:74px; }
-  .target b { font-size:13px; font-weight:400; line-height:18px; }
-  .target .logbtn { width:100%; margin-top:2px; display:flex; align-items:center; justify-content:center; gap:5px;
-    height:30px; border-radius:6px; box-shadow:inset 0 0 0 1.5px var(--blue); color:var(--blue); font-size:14px; font-weight:500; }
-  .target .logbtn svg { width:15px; height:15px; fill:var(--blue); }
+  /* .target card (Figma 1880:7980) — 145×213 on an 8px gutter. The third card
+     runs past the frame edge, which is what the frame shows. */
+  /* a carousel: the row breaks out of the sheet's 24px padding so it can scroll
+     the full frame width, with the padding restored inside as the start/end inset */
+  .targets { display:flex; gap:8px; margin:0 -24px; padding:0 24px;
+    overflow-x:auto; overflow-y:hidden; scrollbar-width:none;
+    -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; }
+  .targets::-webkit-scrollbar { display:none; }
+  .target { width:145px; height:213px; flex-shrink:0; background:#fff; border-radius:16px;
+    box-shadow:inset 0 0 0 1px var(--border); padding:12px;
+    display:flex; flex-direction:column; align-items:center; gap:16px; }
+  .target .tcontent { width:100%; display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+  .target .rarity { font-size:10px; line-height:12px; }
+  .target .tbird { display:flex; flex-direction:column; gap:8px; }
+  .target figure { width:121px; height:91px; display:flex; align-items:center; justify-content:center; }
+  .target figure img { max-width:121px; max-height:91px; }
+  .target b { width:100%; font-size:12px; font-weight:500; line-height:14px; text-align:center; }
+  .target .logbtn { display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:6px 16px; border-radius:4px; box-shadow:inset 0 0 0 1px var(--blue);
+    color:var(--blue); font-size:14px; font-weight:500; line-height:16px; }
+  .target .logbtn svg { width:16px; height:16px; fill:var(--blue); }
 
   /* tab bar */
-  .tabbar { flex-shrink:0; height:96px; display:flex; align-items:flex-start; justify-content:space-between;
-    padding:10px 22px 0; position:relative; }
-  .tab { width:60px; display:flex; flex-direction:column; align-items:center; gap:4px; color:#8890AE; }
-  .tab svg { width:22px; height:22px; fill:currentColor; }
-  .tab span { font-size:11px; font-weight:400; }
+  /* 104 tall at the foot of the sheet; four 76px tabs edge to edge with the FAB
+     slot flexing between them. Icons sit on 800, the FAB spans 770–834. */
+  .tabbar { flex-shrink:0; height:104px; display:flex; align-items:flex-start; gap:1px;
+    padding:30px 0 0; position:relative; }
+  /* The bar's surface, traced from the frame's own exported "Subtract" shape
+     (402×84 at top 20): 24px top corners and a scalloped cutout around the FAB,
+     121 wide and dipping 50 deep, with two 6px shoulders where it leaves the top
+     edge. It is its own layer because the clip would otherwise eat the FAB and
+     the labels. White on white, so what you actually see is the shadow following
+     that cutout — the export's own `feDropShadow`, dy −5, stdDeviation 15 and
+     #2D3142 at 10%.
+     The filter has to sit on the WRAPPER: filters are applied BEFORE clip-path,
+     so filtering the clipped element clips its shadow away with it. */
+  .tabshape { position:absolute; z-index:0; left:0; top:20px; width:402px; height:84px;
+    filter:drop-shadow(0 -5px 30px rgba(45,49,66,.10)); }
+  .tabshape::before { content:''; position:absolute; inset:0; background:#fff;
+    clip-path:path('M378 0C391.255 0 402 10.7452 402 24V84H0V24C0 10.7452 10.7452 0 24 0H140.515C145.948 0 151.158 2.1583 155 6C158.842 9.8417 160.709 15.1462 162.176 20.3775C166.752 36.6956 183.962 50 201 50C218.038 50 235.248 36.6956 239.824 20.3775C241.291 15.1462 243.158 9.8417 247 6C250.842 2.1583 256.052 0 261.485 0H378Z'); }
+  /* positioned so the tabs sit above the shape layer — a positioned sibling
+     paints over static ones whatever the DOM order */
+  .tab { position:relative; z-index:1; width:76px; display:flex; flex-direction:column; align-items:center; gap:8px; color:#8790AF; }
+  /* 20px boxes with the glyph filling them — each viewBox below is squared onto
+     its own ink bounds, since these drawings were sitting 17–33% short */
+  .tab svg { width:20px; height:20px; fill:currentColor; }
+  .tab span { font-size:12px; font-weight:400; }
   .tab.on { color:var(--blue); }
-  .fab { position:absolute; left:50%; top:-2px; transform:translateX(-50%); width:56px; height:56px; border-radius:999px;
+  .fab { position:absolute; left:50%; top:0; transform:translateX(-50%); width:64px; height:64px; border-radius:999px;
     background:var(--blue); color:#fff; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 6px 16px rgba(31,135,254,.42), 0 0 0 5px rgba(255,255,255,.9); }
-  .fab svg { width:26px; height:26px; fill:#fff; }
-  .tab.spacer { visibility:hidden; }
+    box-shadow:0 5px 15px rgba(31,135,254,.5); }
+  .fab svg { width:24px; height:24px; fill:#fff; }
+  .tab.spacer { visibility:hidden; flex:1; width:auto; }
 
   /* ─── toasts (ported from animation-demos/toast-demo.html) ──────────── */
-  .toast { position:absolute; left:24px; top:70px; width:354px; z-index:20; background:#fff;
-    box-shadow:inset 0 0 0 1px var(--strong), 0 4px 4px rgba(0,0,0,.15);
+  .toast { position:absolute; left:24px; top:74px; width:354px; z-index:20; background:#fff;
+    box-shadow:inset 0 0 0 1px #ABB0C9, 0 4px 8px rgba(0,0,0,.1);
     padding:16px 16px 16px 100px; display:flex; align-items:flex-start;
     opacity:0; transform:translateY(-170px); pointer-events:none; }
   .toast.xp { height:73px; border-radius:99px 16px 16px 99px; }
@@ -375,27 +479,49 @@
     box-shadow:inset 0 0 0 1.1px var(--line); display:flex; align-items:center; justify-content:center; font-size:39px; }
   .toast .puck-lvl { position:absolute; left:48px; top:-8px; height:20px; border-radius:999px; background:var(--green-2);
     color:#fff; font-size:12px; font-weight:500; padding:3px 6px; box-shadow:0 0 0 4px #fff; }
-  .toast .cardsline { display:flex; gap:3px; align-items:center; white-space:nowrap; font-size:13px; font-weight:600; line-height:130%; }
-  .toast .cardsline svg { width:11px; height:11px; fill:var(--green); flex-shrink:0; }
-  .toast .cardsline em { color:var(--green); font-style:normal; }
-  .toast .tdots { display:flex; gap:4px; align-items:center; }
+  .toast .cardsline { display:flex; gap:4px; align-items:center; white-space:nowrap; font-size:14px; font-weight:400; }
+  .toast .cardsline svg { width:12px; height:12px; fill:var(--green); flex-shrink:0; margin-right:-2px; }
+  .toast .cardsline em { color:var(--green); font-style:normal; font-weight:600; }
+  .toast .tdots { display:flex; gap:8px; align-items:center; }
   .toast .tdots i { width:12px; height:12px; border-radius:999px; background:var(--line);
     transition:background-color .25s ease, transform .25s cubic-bezier(.34,1.56,.64,1); }
   .toast .tdots i.on { background:var(--blue); }
   .toast .toastmini { position:absolute; left:-4px; top:-10px; transform:rotate(-2.2deg); }
 
-  /* ─── log-method sheet (screen 7) ───────────────────────────────────── */
-  .scrim { position:absolute; inset:0; background:rgba(20,22,30,.42); z-index:9; }
-  .methods { position:absolute; left:24px; right:24px; top:238px; z-index:10; display:flex; flex-direction:column; gap:12px; }
-  .method { display:flex; gap:14px; align-items:flex-start; background:#fff; border-radius:16px; padding:16px;
-    box-shadow:0 6px 18px rgba(20,22,30,.18); text-align:left; }
-  .method .ic { width:44px; height:44px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
-  .method .ic svg { width:24px; height:24px; }
-  .method b { display:block; font-size:16px; font-weight:500; }
-  .method p { font-size:13px; line-height:18px; color:var(--ink-2); margin-top:2px; }
-  .closex { position:absolute; left:50%; transform:translateX(-50%); bottom:38px; z-index:10;
-    width:46px; height:46px; border-radius:999px; background:#2E3340; color:#fff; display:flex; align-items:center; justify-content:center; }
-  .closex svg { width:16px; height:16px; stroke:#fff; stroke-width:2.4; fill:none; stroke-linecap:round; }
+  /* ─── log method (screen 6) ─────────────────────────────────────────────
+     Its own screen on plain white, not a sheet over the map. Measured off the
+     app screenshot (402pt at 2×): three 354×121 cards from y=183 on a 24px
+     gutter, 8px radius, a 64px tile vertically centred and the text block
+     top-aligned at 17.5 — which is what puts every title's cap top on 22.5 and
+     every description's first line on 47.8, whether the copy runs to two lines
+     or three. */
+  .logscreen { background:#fff; }
+  .methods { position:absolute; left:24px; right:24px; top:183px; display:flex; flex-direction:column; gap:24px; }
+  .method { height:121px; border-radius:8px; padding:0 20px; text-align:left;
+    display:flex; align-items:center; gap:29px; }
+  div.method { cursor:default; }
+  .method .ic { width:64px; height:64px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; }
+  /* each glyph sized so its ink matches the reference's — 31.5×27.5 for the
+     camera, 34×27 for the bird, 21×34 for the walker — since the three drawings
+     fill their own boxes by different amounts */
+  .method .ic svg { fill:none; stroke:#fff; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .method .ic.ai svg   { width:34px;   height:34px; }
+  .method .ic.bird svg { width:35.5px; height:35.5px; }
+  .method .ic.walk svg { width:34px; height:34px; fill:#fff; stroke:none; }
+  /* 198 wide, not the 221 the padding would give: that is where the reference's
+     lines actually break (its longest line is 195.7 and the next word on the
+     shortest would land on 201.4, so the column is 196–201). Fitted against all
+     eleven rendered line widths — 18/700 and 14/400 land within 2px, where
+     19/600 and 16/400 were out by 4 and 21. */
+  .method .mtxt { flex:1; min-width:0; max-width:196px; align-self:flex-start; margin-top:17px; }
+  .method b { display:block; font-size:18px; font-weight:700; line-height:24px; color:var(--ink); }
+  .method p { font-size:14px; line-height:20.5px; color:var(--ink); margin-top:2px; }
+  /* the only way out: a 66px dark disc, its centre on the frame's centre line */
+  .closex { position:absolute; left:50%; transform:translateX(-50%); bottom:41px;
+    width:66px; height:66px; border-radius:999px; background:var(--ink); color:#fff;
+    display:flex; align-items:center; justify-content:center; }
+  .closex svg { width:16px; height:16px; stroke:#fff; stroke-width:2.2; fill:none; stroke-linecap:round; }
 
   /* ─── nav bar for the pushed screens ────────────────────────────────── */
   .nav { flex-shrink:0; height:48px; display:flex; align-items:center; justify-content:space-between; padding:0 20px; position:relative; }
@@ -403,22 +529,50 @@
   .nav-back svg { width:11px; height:19px; fill:none; stroke:var(--ink-2); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
   .nav-act { font-size:16px; color:var(--blue); font-weight:400; }
 
-  /* ─── species picker (from PEX-43/v2) ───────────────────────────────── */
-  .searchbar { margin:6px 20px 14px; background:#F1F3F8; border-radius:999px; display:flex; align-items:center; gap:8px; padding:11px 16px; }
-  .searchbar svg { width:16px; height:16px; fill:none; stroke:#8890AE; stroke-width:1.6; }
-  .searchbar input { flex:1; font:inherit; font-size:16px; color:var(--ink); background:none; border:none; outline:none; }
-  .searchbar input::placeholder { color:#8890AE; }
-  .splist { padding:0 20px 24px; display:flex; flex-direction:column; gap:12px; }
-  .spitem { display:flex; align-items:center; gap:14px; padding:10px 12px; background:#fff; border-radius:8px;
-    box-shadow:inset 0 0 0 1px var(--line); cursor:pointer; text-align:left; width:100%; }
-  .spitem:active { background:#F7F9FC; }
-  .spavatar { width:68px; height:68px; border-radius:8px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:32px; }
-  .spavatar img { max-width:100%; max-height:100%; }
-  .spinfo { flex:1; min-width:0; }
-  .spinfo .n { font-size:15px; font-weight:500; }
-  .spinfo .n.blue { display:inline-block; background:var(--blue-5); color:var(--blue); padding:2px 8px; border-radius:4px; }
-  .spinfo .l { font-size:14px; font-style:italic; color:var(--ink-2); margin-top:2px; }
-  .spinfo .g { font-size:15px; color:var(--ink-2); margin-top:4px; }
+  /* ─── species picker (PEX-44/v2 route 2, screen 1) ──────────────────────
+     Its search bar and species list, ported verbatim — minus the Photo ID /
+     Sound ID buttons and the location switcher, so the bar is the only control.
+     That prototype's viewport is 369×798, so its --k (798/874) scales a 402-wide
+     design DOWN to fit. Ours *is* 402×874, so the same rules run at --k:1 — full
+     size — and the one literal it left unscaled, the 23px gutter, becomes the 24
+     every other screen here uses. */
+  .pickscreen { --k:1; }
+  .wd-sticky { position:sticky; top:0; z-index:10; background:var(--base); flex-shrink:0;
+    padding:calc(24px * var(--k)) 24px calc(16px * var(--k)); }
+  .wd-search { height:calc(52px * var(--k));
+    border-radius:9999px; background:#F4F6FA; box-shadow:inset 0 0 0 1px var(--border);
+    display:flex; gap:calc(8px * var(--k)); align-items:center;
+    padding:calc(8px * var(--k)) calc(8px * var(--k)) calc(8px * var(--k)) calc(12px * var(--k)); cursor:text; }
+  .wd-search > svg { width:calc(16px * var(--k)); height:calc(16px * var(--k)); flex-shrink:0; color:#8790AF; }
+  .wd-search input { flex:1 0 0; min-width:0; border:none; background:none; outline:none; padding:0;
+    font-family:inherit; font-size:calc(16px * var(--k)); line-height:calc(24px * var(--k));
+    color:var(--ink); caret-color:var(--blue); }
+  .wd-search input::placeholder { color:var(--ink-2); opacity:1; }
+
+  .sb-nearby { display:flex; flex-direction:column; flex-shrink:0; padding:0 24px calc(24px * var(--k)); }
+  .sb-list { display:flex; flex-direction:column; gap:calc(12px * var(--k)); flex-shrink:0; }
+  .sb-card { height:calc(98px * var(--k)); border-radius:calc(4px * var(--k)); background:#fff;
+    box-shadow:inset 0 0 0 1px var(--line); display:flex; gap:calc(16px * var(--k));
+    align-items:center; flex-shrink:0; overflow:hidden; cursor:pointer; text-align:left; width:100%; }
+  .sb-card-text { display:flex; flex-direction:column; gap:calc(8px * var(--k));
+    padding:calc(8px * var(--k)) calc(12px * var(--k)) calc(8px * var(--k)) 0;
+    justify-content:center; align-items:flex-start; flex-grow:1; align-self:stretch; }
+  .sb-card-name { align-self:stretch; font-size:calc(14px * var(--k)); font-weight:500; line-height:calc(20px * var(--k)); color:var(--ink); }
+  .sb-card-sci  { align-self:stretch; font-size:calc(14px * var(--k)); font-style:italic; line-height:calc(20px * var(--k)); color:#6875A1; }
+  .sb-card-icon { width:calc(24px * var(--k)); height:calc(24px * var(--k)); flex-shrink:0; color:var(--ink); }
+  .sb-card-actions { display:flex; align-items:center; justify-content:space-between; align-self:stretch; }
+  .sb-card-photo { width:calc(124px * var(--k)); align-self:stretch; display:flex; flex-direction:column;
+    padding:calc(4px * var(--k)); flex-shrink:0; }
+  .sb-card-photo > div { width:calc(120px * var(--k)); height:calc(90px * var(--k));
+    background-position:center; background-size:contain; background-repeat:no-repeat; background-color:#fff; }
+  /* the Unidentified Species card leads the list */
+  .sb-card-unid .sb-card-illus { width:calc(123px * var(--k)); align-self:stretch; display:flex; flex-direction:column;
+    padding:calc(1px * var(--k)); flex-shrink:0; }
+  .sb-card-unid .sb-card-illus img { height:calc(96px * var(--k)); align-self:stretch; flex-shrink:0;
+    border-radius:calc(3px * var(--k)) 0 0 calc(3px * var(--k)); object-fit:cover; }
+  .sb-card-unid .sb-card-text { gap:calc(4px * var(--k)); }
+  .sb-card-unid .sb-card-badge { border-radius:calc(4px * var(--k)); background:var(--blue-5); padding:0 calc(4px * var(--k));
+    flex-shrink:0; font-size:calc(14px * var(--k)); font-weight:500; line-height:calc(20px * var(--k)); color:var(--blue); white-space:nowrap; }
 
   /* ─── review sighting (from PEX-43/v2) ─────────────────────────────── */
   .mapband { height:200px; position:relative; flex-shrink:0; background:url('imgs/map.jpg') 52% 20% / 190% auto no-repeat; }
@@ -448,28 +602,48 @@
   .notes input::placeholder { color:#B9BECF; }
 
   /* ─── card-goal sheet (screen 6) ────────────────────────────────────── */
-  .goalhead { display:flex; align-items:center; justify-content:space-between; padding:4px 0 18px; }
-  .goalhead h2 { font-size:17px; font-weight:500; }
-  .goalhead a { font-size:15px; color:var(--blue); }
+  /* ─── the card goal, a mode of the map sheet (Figma 1525:14298) ────────
+     The chip doesn't open a second sheet: the same sheet rises to y=62 and
+     swaps its body. Header bar 44 tall on a 0.5px hairline, then the content
+     block on 40px gutters — the goal panel, then the cards two-up. */
+  .goalhead { flex-shrink:0; height:44px; display:flex; align-items:center;
+    box-shadow:0 .5px 0 var(--border); }
+  .goalhead .lead, .goalhead .trail { flex:1; display:flex; align-items:center; }
+  .goalhead .lead { padding-left:20px; }
+  .goalhead .trail { justify-content:flex-end; padding-right:24px; }
+  .goalhead h2 { flex-shrink:0; font-size:17px; font-weight:500; }
+  .goalhead a { font-size:16px; font-weight:500; color:var(--blue); text-decoration:none; }
+  .goalhead button { width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
   .goalhead button svg { width:15px; height:15px; stroke:var(--ink); stroke-width:2.2; fill:none; stroke-linecap:round; }
-  .goalrow { display:flex; align-items:center; justify-content:space-between; }
-  .goalrow b { font-size:18px; font-weight:500; }
-  .goalpill { display:flex; flex-direction:column; align-items:flex-end; }
-  .goalpill .v { display:flex; align-items:center; gap:3px; font-size:16px; font-weight:500; color:var(--green); }
-  .goalpill .v svg { width:15px; height:15px; fill:var(--green); }
-  .goalpill small { font-size:11px; color:var(--ink-2); }
-  .goaldots { display:flex; gap:6px; margin-top:12px; }
-  .goaldots i { width:10px; height:10px; border-radius:99px; background:var(--line); }
+  /* the goal panel: title + dots on the left, the reward past a divider */
+  .goalrow { display:flex; align-items:center; gap:16px; padding:16px 20px;
+    background:#F8F9FC; border-radius:16px; }
+  .goalrow .who { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+  .goalrow b { font-size:18px; font-weight:400; line-height:21px; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
+  .goalrow .div { align-self:stretch; width:1px; background:var(--border); }
+  .goalpill { display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .goalpill .v { display:flex; align-items:center; gap:2px; font-size:14px; font-weight:600; color:var(--green); }
+  .goalpill .v svg { width:12px; height:12px; fill:var(--green); }
+  .goalpill small { font-size:14px; color:var(--ink-2); }
+  /* 12px dots on a 20px pitch, paired with the label and centred together */
+  .goalprog { display:flex; align-items:center; justify-content:center; gap:8px; height:24px; }
+  .goalprog span { font-size:14px; line-height:24px; color:var(--ink); }
+  .goaldots { display:flex; gap:8px; }
+  .goaldots i { width:12px; height:12px; border-radius:99px; background:var(--line); }
   .goaldots i.on { background:var(--blue); }
-  .cardgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:24px; }
-  .slot { background:#fff; border-radius:12px; box-shadow:inset 0 0 0 1px var(--line); padding:12px;
-    display:flex; flex-direction:column; align-items:center; gap:10px; }
-  .slot .mini { --mw:118px; }
-  .slot .mini-name { font-size:11px; }
-  .slot .mini.locked svg { width:56px; height:56px; }
-  .slot .cta { width:100%; height:30px; border-radius:6px; box-shadow:inset 0 0 0 1.5px var(--blue);
-    color:var(--blue); font-size:13px; font-weight:500; display:flex; align-items:center; justify-content:center; }
-  .slot .nm { font-size:13px; font-weight:500; }
+  /* the cards are the grid cells themselves — 153×196 on a 16px gutter */
+  .cardgrid { display:grid; grid-template-columns:153px 153px; gap:16px; justify-content:center; }
+  /* the goal body sits on 40px gutters, 16 under the header and 24 between blocks */
+  .sbody.goalbody { padding:16px 40px 32px; display:flex; flex-direction:column; gap:24px; }
+  /* an empty card you can act on: the log button takes the place of the name and
+     progress bar inside the card, rather than sitting under it */
+  /* the same 22px inset the name and progress bar use (the card's 6px frame
+     plus the content block's own 16), and the frame's 36-tall content slot */
+  .scard .logslot { position:absolute; left:22px; right:22px; bottom:18px; height:34px;
+    display:flex; align-items:center; justify-content:center; border-radius:4px;
+    box-shadow:inset 0 0 0 1px var(--blue); color:var(--blue);
+    font-size:12px; font-weight:500; line-height:16px; }
 
   /* ─── Wayfinding (template) ─────────────────────────────────────────── */
   .proto-nav { position:fixed; top:22px; left:22px; z-index:200; width:200px; display:flex; flex-direction:column; gap:12px; font-family:'Rubik',-apple-system,sans-serif; letter-spacing:normal; }
@@ -487,6 +661,9 @@
   .proto-about-text strong { font-weight:600; color:#2D3142; }
   .proto-reset { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-family:inherit; font-size:13px; font-weight:500; color:#2D3142; background:#F2F2F7; border:1px solid #E5E5EA; border-radius:8px; padding:9px 10px; cursor:pointer; transition:background .12s; }
   .proto-reset:hover { background:#EBEBF0; }
+  /* TEMPORARY (dev only): the two reload buttons stacked a little tighter
+     than the panel's own 11px rhythm, so they read as a pair */
+  .proto-btns { display:flex; flex-direction:column; gap:6px; }
   .proto-reset svg { width:13px; height:13px; flex-shrink:0; }
   @media (max-width: 980px) { .proto-nav { position:static; width:auto; margin:0 0 20px; align-items:center; } }
   </style>
@@ -527,7 +704,7 @@
       <div class="popfx" id="fx2" style="top:350px;"></div>
     </div>
     <div class="footer">
-      <button class="btn btn-primary" onclick="goTo(3)">Add card to my collection</button>
+      <button class="btn btn-primary" id="s2Btn" onclick="pushTo(3)">Add card to my collection</button>
     </div>
   </section>
 
@@ -536,34 +713,42 @@
        ══════════════════════════════════════════════════════════════════ -->
   <section class="screen" data-screen="3">
     <div class="statusbar"></div>
-    <div class="body" style="padding:22px 40px 0;">
+    <!-- copy at 94 as on screens 1 and 2, then the track block at 250 and the
+         flock row at 585 (Figma 648:5701) -->
+    <div class="body" style="padding:32px 40px 0;">
       <h1 class="h1">You&rsquo;ve reached level 2</h1>
-      <p class="sub" style="margin-top:8px;">
+      <p class="sub" style="margin-top:4px;">
         Keep going! Every bird logged earns <span class="xpword"><svg class="feather" viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg>XP</span> towards your next level.
       </p>
 
-      <div class="track" style="margin-top:34px; margin-left:-40px;" id="luTrack">
-        <div class="rail">
-          <svg preserveAspectRatio="none"><line x1="0" y1="1.5" x2="100%" y2="1.5" stroke="#B2C6DE" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 12"/></svg>
+      <div class="lvl" style="margin-top:72px;" id="luTrack">
+        <!-- two dashed runs, not one: the stretch behind the badge carries no dashes -->
+        <div class="rail" style="left:83px;">
+          <svg width="243" height="3" viewBox="0 0 243 3"><line x1="1.5" y1="1.5" x2="241.5" y2="1.5" stroke="#B2C6DE" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 12"/></svg>
+        </div>
+        <div class="rail" style="left:354px;">
+          <svg width="54" height="3" viewBox="0 0 54 3"><line x1="1.5" y1="1.5" x2="52.5" y2="1.5" stroke="#B2C6DE" stroke-width="3" stroke-linecap="round" stroke-dasharray="6 12"/></svg>
         </div>
         <div class="fill" id="luFill"></div>
         <div class="node done"><svg viewBox="0 0 24 24"><path d="M9.2 16.4 5 12.2l-1.4 1.4 5.6 5.6L20.4 7.8 19 6.4z"/></svg></div>
-        <div class="tlabel" style="left:0;">Level 1</div>
+        <div class="tlabel" style="left:3px;">Level 1</div>
+        <div class="node reached">2</div>
+        <div class="tlabel" style="left:141.25px;">50XP</div>
         <div class="node next">3</div>
-        <div class="tlabel" style="left:265px;">120XP</div>
+        <div class="tlabel" style="left:279.5px;">120XP</div>
         <div class="badge" id="luBadge"><img src="imgs/level-patch-2.svg" alt="Level 2"></div>
         <div class="conf" id="luConf"></div>
+
+        <div class="xpbig" id="luXp">
+          <svg viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg><span>0XP</span>
+        </div>
+        <div class="xpcap" id="luCap" style="opacity:0;">First card bonus</div>
       </div>
 
-      <div class="xpbig" id="luXp" style="margin-top:-6px;">
-        <svg viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg><span>0XP</span>
-      </div>
-      <div class="xpcap" id="luCap" style="opacity:0;">First card bonus</div>
-
-      <div style="margin-top:34px;" id="luFlock"></div>
+      <div style="margin-top:88px;" id="luFlock"></div>
     </div>
     <div class="footer">
-      <button class="btn btn-primary" id="luBtn" style="opacity:0;" onclick="goTo(4)">Continue</button>
+      <button class="btn btn-primary" id="luBtn" style="opacity:0;" onclick="pushTo(4)">Continue</button>
     </div>
   </section>
 
@@ -572,20 +757,23 @@
        ══════════════════════════════════════════════════════════════════ -->
   <section class="screen" data-screen="4">
     <div class="statusbar"></div>
-    <div class="body" style="padding:22px 40px 0;">
+    <!-- copy 94–186, the progress row at 210, the grid at 258 (Figma 489:6159) -->
+    <div class="body" style="padding:32px 40px 0;">
       <h1 class="h1">Great work!<br>Now let&rsquo;s go birding.</h1>
-      <p class="sub" style="margin-top:8px;">
+      <!-- one line on the frame (327px in a 322 box), so it must not wrap -->
+      <p class="sub" style="margin-top:4px; white-space:nowrap;">
         Find your first 4 cards for a
-        <span class="xpword"><svg class="feather" viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg>+40XP</span> bonus
+        <span class="xpword"><svg class="feather" viewBox="0 0 11.626 11.996" style="width:12px;height:12px;"><use href="#featherPath"/></svg>+40XP</span> bonus
       </p>
-      <div style="display:flex; align-items:center; gap:12px; margin-top:22px;">
+      <!-- dots and label are centred as a pair, not left-aligned -->
+      <div class="goalprog" style="margin-top:24px;">
         <div class="goaldots" id="setDots"></div>
-        <span style="font-size:14px; color:var(--ink-2);">1/4 collected</span>
+        <span>1/4 collected</span>
       </div>
-      <div class="cardgrid" id="setGrid" style="margin-top:18px;"></div>
+      <div class="cardgrid" id="setGrid" style="margin-top:24px;"></div>
     </div>
     <div class="footer">
-      <button class="btn btn-primary" onclick="goToMap('onboarding')">Let&rsquo;s go birding</button>
+      <button class="btn btn-primary" id="s4Btn" onclick="goToMap('onboarding')">Let&rsquo;s go birding</button>
     </div>
   </section>
 
@@ -601,12 +789,13 @@
     <div class="locdot"></div>
 
     <div class="floatbtns">
-      <button class="chunky" onclick="goTo(7)">
+      <!-- inert for now: Identify has nowhere to go in this prototype -->
+      <div class="chunky">
         <svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="6"/><line x1="13" y1="13" x2="18" y2="18"/></svg>
         Identify
-      </button>
-      <button class="chunky inverse" onclick="goTo(8)">
-        <svg viewBox="0 0 24 24" fill="#1F87FE"><use href="#crowPath"/></svg>
+      </div>
+      <button class="chunky inverse" onclick="openPicker()">
+        <svg viewBox="0 0 78 78" fill="#1E87FD"><use href="#birdFilled"/></svg>
         Log
       </button>
     </div>
@@ -646,14 +835,22 @@
     <!-- bottom sheet -->
     <div class="sheet">
       <div class="handle"></div>
-      <div class="sbody">
+
+      <!-- goal mode: the header bar only exists while the sheet is raised -->
+      <div class="goalhead" id="goalHead" hidden>
+        <span class="lead"><button onclick="closeGoal()"><svg viewBox="0 0 15 15"><line x1="1" y1="1" x2="14" y2="14"/><line x1="14" y1="1" x2="1" y2="14"/></svg></button></span>
+        <h2>Current card goal</h2>
+        <span class="trail"><a href="#" onclick="return false;">All cards</a></span>
+      </div>
+
+      <div class="sbody" id="sheetMap">
         <div class="chiprow">
           <button class="chip" id="chipXp">
             <div class="ring"></div>
             <div class="val"><svg viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg><span id="chipXpVal">50XP</span></div>
-            <div class="lvl">LVL 2</div>
+            <div class="lvlpill">LVL 2</div>
           </button>
-          <button class="chip cards" id="chipCards" onclick="goTo(6)">
+          <button class="chip cards" id="chipCards" onclick="openGoal()">
             <div class="ring"></div>
             <div class="val"><svg viewBox="0 0 16.921 17.353"><use href="#cardsPath"/></svg><span id="chipCardsVal">1/4 cards</span></div>
           </button>
@@ -665,48 +862,30 @@
         </div>
         <div class="targets" id="mapTargets"></div>
       </div>
-      <div class="tabbar">
-        <div class="tab on"><svg viewBox="0 0 22 22"><path d="M9.5 2a7.5 7.5 0 1 0 4.6 13.4l4.8 4.8 1.4-1.4-4.8-4.8A7.5 7.5 0 0 0 9.5 2Zm0 2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"/></svg><span>Explore</span></div>
-        <div class="tab"><svg viewBox="0 0 24 24"><path d="M8 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 13c-3.3 0-6 2-6 4.5V19h12v-1.5C14 15 11.3 13 8 13Zm8 .5c-.9 0-1.7.1-2.4.4 1.5 1 2.4 2.5 2.4 4.1V19h6v-1.2c0-2.2-2.7-4.3-6-4.3Z"/></svg><span>Community</span></div>
-        <div class="tab spacer"><svg viewBox="0 0 24 24"></svg><span>&nbsp;</span></div>
-        <div class="tab"><svg viewBox="0 0 24 24"><path d="M7 3h10v2h3v3a4 4 0 0 1-3.3 3.9A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1a5 5 0 0 1-3.7-4A4 4 0 0 1 4 8V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z"/></svg><span>Challenges</span></div>
-        <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#C4C7D7"/></svg><span>Profile</span></div>
-        <button class="fab" onclick="goTo(7)"><svg viewBox="0 0 24 24"><path d="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7V4Z"/></svg></button>
-      </div>
-    </div>
-  </section>
 
-  <!-- ════════════════════════════════════════════════════════════════════
-       6 · active card goal  (Figma 1525:14298)
-       ══════════════════════════════════════════════════════════════════ -->
-  <section class="screen mapscreen" data-screen="6">
-    <div class="mapbg"></div>
-    <div class="statusbar"></div>
-    <div class="sheet" style="top:132px;">
-      <div class="handle"></div>
-      <div class="sbody" style="overflow-y:auto;">
-        <div class="goalhead">
-          <button onclick="goToMap('back')"><svg viewBox="0 0 15 15"><line x1="1" y1="1" x2="14" y2="14"/><line x1="14" y1="1" x2="1" y2="14"/></svg></button>
-          <h2>Current card goal</h2>
-          <a href="#" onclick="return false;">All cards</a>
-        </div>
+      <div class="sbody goalbody" id="sheetGoal" hidden>
         <div class="goalrow">
-          <b>Find 4 new cards</b>
+          <span class="who">
+            <b>Find 4 new cards</b>
+            <span class="goaldots" id="goalDots"></span>
+          </span>
+          <span class="div"></span>
           <div class="goalpill">
             <div class="v"><svg viewBox="0 0 11.626 11.996"><use href="#featherPath"/></svg>+40XP</div>
             <small>reward</small>
           </div>
         </div>
-        <div class="goaldots" id="goalDots"></div>
         <div class="cardgrid" id="goalGrid"></div>
       </div>
+
       <div class="tabbar">
-        <div class="tab on"><svg viewBox="0 0 22 22"><path d="M9.5 2a7.5 7.5 0 1 0 4.6 13.4l4.8 4.8 1.4-1.4-4.8-4.8A7.5 7.5 0 0 0 9.5 2Zm0 2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"/></svg><span>Explore</span></div>
-        <div class="tab"><svg viewBox="0 0 24 24"><path d="M8 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 13c-3.3 0-6 2-6 4.5V19h12v-1.5C14 15 11.3 13 8 13Zm8 .5c-.9 0-1.7.1-2.4.4 1.5 1 2.4 2.5 2.4 4.1V19h6v-1.2c0-2.2-2.7-4.3-6-4.3Z"/></svg><span>Community</span></div>
+        <div class="tabshape"></div>
+        <div class="tab on"><svg viewBox="1.97 1.94 18.33 18.33"><path d="M9.5 2a7.5 7.5 0 1 0 4.6 13.4l4.8 4.8 1.4-1.4-4.8-4.8A7.5 7.5 0 0 0 9.5 2Zm0 2a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z"/></svg><span>Explore</span></div>
+        <div class="tab"><svg viewBox="2 1.5 20 20"><path d="M8 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM8 13c-3.3 0-6 2-6 4.5V19h12v-1.5C14 15 11.3 13 8 13Zm8 .5c-.9 0-1.7.1-2.4.4 1.5 1 2.4 2.5 2.4 4.1V19h6v-1.2c0-2.2-2.7-4.3-6-4.3Z"/></svg><span>Community</span></div>
         <div class="tab spacer"><svg viewBox="0 0 24 24"></svg><span>&nbsp;</span></div>
-        <div class="tab"><svg viewBox="0 0 24 24"><path d="M7 3h10v2h3v3a4 4 0 0 1-3.3 3.9A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1a5 5 0 0 1-3.7-4A4 4 0 0 1 4 8V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z"/></svg><span>Challenges</span></div>
-        <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#C4C7D7"/></svg><span>Profile</span></div>
-        <button class="fab" onclick="goTo(7)"><svg viewBox="0 0 24 24"><path d="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7V4Z"/></svg></button>
+        <div class="tab"><svg viewBox="3.5 3 17 17"><path d="M7 3h10v2h3v3a4 4 0 0 1-3.3 3.9A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1a5 5 0 0 1-3.7-4A4 4 0 0 1 4 8V5h3V3Zm0 4H6v1a2 2 0 0 0 1 1.7V7Zm10 0v2.7A2 2 0 0 0 18 8V7h-1Z"/></svg><span>Challenges</span></div>
+        <div class="tab"><svg viewBox="3 3 18 18"><circle cx="12" cy="12" r="9"/></svg><span>Profile</span></div>
+        <button class="fab" onclick="goTo(6)"><svg viewBox="2.15 2.15 19.7 19.7"><path d="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7V4Z"/></svg></button>
       </div>
     </div>
   </section>
@@ -714,23 +893,37 @@
   <!-- ════════════════════════════════════════════════════════════════════
        7 · log method  (Figma 489:4488)
        ══════════════════════════════════════════════════════════════════ -->
-  <section class="screen mapscreen" data-screen="7">
-    <div class="mapbg"></div>
-    <div class="scrim" onclick="goToMap('back')"></div>
+  <section class="screen logscreen" data-screen="6">
     <div class="statusbar"></div>
     <div class="methods">
-      <button class="method" onclick="goTo(8)">
-        <div class="ic" style="background:#DEFAED;"><svg viewBox="0 0 24 24" fill="#009551"><path d="M12 2 9.8 8.2 3.5 10.4l6.3 2.2L12 19l2.2-6.4 6.3-2.2-6.3-2.2L12 2Z"/></svg></div>
-        <div><b>Identify a Bird</b><p>Use Birda AI to quickly identify any bird with your photos or our species guide.</p></div>
+      <!-- inert: only Log a Sighting is wired up in this prototype -->
+      <div class="method" style="background:#DEFAEC;">
+        <span class="ic ai" style="background:#009551;">
+          <!-- camera with AI on its screen -->
+          <svg viewBox="0 0 34 34">
+            <path d="M5.25 7.5h5l1.75-4h8l1.75 4h6.5a3 3 0 0 1 3 3v17a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3v-17a3 3 0 0 1 3-3Z"/>
+            <rect x="8" y="12.75" width="18" height="13" rx="3"/>
+            <text x="17" y="21.9" text-anchor="middle" fill="#fff" stroke="none"
+                  style="font-size:8.5px; font-weight:700; letter-spacing:.2px;">AI</text>
+          </svg>
+        </span>
+        <span class="mtxt"><b>Identify a Bird</b><p>Use Birda AI to quickly identify any bird with your photos or our species guide.</p></span>
+      </div>
+      <button class="method" style="background:#E8E7FF;" onclick="openPicker(6)">
+        <span class="ic bird" style="background:#7165E2;">
+          <!-- the shared outline placeholder bird, in white -->
+          <svg viewBox="0 0 112 112" style="stroke:none; fill:#fff;"><use href="#birdSil"/></svg>
+        </span>
+        <span class="mtxt"><b>Log a Sighting</b><p>An easy way to log that you&rsquo;ve seen a bird.</p></span>
       </button>
-      <button class="method" onclick="goTo(8)">
-        <div class="ic" style="background:#E4E1FB;"><svg viewBox="0 0 24 24" fill="#7265E3"><use href="#crowPath"/></svg></div>
-        <div><b>Log a Sighting</b><p>An easy way to log that you&rsquo;ve seen a bird.</p></div>
-      </button>
-      <button class="method" onclick="goTo(8)">
-        <div class="ic" style="background:#FBEBE2;"><svg viewBox="0 0 24 24" fill="#FF9857"><path d="M13.5 2.5a2 2 0 1 1-2 2 2 2 0 0 1 2-2ZM10 7.5l3.6-1.2 2.2 3.4 3.2 1.3-.8 1.9-4-1.6-1.3 3 2.9 3.1 1.6 4.6-2 .7-1.4-4-3.9-4.1-1.9 5.3-2-.7 2.4-6.6L8 9.2 5 11.6 3.7 10l4-3.2Z"/></svg></div>
-        <div><b>Add a Session</b><p>On a walk? At a hide? Add a session to log multiple birds easily.</p></div>
-      </button>
+      <div class="method" style="background:#FBEBE2;">
+        <span class="ic walk" style="background:#FE9857;">
+          <!-- _resources/ui-elements/person-walking-light.svg — Font Awesome Light,
+               so the strokes are filled outlines rather than a stroked path -->
+          <svg viewBox="0 0 320 512"><path d="M200 80a24 24 0 1 0 0-48 24 24 0 1 0 0 48zm0-80a56 56 0 1 1 0 112A56 56 0 1 1 200 0zM121.5 170.2c-1.3 .6-2.6 1.3-3.9 2l-12.7 6.9c-27.5 15-47.4 40.8-55 71.2l-2.4 9.6c-2.1 8.6-10.8 13.8-19.4 11.6s-13.8-10.8-11.6-19.4l2.4-9.5c9.8-39 35.4-72.2 70.7-91.5l12.7-6.9c19.4-10.6 41.2-16.2 63.4-16.2c36.9 0 69.7 23.6 81.4 58.7l17.1 51.4c3.4 10.1 10 18.8 18.9 24.8l29.7 19.8c7.4 4.9 9.3 14.8 4.4 22.2s-14.8 9.3-22.2 4.4l-29.7-19.8c-14.8-9.9-25.9-24.4-31.5-41.3l-8.8-26.4L187.3 331l43.6 37.8c4.7 4.1 8.1 9.4 9.8 15.4l30.7 107.4c2.4 8.5-2.5 17.4-11 19.8s-17.4-2.5-19.8-11L209.9 393 109.4 305.8C94.9 293.3 89.3 273.4 95 255.2l26.6-85zm36.6-9.9L125.5 264.8c-1.9 6.1 0 12.7 4.8 16.9l30.9 26.8 45-130c-10-11.5-24.7-18.4-40.6-18.4c-2.5 0-5 .1-7.5 .3zM126.3 375.2L95.5 436.8c-1.5 3.1-3.6 5.9-6 8.3L27.3 507.3c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l62.2-62.2 30.8-61.7c4-7.9 13.6-11.1 21.5-7.2s11.1 13.6 7.2 21.5z"/></svg>
+        </span>
+        <span class="mtxt"><b>Add a Session</b><p>On a walk? At a hide? Add a session to log multiple birds easily.</p></span>
+      </div>
     </div>
     <button class="closex" onclick="goToMap('back')"><svg viewBox="0 0 16 16"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg></button>
   </section>
@@ -738,29 +931,32 @@
   <!-- ════════════════════════════════════════════════════════════════════
        8 · What did you see?  (Figma 489:4498 — layout from PEX-43/v2)
        ══════════════════════════════════════════════════════════════════ -->
-  <section class="screen" data-screen="8">
+  <section class="screen pickscreen" data-screen="7">
     <div class="statusbar"></div>
     <div class="nav">
-      <button class="nav-back" onclick="goToMap('back')"><svg viewBox="0 0 11 19"><polyline points="9.5,1.5 2,9.5 9.5,17.5"/></svg></button>
+      <button class="nav-back" onclick="pickerGoBack()"><svg viewBox="0 0 11 19"><polyline points="9.5,1.5 2,9.5 9.5,17.5"/></svg></button>
       <div class="nav-title">What did you see?</div>
       <span></span>
     </div>
     <div class="body">
-      <div class="searchbar">
-        <svg viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="5"/><line x1="10.5" y1="10.5" x2="14.5" y2="14.5" stroke-linecap="round"/></svg>
-        <input placeholder="Describe the bird" type="text">
+      <!-- the bar is the only control: no Photo/Sound ID, no location switcher -->
+      <div class="wd-sticky">
+        <div class="wd-search">
+          <svg viewBox="0 0 24 24"><use href="#ic-search"/></svg>
+          <input type="text" placeholder="Describe the bird" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
       </div>
-      <div class="splist" id="spList"></div>
+      <div class="sb-nearby"><div class="sb-list" id="spList"></div></div>
     </div>
   </section>
 
   <!-- ════════════════════════════════════════════════════════════════════
        9 · Review Sighting  (Figma 1568:15606 — layout from PEX-43/v2)
        ══════════════════════════════════════════════════════════════════ -->
-  <section class="screen" data-screen="9">
+  <section class="screen" data-screen="8">
     <div class="statusbar"></div>
     <div class="nav">
-      <button class="nav-back" onclick="goTo(8)"><svg viewBox="0 0 11 19"><polyline points="9.5,1.5 2,9.5 9.5,17.5"/></svg></button>
+      <button class="nav-back" onclick="goTo(7)"><svg viewBox="0 0 11 19"><polyline points="9.5,1.5 2,9.5 9.5,17.5"/></svg></button>
       <div class="nav-title">Review Sighting</div>
       <button class="nav-act" onclick="saveSighting()">Save</button>
     </div>
@@ -768,7 +964,7 @@
       <div class="mapband">
         <div class="pin">
           <img id="rsPin" src="" alt="">
-          <svg id="rsPinGlyph" viewBox="0 0 24 24" style="display:none; width:30px; height:30px; fill:#8890AE;"><use href="#crowPath"/></svg>
+          <svg id="rsPinGlyph" viewBox="0 0 112 112" style="display:none; width:30px; height:30px; fill:#8890AE;"><use href="#birdSil"/></svg>
         </div>
         <div class="credit">© Mapbox</div>
       </div>
@@ -783,7 +979,10 @@
       <div class="seclabel">Sighting</div>
       <div class="group">
         <div class="row" style="padding-bottom:4px; border-bottom:none;">
-          <div class="ic"><svg viewBox="0 0 24 24" stroke="none" fill="var(--ink-2)"><use href="#crowPath"/></svg></div>
+          <!-- a style, not fill=""/stroke="": `.row .ic svg` sets fill:none and a 1.5px
+               stroke, and a CSS declaration beats a presentation attribute — so the
+               attributes were losing and this outline glyph was being stroked -->
+          <div class="ic"><svg viewBox="0 0 112 112" style="fill:var(--ink-2); stroke:none;"><use href="#birdSil"/></svg></div>
           <span class="lb" data-species-name>Robin</span>
           <span class="cv">›</span>
         </div>
@@ -826,7 +1025,7 @@
   <!-- ════════════════════════════════════════════════════════════════════
        10 · new card found (+ confetti)  (Figma 1568:15949 / 1568:16227)
        ══════════════════════════════════════════════════════════════════ -->
-  <section class="screen" data-screen="10">
+  <section class="screen" data-screen="9">
     <div class="statusbar"></div>
     <!-- same spacing as screen 2 — copy at 94, 48px to the card (Figma 1568:16227) -->
     <div class="body" style="padding:32px 40px 0; display:flex; flex-direction:column; gap:48px; align-items:center; position:relative;">
@@ -838,7 +1037,7 @@
       <div class="popfx" id="fx10" style="top:350px;"></div>
     </div>
     <div class="footer">
-      <button class="btn btn-primary" onclick="goTo(11)">Add card to my collection</button>
+      <button class="btn btn-primary" onclick="afterNewCard()">Add card to my collection</button>
     </div>
   </section>
 
@@ -846,10 +1045,12 @@
        11 · explainer: card upgrade  (Figma 1573:18999)
        ══════════════════════════════════════════════════════════════════ -->
   <!-- Structure, spacing and copy are the upgrade demo's, 1:1 -->
-  <section class="screen" data-screen="11">
+  <section class="screen" data-screen="10">
     <div class="statusbar"></div>
     <div class="body" style="display:flex; flex-direction:column; gap:32px; padding:24px 40px 32px; align-items:center; overflow:visible;">
-      <div style="height:128px; align-self:stretch; flex-shrink:0; display:flex; flex-direction:column; gap:8px;">
+      <!-- 88, not 128: the copy sits at the top of this block either way, and 88 is
+           what puts the card on 206 — exactly where screen 9 leaves it -->
+      <div style="height:88px; align-self:stretch; flex-shrink:0; display:flex; flex-direction:column; gap:8px;">
         <span style="font-weight:500; font-size:24px; text-align:center; line-height:100%;">Don&rsquo;t stop there!</span>
         <span style="font-weight:400; font-size:16px; text-align:center; line-height:24px;">Every extra log of this bird counts towards upgrading its card.</span>
       </div>
@@ -867,7 +1068,18 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <path id="featherPath" d="M 6.154 5.051 L 0.165 11.037 C -0.055 11.257 -0.055 11.613 0.165 11.831 C 0.386 12.049 0.742 12.052 0.96 11.831 L 2.713 10.078 C 2.886 10.186 3.071 10.27 3.271 10.324 C 4.321 10.61 5.954 10.65 7.548 9.593 C 7.834 9.403 7.684 8.998 7.342 8.998 L 6.964 8.998 C 6.845 8.998 6.749 8.902 6.749 8.782 C 6.749 8.686 6.812 8.604 6.901 8.576 L 9.191 7.889 C 9.271 7.866 9.341 7.817 9.388 7.746 C 9.491 7.596 9.589 7.444 9.683 7.287 C 9.829 7.045 9.648 6.748 9.367 6.748 L 8.462 6.748 C 8.343 6.748 8.246 6.652 8.246 6.532 C 8.246 6.436 8.31 6.354 8.399 6.326 L 10.295 5.756 C 10.403 5.724 10.492 5.644 10.534 5.538 C 11.216 3.818 11.528 2.016 11.624 0.86 C 11.643 0.628 11.554 0.401 11.389 0.237 C 11.225 0.073 10.998 -0.016 10.766 0.002 C 8.802 0.162 4.982 0.947 2.846 3.082 C 0.969 4.959 0.955 7.083 1.297 8.351 C 1.346 8.536 1.579 8.576 1.714 8.44 L 5.57 4.587 C 5.715 4.442 5.954 4.442 6.1 4.587 C 6.226 4.713 6.243 4.906 6.151 5.051 L 6.154 5.051 Z"/>
   <path id="cardsPath" d="M 14.831 2.724 C 15.984 2.724 16.921 3.661 16.921 4.814 L 16.921 15.263 C 16.921 16.416 15.984 17.353 14.831 17.353 L 8.561 17.353 C 8.085 17.353 7.647 17.19 7.294 16.922 L 11.797 15.717 C 13.747 15.194 14.906 13.189 14.384 11.237 L 12.101 2.724 L 14.831 2.724 Z M 7.605 0.072 C 8.718 -0.228 9.864 0.435 10.165 1.548 L 12.868 11.642 C 13.166 12.755 12.506 13.901 11.389 14.202 L 5.335 15.825 C 4.222 16.125 3.075 15.462 2.775 14.349 L 0.071 4.255 C -0.226 3.139 0.434 1.992 1.547 1.695 L 7.605 0.072 Z"/>
-  <path id="crowPath" d="M20.7 6.1c.5-.3.8-.9.8-1.5 0-.6-.3-1.1-.8-1.4l-2.4-1.5c-.3-.2-.7 0-.7.4v.9c-1.3-.4-2.7-.2-3.8.6L6.3 8.4C4.9 9.4 4 11 4 12.8c0 1.5.6 2.9 1.6 3.9l-3.3 3.6c-.3.3-.2.8.2 1 .3.2.7.1.9-.2l3.2-3.5c.9.5 1.9.8 3 .8h7.9c.4 0 .7-.3.7-.7 0-.3-.2-.6-.5-.7l-2.3-.7c-.3-.1-.5-.4-.4-.7.1-.3.3-.4.6-.4h3.6c.4 0 .7-.3.7-.7 0-.2-.1-.4-.2-.5l-1.6-1.7c-.2-.2-.2-.6 0-.8.2-.2.5-.2.7 0l1.4 1.1V6.1Zm-3.9-.4c-.5 0-.9-.4-.9-.9s.4-.9.9-.9.9.4.9.9-.4.9-.9.9Z"/>
+  <!-- the shared bird placeholder from _resources/ui-elements/bird-placeholder.svg,
+       inlined so CSS can recolour it: a mask-image would be blocked over file:// -->
+  <!-- the filled bird from _resources/ui-elements/bird-placeholder-filled.svg,
+       78x78 to match the icon/crow instance on the Figma card. Inlined for the
+       same reason as the outline: mask-image is blocked over file://, and the
+       fill is left to CSS so it can be recoloured per context. -->
+  <path id="birdFilled" d="M55.781 7.79419C49.8579 7.79419 45.056 12.5961 45.056 18.5192V22.0779L1.72944 55.3986C0.0231876 56.7148 -0.293687 59.1645 1.01038 60.8708C2.31444 62.577 4.77631 62.8939 6.48256 61.5898L15.5744 54.5942H31.796L37.4754 68.3783C38.0847 69.8773 39.8032 70.5842 41.2901 69.9748C42.7769 69.3654 43.496 67.647 42.8866 66.1601L38.1213 54.5942H43.106C43.2401 54.5942 43.3619 54.5942 43.496 54.5942L49.1754 68.3904C49.7848 69.8895 51.5032 70.5964 52.9901 69.987C54.4769 69.3776 55.196 67.6592 54.5866 66.1723L49.4679 53.7411C59.3032 50.9501 66.506 41.9192 66.506 31.1942V22.4192L76.3169 19.9695C77.3651 19.7136 77.9988 18.6533 77.7307 17.6051C76.8654 14.1317 73.7454 11.6942 70.1623 11.6942H64.0563C62.0819 9.31763 59.1082 7.79419 55.781 7.79419ZM55.781 15.5942C56.1651 15.5942 56.5455 15.6698 56.9004 15.8168C57.2552 15.9638 57.5777 16.1793 57.8493 16.4509C58.1209 16.7225 58.3364 17.045 58.4833 17.3998C58.6303 17.7547 58.706 18.1351 58.706 18.5192C58.706 18.9033 58.6303 19.2837 58.4833 19.6385C58.3364 19.9934 58.1209 20.3159 57.8493 20.5875C57.5777 20.8591 57.2552 21.0745 56.9004 21.2215C56.5455 21.3685 56.1651 21.4442 55.781 21.4442C55.3969 21.4442 55.0165 21.3685 54.6617 21.2215C54.3068 21.0745 53.9843 20.8591 53.7127 20.5875C53.4411 20.3159 53.2257 19.9934 53.0787 19.6385C52.9317 19.2837 52.856 18.9033 52.856 18.5192C52.856 18.1351 52.9317 17.7547 53.0787 17.3998C53.2257 17.045 53.4411 16.7225 53.7127 16.4509C53.9843 16.1793 54.3068 15.9638 54.6617 15.8168C55.0165 15.6698 55.3969 15.5942 55.781 15.5942Z"/>
+  <path id="birdSil" d="M72.8001 11.2C77.7701 11.2 82.2151 13.37 85.2951 16.8H98.9101L100.013 16.8525C105.508 17.3425 110.11 21.4025 111.213 26.8975C111.65 29.0849 110.285 31.2375 108.115 31.78L89.6001 36.4V44.7999C89.6001 58.59 81.2876 70.4375 69.4051 75.6175L78.1901 96.9325L78.3476 97.475C78.5926 98.7524 77.9101 100.065 76.6676 100.59C75.4251 101.115 74.0076 100.642 73.2726 99.575L73.0101 99.085L64.0851 77.42C61.4951 78.0499 58.8001 78.3999 56.0001 78.3999H53.7601L61.3901 96.9325L61.5476 97.475C61.7926 98.7524 61.1101 100.065 59.8676 100.59C58.6251 101.115 57.2076 100.642 56.4726 99.575L56.2101 99.085L47.7051 78.4174H10.7801L4.55008 83.405C3.34258 84.35 1.57508 84.1574 0.612582 82.95C-0.349918 81.7424 -0.157418 79.975 1.05008 79.0125L56.0001 35.0525V28C56.0001 18.725 63.5251 11.2 72.8001 11.2ZM72.8001 16.8C66.6226 16.8 61.6001 21.8225 61.6001 28V42.8925C61.6001 56.84 52.2201 69.055 38.7276 72.66L38.1501 72.8175H55.9826C71.4526 72.8175 83.9826 60.2875 83.9826 44.8175V28.0175C83.9826 21.84 78.9601 16.8175 72.7826 16.8175L72.8001 16.8ZM18.4626 72.2575L37.2926 67.235C48.3176 64.295 56.0001 54.3025 56.0001 42.875V42.2099L18.4626 72.2399V72.2575ZM72.8001 32.2C70.4726 32.2 68.6001 30.3275 68.6001 28C68.6001 25.6725 70.4726 23.8 72.8001 23.8C75.1276 23.8 77.0001 25.6725 77.0001 28C77.0001 30.3275 75.1276 32.2 72.8001 32.2ZM88.6201 22.4C89.2501 24.15 89.6001 26.04 89.6001 28V30.625L105.333 26.6875C104.283 24.1325 101.763 22.4 98.9101 22.4H88.6201Z"/>
+  <!-- from PEX-44/v2, for the species picker -->
+  <path id="ic-search" d="M 17.248 9.752 C 17.248 7.762 16.458 5.854 15.052 4.447 C 13.645 3.041 11.738 2.25 9.749 2.25 C 7.76 2.25 5.853 3.041 4.446 4.447 C 3.04 5.854 2.25 7.762 2.25 9.752 C 2.25 11.741 3.04 13.649 4.446 15.056 C 5.853 16.463 7.76 17.253 9.749 17.253 C 11.738 17.253 13.645 16.463 15.052 15.056 C 16.458 13.649 17.248 11.741 17.248 9.752 Z M 15.8 17.398 C 14.141 18.716 12.036 19.503 9.749 19.503 C 4.364 19.503 0 15.139 0 9.752 C 0 4.365 4.364 0 9.749 0 C 15.134 0 19.498 4.365 19.498 9.752 C 19.498 12.04 18.711 14.145 17.394 15.804 L 23.67 22.082 C 24.11 22.523 24.11 23.235 23.67 23.671 C 23.229 24.107 22.517 24.112 22.081 23.671 L 15.8 17.398 Z" fill="currentColor" fill-rule="evenodd"/>
+  <path id="ic-xmark" d="M 14.674 1.924 C 15.115 1.484 15.115 0.771 14.674 0.335 C 14.234 -0.101 13.521 -0.105 13.085 0.335 L 7.507 5.913 L 1.924 0.33 C 1.484 -0.11 0.771 -0.11 0.335 0.33 C -0.101 0.771 -0.105 1.484 0.335 1.92 L 5.913 7.498 L 0.33 13.08 C -0.11 13.521 -0.11 14.234 0.33 14.67 C 0.771 15.105 1.484 15.11 1.92 14.67 L 7.498 9.091 L 13.08 14.674 C 13.521 15.115 14.234 15.115 14.67 14.674 C 15.105 14.234 15.11 13.521 14.67 13.085 L 9.091 7.507 L 14.674 1.924 Z" fill="currentColor"/>
+  <path id="ic-dimorphic" d="M 12.75 1.125 C 12.75 1.748 13.252 2.25 13.875 2.25 L 15.661 2.25 L 13.65 4.261 C 12.202 3.009 10.313 2.25 8.25 2.25 C 3.694 2.25 0 5.944 0 10.5 C 0 14.677 3.103 18.127 7.125 18.675 L 7.125 19.5 L 6 19.5 C 5.377 19.5 4.875 20.002 4.875 20.625 C 4.875 21.248 5.377 21.75 6 21.75 L 7.125 21.75 L 7.125 22.875 C 7.125 23.498 7.627 24 8.25 24 C 8.873 24 9.375 23.498 9.375 22.875 L 9.375 21.75 L 10.5 21.75 C 11.123 21.75 11.625 21.248 11.625 20.625 C 11.625 20.002 11.123 19.5 10.5 19.5 L 9.375 19.5 L 9.375 18.675 C 13.397 18.127 16.5 14.677 16.5 10.5 C 16.5 8.822 15.998 7.256 15.136 5.953 L 17.25 3.839 L 17.25 5.625 C 17.25 6.248 17.752 6.75 18.375 6.75 C 18.998 6.75 19.5 6.248 19.5 5.625 L 19.5 1.125 C 19.5 0.502 18.998 0 18.375 0 L 13.875 0 C 13.252 0 12.75 0.502 12.75 1.125 Z M 8.25 4.5 C 9.841 4.5 11.367 5.132 12.493 6.257 C 13.618 7.383 14.25 8.909 14.25 10.5 C 14.25 12.091 13.618 13.617 12.493 14.743 C 11.367 15.868 9.841 16.5 8.25 16.5 C 6.659 16.5 5.133 15.868 4.007 14.743 C 2.882 13.617 2.25 12.091 2.25 10.5 C 2.25 8.909 2.882 7.383 4.007 6.257 C 5.133 5.132 6.659 4.5 8.25 4.5 Z" fill="currentColor" fill-rule="evenodd" transform="matrix(1 0 0 1 2 0)"/>
 </defs></svg>
 
 <script>
@@ -887,7 +1099,6 @@ const PROTO = {
 /* imgs/birds/*.png are the shared _resources/bird-photos cutouts with their
    white studio background keyed out, so they can sit on the peach card. */
 const PHOTOS = 'imgs/birds/';
-const PLACEHOLDER = '../../../_resources/ui-elements/bird-placeholder.svg';
 const BIRDS = {
   dunnock:      { name:'Dunnock',       latin:'Prunella modularis',  img:'dunnock.png',      rarity:'Common',   desc:'Small brown bird, robin-sized, with a grey head; seen in gardens and hedgerows. Often flicks its wings.' },
   robin:        { name:'Robin',         latin:'Erithacus rubecula',  img:'robin.png',        rarity:'Common',   desc:'Small garden bird with an orange breast and face, often found in woods and parks.' },
@@ -924,6 +1135,7 @@ const S = {
   cards:    1,
   cardGoal: 4,
   pending:  null,        // 'onboarding' | 'logged' — what the map should play on arrival
+  explained:false,       // has the one-off upgrade explainer been shown?
 };
 
 /* ══ WAYFINDING (template) ══════════════════════════════════════════════ */
@@ -941,9 +1153,17 @@ const S = {
   if (PROTO.about) {
     extra += '<div class="proto-about"><div class="proto-about-head">About this version</div>'
       + '<p class="proto-about-text">' + PROTO.about + '</p>'
-      + '<button class="proto-reset" onclick="location.reload()">'
-      + '<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-      + 'Restart prototype</button></div>';
+      + '<div class="proto-btns">'
+      +   '<button class="proto-reset" onclick="location.hash=\'\'; location.reload()">'
+      +     '<svg viewBox="0 0 16 16" fill="none"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      +     'Restart prototype</button>'
+      /* TEMPORARY (dev only): reload in place, so a code change can be checked on
+         the screen you are already looking at instead of walking the flow again.
+         Remove before sharing. */
+      +   '<button class="proto-reset" onclick="devReload()">'
+      +     '<svg viewBox="0 0 16 16" fill="none"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      +     'Reload this screen</button>'
+      + '</div></div>';
   }
   document.getElementById('protoNav').innerHTML = back + extra;
 })();
@@ -1045,9 +1265,38 @@ function miniHTML(key) {
     + '<div class="mini-name">' + b.name + '</div><div class="mini-bar"></div>'
     + '</div></div>';
 }
+/* the 153×196 grid cell: a collected card, or an empty slot in the goal */
+function scardHTML(key) {
+  const b = BIRDS[key];
+  return '<div class="scard" data-tier="bronze">'
+    + '<div class="paper"></div>'
+    + '<figure><img src="' + photoOf(key) + '" alt="' + b.name + '"></figure>'
+    + '<div class="nm">' + b.name + '</div>'
+    + '<div class="bar"><i></i></div>'
+    + '<div class="tag">Bronze</div>'
+    + '</div>';
+}
+/* the goal sheet's empty card: silhouette + an in-card Log a bird button, and
+   no ??? name or progress bar — that pair is the screen-4 variant */
+function scardLoggableHTML() {
+  return '<button class="scard" data-tier="locked" onclick="openPicker()">'
+    + '<div class="paper"></div>'
+    + '<figure><svg viewBox="0 0 78 78"><use href="#birdFilled"/></svg></figure>'
+    + '<span class="logslot">Log a bird</span>'
+    + '</button>';
+}
+function scardLockedHTML() {
+  return '<div class="scard" data-tier="locked">'
+    + '<div class="paper"></div>'
+    + '<figure><svg viewBox="0 0 78 78"><use href="#birdFilled"/></svg></figure>'
+    + '<div class="nm">???</div>'
+    + '<div class="bar"></div>'
+    + '</div>';
+}
+
 function miniLockedHTML() {
   return '<div class="mini locked"><div class="mini-in">'
-    + '<figure class="mini-fig"><svg viewBox="0 0 24 24"><use href="#crowPath"/></svg></figure>'
+    + '<figure class="mini-fig"><svg viewBox="0 0 78 78"><use href="#birdFilled"/></svg></figure>'
     + '<div class="mini-name">???</div><div class="mini-bar"></div>'
     + '</div></div>';
 }
@@ -1082,7 +1331,7 @@ const deckCards = DECK_ORDER.map(k => Object.assign({ key:k }, BIRDS[k])).concat
 function deckCardHTML(b) {
   const photo = b.img
     ? '<img src="' + PHOTOS + b.img + '" alt="' + b.name + '">'
-    : '<img class="glyph" src="' + PLACEHOLDER + '" alt="">';
+    : '<svg class="glyph" viewBox="0 0 112 112"><use href="#birdSil"/></svg>';
   /* the "Not sure?" card keeps the divider and footer, just with nothing in it */
   const foot = b.rarity
     ? '<span class="near">Likely near you</span>'
@@ -1346,8 +1595,7 @@ function buildOnboardingCards() {
   document.getElementById('setDots').innerHTML =
     [0,1,2,3].map(i => '<i class="' + (i < 1 ? 'on' : '') + '"></i>').join('');
   document.getElementById('setGrid').innerHTML =
-    '<div class="slot filled">' + miniHTML(S.starter) + '</div>'
-    + Array(3).fill('<div class="slot">' + miniLockedHTML() + '</div>').join('');
+    scardHTML(S.starter) + scardLockedHTML().repeat(3);
 }
 
 /* ══ SCREEN 3 · level up — timeline ported from level-up-demo.html ══════ */
@@ -1388,6 +1636,11 @@ function drawConfetti(els, parts, t, start) {
 
 const LU = { raf:0, t:0, last:0, parts:null, els:null };
 const LU_END = 5200;
+/* The demo's timeline waits 600ms before the bar starts — it autoplays on page
+   load, so it needed a beat first. Here the screen is pushed in, so that reads as
+   dead time; starting the clock at the lead-in means the bar fills the moment the
+   slide finishes. */
+const LU_LEAD = 600;
 
 /* Every value is a pure function of t, so the whole beat sheet can be seeked
    to any moment (see ?seek= below) as well as played. */
@@ -1399,7 +1652,7 @@ function paintLevelUp(t) {
   const flock = document.querySelector('#luFlock .flockrow');
   const btn   = document.getElementById('luBtn');
 
-  const FROM = 0, TO = 130;             /* px, relative to .fill's left:60px  */
+  const FROM = 0, TO = 118;             /* px; the demo's screen-A segment width */
   const BADGE_START = 1750, BADGE_DUR = 650;
   const CONF_START  = BADGE_START + 0.25 * BADGE_DUR;
   const ph = (start, dur) => c01((t - start) / dur);
@@ -1450,7 +1703,7 @@ function armLevelUp() {
 }
 function runLevelUp() {
   armLevelUp();
-  LU.t = 0; LU.last = performance.now();
+  LU.t = LU_LEAD; LU.last = performance.now();
   paintLevelUp(0);
   const frame = (now) => {
     LU.t += Math.min(50, now - LU.last);
@@ -1558,6 +1811,11 @@ function armUpgrade() {
   flip.style.transform = 'rotateY(0deg)';
   UP.rot = 0;
 }
+/* The last flip is a 1s CSS transition kicked off at UP_FLIPS[2]. Because the
+   timeline runs at UP_SPEED, in wall clock that transition outlasts the timeline
+   itself — so the sway waits for it to land rather than cutting it short, plus a
+   beat. */
+const SWAY_IN = Math.max(0, (UP_FLIPS[UP_FLIPS.length - 1] + 1000 * UP_SPEED - UP_END) / UP_SPEED) + 120;
 function runUpgrade() {
   armUpgrade();
   UP.t = 0; UP.last = performance.now();
@@ -1567,6 +1825,8 @@ function runUpgrade() {
     UP.last = now;
     paintUpgrade(UP.t);
     if (UP.t < UP_END) UP.raf = requestAnimationFrame(frame);
+    /* the same gentle turn the new-card screens hand over to */
+    else T(SWAY_IN, () => startSway(document.getElementById('upFlip'), UP.rot));
   };
   UP.raf = requestAnimationFrame(frame);
 }
@@ -1576,9 +1836,13 @@ function buildMap() {
   document.getElementById('mapTargets').innerHTML = TARGETS.map(k => {
     const b = BIRDS[k];
     return '<div class="target">'
-      + '<span class="rarity' + (b.rarity === 'Uncommon' ? ' uncommon' : '') + '">' + b.rarity + '</span>'
-      + '<figure><img src="' + photoOf(k) + '" alt="' + b.name + '"></figure>'
-      + '<b>' + b.name + '</b>'
+      + '<div class="tcontent">'
+      +   '<span class="rarity' + (b.rarity === 'Uncommon' ? ' uncommon' : '') + '">' + b.rarity + '</span>'
+      +   '<div class="tbird">'
+      +     '<figure><img src="' + photoOf(k) + '" alt="' + b.name + '"></figure>'
+      +     '<b>' + b.name + '</b>'
+      +   '</div>'
+      + '</div>'
       + '<button class="logbtn" onclick="startLog(\'' + k + '\')">'
       +   '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="9"/><path d="M10 5.5v9M5.5 10h9" stroke="#fff" stroke-width="2" stroke-linecap="round" fill="none"/></svg>Log'
       + '</button></div>';
@@ -1590,15 +1854,54 @@ function paintChips() {
   document.getElementById('chipXpVal').textContent = S.xp + 'XP';
   document.getElementById('chipCardsVal').textContent = S.cards + '/' + S.cardGoal + ' cards';
 }
+/* Where the species list was opened from, so its back button retraces the way
+   in: the log-method screen when you came through the +, the map when you tapped
+   Log there or on a card in the goal sheet. */
+let pickerBack = null;
+function openPicker(from) { pickerBack = from || null; goTo(7); }
+function pickerGoBack() { if (pickerBack) goTo(pickerBack); else goToMap('back'); }
+
 const MAP_ARRIVALS = ['onboarding', 'logged', 'relog'];
+/* TEMPORARY (dev only): the reason survives S.pending being consumed, so the
+   chrome's "Reload this screen" can put the map back the way you entered it. */
+let devArrival = null;
 function goToMap(reason) {
+  pickerBack = null;
   S.pending = MAP_ARRIVALS.indexOf(reason) >= 0 ? reason : null;
+  devArrival = S.pending;
   goTo(5);
 }
 
+/* TEMPORARY (dev only): reload in place and replay. Most screens run their
+   entry animation from onEnter, so landing on them is enough — but the map's
+   toasts only fire for an arrival reason, so that rides along in the hash. */
+function devReload() {
+  const state = cur !== 5 ? '' : (sheetMode === 'goal' ? ',goal' : (devArrival ? ',' + devArrival : ''));
+  location.hash = cur + state;
+  location.reload();
+}
+
 /* ── toasts (ported from animation-demos/toast-demo.html, variant 1d) ─── */
-const TOAST = { timers: [] };
-function tClear() { TOAST.timers.forEach(clearTimeout); TOAST.timers = []; }
+const TOAST = { timers: [], tween: 0 };
+function tClear() {
+  TOAST.timers.forEach(clearTimeout); TOAST.timers = [];
+  cancelAnimationFrame(TOAST.tween);
+  resetToasts();
+}
+/* Leaving the map cancels the timer that would have dismissed a toast, so the
+   class has to come off by hand — otherwise it is still hanging there when you
+   come back. Same for the chip's pop and ripple, and the counter's tween, which
+   would keep writing over the value paintChips() restores. */
+function resetToasts() {
+  const xp = document.getElementById('toastXp'), card = document.getElementById('toastCard');
+  if (xp) xp.className = 'toast xp';
+  if (card) card.className = 'toast card';
+  document.querySelectorAll('[data-screen="5"] .chip').forEach(c => {
+    c.style.transform = 'none';
+    const r = c.querySelector('.ring');
+    if (r) { r.style.transition = 'none'; r.style.inset = '0px'; r.style.opacity = 0; }
+  });
+}
 function T(ms, fn) { TOAST.timers.push(setTimeout(fn, ms)); }
 
 /* the chip pops, a ring ripples outward, the number ticks up */
@@ -1618,9 +1921,9 @@ function tweenNumber(from, to, ms, write) {
   const step = (now) => {
     const p = Math.min(1, (now - t0) / ms);
     write(Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3))));
-    if (p < 1) requestAnimationFrame(step);
+    if (p < 1) TOAST.tween = requestAnimationFrame(step);
   };
-  requestAnimationFrame(step);
+  TOAST.tween = requestAnimationFrame(step);
 }
 
 function playXpToast(from, to) {
@@ -1672,26 +1975,63 @@ function buildGoalSheet() {
   const collected = [S.starter].concat(S.logged ? [S.logged] : []);
   document.getElementById('goalDots').innerHTML =
     Array.from({ length: S.cardGoal }, (_, i) => '<i class="' + (i < collected.length ? 'on' : '') + '"></i>').join('');
-  const slots = collected.map(k => '<div class="slot filled">' + miniHTML(k) + '</div>');
-  while (slots.length < S.cardGoal) {
-    slots.push('<div class="slot">' + miniLockedHTML() + '<button class="cta" onclick="goTo(8)">Log a bird</button></div>');
-  }
+  /* the same card as the goal screen, but an empty one here is loggable: the
+     button takes the place of the name and progress bar inside the card */
+  const slots = collected.map(scardHTML);
+  while (slots.length < S.cardGoal) slots.push(scardLoggableHTML());
   document.getElementById('goalGrid').innerHTML = slots.join('');
 }
 
+/* ══ THE CARD GOAL, A MODE OF THE MAP SHEET ═════════════════════════════
+   Not a second sheet: the same one rises from 421 to 62 — the frame's own top,
+   just under the status bar — and swaps its body. The height change rides the
+   `top` transition already on .sheet. */
+const SHEET_TOP = { map: 421, goal: 62 };
+let sheetMode = 'map';
+/* TEMPORARY (dev only): what mode the next arrival on the map should land in,
+   so the chrome's reload button can put you back in the goal sheet */
+let sheetModeOnEnter = 'map';
+function setSheetMode(mode, animate) {
+  sheetMode = mode;
+  const sheet = document.querySelector('[data-screen="5"] .sheet');
+  const head  = document.getElementById('goalHead');
+  const map   = document.getElementById('sheetMap');
+  const goal  = document.getElementById('sheetGoal');
+  if (!sheet) return;
+  if (mode === 'goal') buildGoalSheet();
+  map.hidden  = (mode === 'goal');
+  goal.hidden = (mode !== 'goal');
+  head.hidden = (mode !== 'goal');
+  sheet.style.transition = animate ? '' : 'none';
+  sheet.style.top = SHEET_TOP[mode] + 'px';
+  if (!animate) { void sheet.offsetHeight; sheet.style.transition = ''; }
+  /* the incoming body fades up while the sheet is still travelling */
+  const body = mode === 'goal' ? goal : map;
+  if (animate && body.animate) body.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
+}
+function openGoal()  { setSheetMode('goal', true); }
+function closeGoal() { setSheetMode('map', true); }
+
 /* ══ SCREENS 8–11 · the log flow ════════════════════════════════════════ */
 function buildPicker() {
+  /* PEX-44's own card: photo, name, binomial, and the dimorphic marker in a
+     full-width row (that row is where a result card would put its percentage) */
   document.getElementById('spList').innerHTML =
-    '<button class="spitem" onclick="pickSpecies(\'unidentified\')">'
-    + '<div class="spavatar" style="background:#DDE8F8;">🙋</div>'
-    + '<div class="spinfo"><span class="n blue">Unidentified Species</span>'
-    + '<div class="l" style="font-style:normal;">I don&rsquo;t know, ask the community for help</div></div></button>'
+    '<button class="sb-card sb-card-unid" onclick="pickSpecies(\'unidentified\')">'
+    + '<div class="sb-card-illus"><img src="imgs/unidentified-species.svg" alt="Unidentified species"></div>'
+    + '<div class="sb-card-text"><span class="sb-card-badge">Unidentified Species</span>'
+    + '<span class="sb-card-sci">I don&rsquo;t know, ask the community for help</span></div></button>'
     + PICKER.map(k => {
         const b = BIRDS[k];
-        return '<button class="spitem" onclick="pickSpecies(\'' + k + '\')">'
-          + '<div class="spavatar"><img src="' + photoOf(k) + '" alt="' + b.name + '"></div>'
-          + '<div class="spinfo"><div class="n">' + b.name + '</div><div class="l">' + b.latin + '</div>'
-          + '<div class="g">' + (k === 'blackbird' ? '♂ ♀' : '⚥') + '</div></div></button>';
+        return '<button class="sb-card" onclick="pickSpecies(\'' + k + '\')">'
+          + '<div class="sb-card-photo"><div style="background-image:url(\'' + photoOf(k) + '\')" role="img" aria-label="' + b.name + '"></div></div>'
+          + '<div class="sb-card-text">'
+          +   '<div style="align-self:stretch">'
+          +     '<span class="sb-card-name">' + b.name + '</span><br>'
+          +     '<span class="sb-card-sci">' + b.latin + '</span>'
+          +   '</div>'
+          +   '<div class="sb-card-actions"><svg class="sb-card-icon" viewBox="0 0 24 24"><use href="#ic-dimorphic"/></svg></div>'
+          + '</div></button>';
       }).join('');
 }
 /* jump straight from a map "Log" button into Review Sighting */
@@ -1699,7 +2039,7 @@ function startLog(key) { pickSpecies(key); }
 
 function pickSpecies(key) {
   S.logged = key;
-  goTo(9);
+  goTo(8);
 }
 /* whatever was picked, resolved to a species that has a card */
 function loggedCardKey() { return BIRDS[S.logged] ? S.logged : 'robin'; }
@@ -1726,7 +2066,15 @@ function buildLoggedScreens() {
    the map with the XP toast only. */
 function saveSighting() {
   const isNewCard = !!BIRDS[S.logged] && S.logged !== S.starter;
-  if (isNewCard) goTo(10); else goToMap('relog');
+  if (isNewCard) goTo(9); else goToMap('relog');
+}
+/* The upgrade explainer is a one-off: it follows the first *real* log — the
+   sighting that takes the collection from one card to two — and never again.
+   Every later new card goes straight back to the map. */
+function afterNewCard() {
+  if (S.explained) { goToMap('logged'); return; }
+  S.explained = true;
+  pushContent(10);
 }
 
 /* ══ THE CARD REVEAL ════════════════════════════════════════════════════
@@ -1746,6 +2094,7 @@ function saveSighting() {
    into each turn and accelerates back through centre. */
 const SPIN_MS = 1580;
 const SPIN_FACEON = 420;           /* the burst, and where the pop settles */
+const SPIN_SETTLE = 980;           /* tilts done, card easing to centre */
 const SPIN_KEYS = [
   [0,    -180, 'cubic-bezier(.5,.1,.7,.7)'],     /* unhurried start, accelerating through the flip */
   /* The flip carries its speed, so it needs to start easing off well before the
@@ -1791,18 +2140,40 @@ function spinCard(host, delay) {
   }, d + SPIN_MS + 20);
 }
 
+/* The footer button rising in, matching how the level-up screen brings its
+   Continue button up: 14px lift on ease-out-cubic over 400ms, with the fade
+   completing at the halfway point. fill:'backwards' holds it out of sight until
+   its turn, and a timer cancels afterwards so it can't be left invisible. */
+const BTN_RISE_MS = 400;
+function riseIn(el, delay) {
+  if (!el || !el.animate) return;
+  const d = delay || 0;
+  /* drop any rise still pending on this button, so re-entering a screen (arrow
+     keys, a deep link then a push) restarts the entry rather than stacking on it */
+  el.getAnimations().forEach(a => { try { a.cancel(); } catch (e) {} });
+  const a = el.animate([{ opacity: 0 }, { opacity: 1 }],
+    { duration: BTN_RISE_MS / 2, delay: d, fill: 'backwards' });
+  const b = el.animate([{ translate: '0 14px' }, { translate: '0 0' }],
+    { duration: BTN_RISE_MS, delay: d, fill: 'backwards', easing: 'cubic-bezier(.215,.61,.355,1)' });
+  setTimeout(() => { [a, b].forEach(x => { try { x.cancel(); } catch (e) {} }); }, d + BTN_RISE_MS + 80);
+}
+
 /* a gentle, endless left-right turn; keyframed 0 → −6 → 0 → +6 → 0 so the loop
    joins without a jump. Skipped when the reader asks for reduced motion. */
-function startSway(inner) {
+/* `base` is the rotation to sway around — 0 for the cards that land face-on, but
+   the upgrade card finishes at 540° (three flips), so it has to turn about that */
+function startSway(inner, base) {
   stopSway();
   if (!inner || !inner.animate) return;
   if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const b = base || 0;
+  const at = (deg, offset) => {
+    const k = { transform: 'rotateY(' + deg + 'deg)' };
+    if (offset !== undefined) k.offset = offset;
+    return k;
+  };
   swayAnim = inner.animate([
-    { transform: 'rotateY(0deg)' },
-    { transform: 'rotateY(' + -SWAY_DEG + 'deg)', offset: 0.25 },
-    { transform: 'rotateY(0deg)', offset: 0.5 },
-    { transform: 'rotateY(' + SWAY_DEG + 'deg)', offset: 0.75 },
-    { transform: 'rotateY(0deg)' },
+    at(b), at(b - SWAY_DEG, 0.25), at(b, 0.5), at(b + SWAY_DEG, 0.75), at(b),
   ], { duration: SWAY_MS, iterations: Infinity, easing: 'ease-in-out' });
 }
 function stopSway() {
@@ -1847,11 +2218,72 @@ function pushTo(n) {
   out.finished.then(done, done);
   setTimeout(done, PUSH_MS + 60);
 }
+/* the two things a content push moves: the copy block at the top of the body,
+   and the footer. Everything between them — the card — stays put. */
+function contentParts(s) {
+  return [s.querySelector('.body > div'), s.querySelector('.footer')].filter(Boolean);
+}
 function clearScreenAnims() {
   screens.forEach(s => {
     s.getAnimations().forEach(a => a.cancel());
-    s.style.translate = ''; s.style.boxShadow = '';
+    s.style.translate = ''; s.style.boxShadow = ''; s.style.background = '';
+    contentParts(s).forEach(el => { el.getAnimations().forEach(a => a.cancel()); el.style.translate = ''; });
   });
+  /* a content push hides the outgoing card (see pushContent); make sure no
+     navigation can leave it that way */
+  const nc = document.getElementById('newCard');
+  if (nc) nc.style.visibility = '';
+}
+
+/* ══ CONTENT PUSH (9 → 10) ══════════════════════════════════════════════
+   Both screens carry the same card in the same place, so this reads as one
+   screen taking new content: only the copy and the button travel, a full frame
+   width each on the push curve, while the card appears not to move at all.
+   The incoming screen's background has to come off for the duration — it is
+   opaque, and would otherwise hide the outgoing content completely. */
+function pushContent(n) {
+  const from = screens.find(s => +s.dataset.screen === cur);
+  const to   = screens.find(s => +s.dataset.screen === n);
+  if (pushing || !from || !to || !to.animate) { goTo(n); return; }
+  pushing = true;
+  stopSway();
+  clearScreenAnims();
+  tClear();
+  cancelAnimationFrame(LU.raf); cancelAnimationFrame(UP.raf);
+  cur = n;
+  to.classList.add('active');
+  to.style.background = 'transparent';
+  const body = to.querySelector('.body'); if (body) body.scrollTop = 0;
+  onEnter(n, PUSH_MS);
+
+  /* The two cards are identical and exactly stacked, so the only tell is their
+     drop shadows compounding into one darker one. Hide the outgoing card now that
+     the incoming one is painted — same task, so there is no frame with neither. */
+  const outCard = from.querySelector('#newCard');
+  if (outCard) outCard.style.visibility = 'hidden';
+
+  const opts = { duration: PUSH_MS, easing: PUSH_EASE };
+  /* forwards, so the outgoing copy holds off-frame until done() clears it — with
+     the default fill it snaps back to 0 the instant the animation ends, and here
+     there is no opaque screen on top to hide that flash */
+  contentParts(from).forEach(el => el.animate([{ translate: '0 0' }, { translate: '-402px 0' }],
+                                              Object.assign({ fill: 'forwards' }, opts)));
+  const arriving = contentParts(to).map(el =>
+    el.animate([{ translate: '402px 0' }, { translate: '0 0' }], Object.assign({ fill: 'backwards' }, opts)));
+
+  /* settle on whichever comes first, as pushTo does, so nothing can be stranded */
+  let settled = false;
+  const done = () => {
+    if (settled) return;
+    settled = true;
+    from.classList.remove('active');
+    to.style.background = '';
+    if (outCard) outCard.style.visibility = '';
+    contentParts(from).forEach(el => { el.getAnimations().forEach(a => a.cancel()); el.style.translate = ''; });
+    pushing = false;
+  };
+  if (arriving[0]) arriving[0].finished.then(done, done);
+  setTimeout(done, PUSH_MS + 60);
 }
 
 function show(n) {
@@ -1877,12 +2309,30 @@ function onEnter(n, d) {
          held out of sight until it drops */
       spinCard(document.getElementById('firstCard'), d);
       T(d + SPIN_FACEON, () => runPop('fx2'));
+      riseIn(document.getElementById('s2Btn'), d + SPIN_SETTLE);
     } else paintPop(armPop('fx2'), SEEK);
   }
-  if (n === 3) { if (SEEK === null) T(80, runLevelUp); else { armLevelUp(); paintLevelUp(SEEK); } }
-  if (n === 4) buildOnboardingCards();
+  if (n === 3) {
+    armLevelUp();
+    /* paint the opening state now, not on the timer — otherwise the badge and the
+       flock row show at their CSS defaults for a beat before the animation hides
+       them again */
+    paintLevelUp(SEEK === null ? LU_LEAD : SEEK);
+    /* pushed in: wait for the slide to land, then go straight into the bar */
+    if (SEEK === null) T(d ? PUSH_MS : 0, runLevelUp);
+  }
+  if (n === 4) {
+    buildOnboardingCards();
+    /* the grid is already there when the screen slides in; the button follows it
+       on 120ms after the push lands (delays here run from the push starting, the
+       same convention screen 3's timeline uses) */
+    if (SEEK === null) riseIn(document.getElementById('s4Btn'), d ? PUSH_MS + 120 : 120);
+  }
   if (n === 5) {
     buildMap();
+    /* the sheet always starts in the mode you arrive in, and without animating */
+    setSheetMode(sheetModeOnEnter, false);
+    sheetModeOnEnter = 'map';
     if (S.pending === 'onboarding') {
       /* the card you just earned in onboarding lands on the map */
       T(500, () => playCardToast(S.cards, S.cards, 0));
@@ -1902,16 +2352,20 @@ function onEnter(n, d) {
     }
     S.pending = null;
   }
-  if (n === 6) buildGoalSheet();
-  if (n === 8) buildPicker();
-  if (n === 9 || n === 10 || n === 11) buildLoggedScreens();
-  if (n === 10) {
+  if (n === 7) buildPicker();
+  if (n === 8 || n === 9 || n === 10) buildLoggedScreens();
+  if (n === 9) {
     if (SEEK === null) {
       spinCard(document.getElementById('newCard'), d);
       T(d + SPIN_FACEON, () => runPop('fx10'));
     } else paintPop(armPop('fx10'), SEEK);
   }
-  if (n === 11) { if (SEEK === null) T(80, runUpgrade); else { armUpgrade(); paintUpgrade(SEEK); } }
+  if (n === 10) {
+    /* built now, not on the timer: the card has to be there — and identical to
+       screen 9's — from the first frame of the content push */
+    armUpgrade();
+    if (SEEK === null) T(d + 80, runUpgrade); else paintUpgrade(SEEK);
+  }
 }
 function next() { show(cur === screens.length ? 1 : cur + 1); }
 function goTo(n) { show(n); }
@@ -1940,7 +2394,12 @@ fitShell();
 
 /* ══ BOOT ═══════════════════════════════════════════════════════════════ */
 buildOnboardingCards();
-show(parseInt((location.hash || '').replace('#', '')) || 1);
+/* #<screen> — or #<screen>,<arrival> from the dev reload button, which needs
+   the arrival restored before show() so onEnter can schedule the toasts */
+const BOOT = (location.hash || '').replace('#', '').split(',');
+if (BOOT[1] === 'goal') sheetModeOnEnter = 'goal';
+else if (BOOT[1] && MAP_ARRIVALS.indexOf(BOOT[1]) >= 0) { S.pending = BOOT[1]; devArrival = BOOT[1]; }
+show(parseInt(BOOT[0]) || 1);
 </script>
 </body>
 </html>
