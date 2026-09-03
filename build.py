@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Generate the redirect site that stands in for the old Pages URL.
 
-The prototypes moved from ellenbuilds/birda-prototypes to
-ChirpBirding/design-prototypes. GitHub redirects repo URLs after a transfer but
-NOT Pages URLs, so every link shared as
+The prototypes moved out of ellenbuilds/birda-prototypes and are now served
+from the internal web app. GitHub redirects repo URLs after a transfer but NOT
+Pages URLs, so every link shared as
 
     https://ellenbuilds.github.io/birda-prototypes/<path>
 
 went dead. Recreating a repo at the old name lets its Pages site answer those
 URLs and forward each one to its equivalent under
 
-    https://chirpbirding.github.io/design-prototypes/<path>
+    https://internal-web-birda.vercel.app/design-prototypes/<path>
+
+The new host is behind the app's login, which preserves the path it was asked
+for and returns you to it after signing in — so the path-for-path forwarding
+below still lands people on the right prototype.
 
 Two layers, deliberately:
 
@@ -24,7 +28,7 @@ Run:  python3 build.py     (regenerates every file from PAGES below)
 
 import os
 
-NEW_BASE = "https://chirpbirding.github.io/design-prototypes/"
+NEW_BASE = "https://internal-web-birda.vercel.app/design-prototypes/"
 OLD_PREFIX = "/birda-prototypes/"
 
 # Every page published from the old repo, as `git ls-files '*.html'` reported

@@ -3,10 +3,12 @@
 This repo contains no prototypes. It exists so that links shared before the
 move keep working.
 
-The prototypes were transferred to the ChirpBirding org and renamed, so they
-now live at:
+The prototypes are now served from the internal web app, at:
 
-    https://chirpbirding.github.io/design-prototypes/
+    https://internal-web-birda.vercel.app/design-prototypes/
+
+That host sits behind the app's login. Signing in returns you to the path you
+asked for, so a forwarded deep link still lands on the right prototype.
 
 GitHub redirects repository URLs after a transfer, but **not GitHub Pages
 URLs** — so every link of the form
